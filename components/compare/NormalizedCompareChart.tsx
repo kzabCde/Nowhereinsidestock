@@ -1,15 +1,15 @@
 "use client";
 import { Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import type { CompareStockResult } from "@/lib/types/compare";
+import type { CompareSeries } from "@/lib/types/compare";
 
-type Props = { stocks: CompareStockResult[] };
+type Props = { series: CompareSeries[] };
 
 const colors = ["#7dd3fc", "#f9a8d4", "#c4b5fd", "#86efac"];
 
-export function NormalizedCompareChart({ stocks }: Props) {
-  const rows = stocks[0]?.points.map((point, index) => {
+export function NormalizedCompareChart({ series }: Props) {
+  const rows = series[0]?.points.map((point, index) => {
     const row: Record<string, number | string> = { date: point.date.slice(5) };
-    stocks.forEach((stock) => {
+    series.forEach((stock) => {
       const p = stock.points[index];
       if (p) {
         row[stock.symbol] = p.normalized;
@@ -25,5 +25,5 @@ export function NormalizedCompareChart({ stocks }: Props) {
     const close = Number(item.payload[`${symbol}_close`] ?? 0);
     const pct = normalized - 100;
     return [`Norm ${normalized.toFixed(2)} | ${pct >= 0 ? "+" : ""}${pct.toFixed(2)}% | $${close.toFixed(2)}`, symbol];
-  }} />{stocks.map((stock, idx) => <Line key={stock.symbol} dataKey={stock.symbol} dot={false} strokeWidth={2} stroke={colors[idx % colors.length]} name={stock.symbol.slice(0, 6)} />)}</LineChart></ResponsiveContainer></div>;
+  }} />{series.map((stock, idx) => <Line key={stock.symbol} dataKey={stock.symbol} dot={false} strokeWidth={2} stroke={colors[idx % colors.length]} name={stock.symbol.slice(0, 6)} />)}</LineChart></ResponsiveContainer></div>;
 }
