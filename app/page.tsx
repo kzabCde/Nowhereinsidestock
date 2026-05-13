@@ -28,8 +28,8 @@ export default function HomePage() {
   return (
     <main className="grid-overlay min-h-screen overflow-x-hidden">
       <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
-        <header className="printstream-shell pearl-border glow-soft w-full max-w-full rounded-3xl p-4 text-center sm:p-8">
-          <div className="flex justify-center">
+        <header className="printstream-shell pearl-border glow-soft w-full min-w-0 max-w-full rounded-3xl p-4 text-center sm:p-8">
+          <div className="flex min-w-0 flex-wrap justify-center">
             <NowhereInsideStockLogo className="justify-center" />
           </div>
           <p className="mt-2 text-sm text-slate-300 sm:text-base">See the trend. Read the signal.</p>
