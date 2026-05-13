@@ -7,7 +7,7 @@ import { FavoriteButton } from "@/components/stocks/FavoriteButton";
 import type { SearchItem } from "@/lib/types/market";
 
 export default function HomePage() {
-  const [input, setInput] = useState("AAPL");
+  const [input, setInput] = useState("");
   const [debounced, setDebounced] = useState("");
   const [results, setResults] = useState<SearchItem[]>([]);
 
@@ -35,14 +35,22 @@ export default function HomePage() {
               value={input}
               onChange={(e) => setInput(e.target.value.toUpperCase())}
               className="h-14 w-full min-w-0 flex-1 rounded-2xl border border-white/20 bg-black/50 px-4 text-base uppercase outline-none focus:border-cyan-300 sm:px-5 sm:text-lg"
-              placeholder="Search a stock symbol (e.g., AAPL)"
+              placeholder="Search stock symbol..."
             />
-            <Link href={`/stocks/${input.toUpperCase()}`} className="btn-premium flex h-14 w-full items-center justify-center sm:w-auto">Search Stock</Link>
+            <Link
+              href={input.trim() ? `/stocks/${input.toUpperCase()}` : "#"}
+              aria-disabled={!input.trim()}
+              className="btn-premium flex h-14 w-full items-center justify-center disabled:pointer-events-none disabled:opacity-50 sm:w-auto"
+              onClick={(e) => {
+                if (!input.trim()) e.preventDefault();
+              }}
+            >
+              Search Stock
+            </Link>
           </form>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
             <a href="#magnificent-seven" className="btn-premium w-full sm:w-auto">Magnificent Seven</a>
             <Link href="/watchlist" className="btn-premium w-full sm:w-auto">Watchlist</Link>
-            <Link href={`/stocks/${input.toUpperCase()}`} className="btn-premium w-full sm:w-auto">Compare</Link>
           </div>
         </header>
 
