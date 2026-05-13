@@ -4,6 +4,23 @@ import type { Candle, QuoteResponse, SearchItem } from "@/lib/types/market";
 
 const yahooFinance = new YahooFinance();
 
+type YahooSearchQuote = {
+  symbol?: unknown;
+  shortname?: unknown;
+  exchDisp?: unknown;
+};
+
+const asString = (value: unknown): string | undefined =>
+  typeof value === "string" ? value : undefined;
+
+function isSearchQuote(item: YahooSearchQuote): item is {
+  symbol: string;
+  shortname?: unknown;
+  exchDisp?: unknown;
+} {
+  return typeof item.symbol === "string";
+}
+
 const getTrend = (sma20: number | null, ema20: number | null, close: number) => {
   if (!sma20 || !ema20) return "neutral" as const;
   if (close > sma20 && close > ema20) return "bullish" as const;
@@ -62,8 +79,8 @@ export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteRes
 
   return {
     symbol: symbol.toUpperCase(),
-    name: result.meta?.longName,
-    exchange: result.meta?.exchangeName,
+    name: asString(result.meta?.longName),
+    exchange: asString(result.meta?.exchangeName),
     latestPrice: close,
     changePercent: prev === 0 ? 0 : ((close - prev) / prev) * 100,
     candles,
@@ -80,7 +97,10 @@ export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteRes
 
 export async function searchSymbols(query: string): Promise<SearchItem[]> {
   const data = await yahooFinance.search(query, { quotesCount: 8, newsCount: 0 });
-  return data.quotes
-    .filter((item) => typeof item.symbol === "string")
-    .map((item) => ({ symbol: item.symbol, shortname: item.shortname, exchDisp: item.exchDisp }));
+
+  return data.quotes.filter(isSearchQuote).map((item) => ({
+    symbol: item.symbol,
+    shortname: asString(item.shortname),
+    exchDisp: asString(item.exchDisp)
+  }));
 }
