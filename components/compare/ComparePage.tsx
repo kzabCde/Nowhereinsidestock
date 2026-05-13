@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { CompareStockResult, CompareTimeframe, WinnerSummary } from "@/lib/types/compare";
+import type { CompareSeries, CompareStockResult, CompareTimeframe, WinnerSummary } from "@/lib/types/compare";
 import { NormalizedCompareChart } from "@/components/compare/NormalizedCompareChart";
 import { CompareInput } from "@/components/compare/CompareInput";
 import { SelectedStockChips } from "@/components/compare/SelectedStockChips";
@@ -15,7 +15,6 @@ const presets = {
   "EV Stocks": ["TSLA", "RIVN", "NIO"],
   "Thai Stocks": ["PTT.BK", "AOT.BK", "CPALL.BK"]
 } as const;
-
 
 type Props = { initialSymbols: string[]; timeframe: CompareTimeframe; results: CompareStockResult[]; summary: WinnerSummary | null };
 
@@ -52,7 +51,31 @@ export function ComparePage({ initialSymbols, timeframe, results, summary }: Pro
     window.location.href = `/compare?symbols=${next.join(",")}&timeframe=${timeframe}`;
   };
 
-  const validResults = useMemo(() => results.filter((r) => !r.error), [results]);
+  const validResults = useMemo<CompareSeries[]>(
+    () =>
+      results
+        .filter((r) => !r.error)
+        .map((r) => ({
+          symbol: r.symbol,
+          name: r.name,
+          points: r.points.map((point) => ({
+            date: point.date,
+            close: point.close,
+            normalized: point.normalized,
+            percentChange: point.normalized - 100
+          })),
+          metrics: {
+            latestPrice: r.metrics.latestPrice,
+            totalReturn: r.metrics.totalReturn,
+            volatility: r.metrics.volatility,
+            trend: r.metrics.trendDirection === "bullish" ? "uptrend" : r.metrics.trendDirection === "bearish" ? "downtrend" : "sideway",
+            rsiSignal: r.metrics.rsi.toFixed(2),
+            macdSignal: r.metrics.macdSignal,
+            averageVolume: r.metrics.averageVolume
+          }
+        })),
+    [results]
+  );
 
   return (
     <main className="grid-overlay min-h-screen overflow-x-hidden px-4 py-6 sm:px-6">
@@ -68,8 +91,8 @@ export function ComparePage({ initialSymbols, timeframe, results, summary }: Pro
 
         {symbols.length < 2 ? <section className="printstream-shell rounded-2xl p-8 text-center text-slate-300">Select at least 2 stocks to compare.</section> : (
           <>
-            <section className="printstream-shell pearl-border w-full max-w-full min-w-0 overflow-hidden rounded-3xl p-3 sm:p-4"><NormalizedCompareChart stocks={validResults} /></section>
-            <CompareMetricsTable results={results} />
+            <section className="printstream-shell pearl-border w-full max-w-full min-w-0 overflow-hidden rounded-3xl p-3 sm:p-4"><NormalizedCompareChart series={validResults} /></section>
+            <CompareMetricsTable series={validResults} />
             {summary && <CompareWinnerSummary summary={summary} />}
           </>
         )}
