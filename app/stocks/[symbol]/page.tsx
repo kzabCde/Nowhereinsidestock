@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { InsightCard } from "@/components/dashboard/InsightCard";
 import { PriceChart } from "@/components/dashboard/PriceChart";
 import { FavoriteButton } from "@/components/stocks/FavoriteButton";
+import { ThaiStockSummary } from "@/components/stocks/ThaiStockSummary";
 import type { QuoteResponse } from "@/lib/types/market";
 
 export default function StockDetailPage() {
@@ -19,6 +20,14 @@ export default function StockDetailPage() {
       if (res.ok) setData((await res.json()) as QuoteResponse);
     })();
   }, [symbol]);
+
+
+  const thaiTrend = useMemo(() => {
+    if (!data) return "sideway" as const;
+    if (data.insight.trend === "bullish") return "uptrend" as const;
+    if (data.insight.trend === "bearish") return "downtrend" as const;
+    return "sideway" as const;
+  }, [data]);
 
   const trendTone = useMemo(() => {
     if (!data) return "neutral" as const;
@@ -53,13 +62,27 @@ export default function StockDetailPage() {
           <PriceChart data={data} />
         </section>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <InsightCard label="Trend" value={data.insight.trend.toUpperCase()} tone={trendTone} />
-          <InsightCard label="Momentum" value={data.insight.momentum.toUpperCase()} tone="neutral" />
-          <InsightCard label="RSI" value={data.insight.rsiSignal.toUpperCase()} tone="neutral" />
-          <InsightCard label="MACD" value={data.insight.macdSignal.toUpperCase()} tone="neutral" />
-          <InsightCard label="Volatility" value={`${data.insight.volatility}%`} tone="neutral" />
-        </div>
+        <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <ThaiStockSummary
+            symbol={data.symbol}
+            name={data.name}
+            latestPrice={data.latestPrice}
+            changePercent={data.changePercent}
+            trend={thaiTrend}
+            momentum={data.insight.momentum}
+            rsiSignal={data.insight.rsiSignal}
+            macdSignal={data.insight.macdSignal}
+            volatility={data.insight.volatility}
+          />
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+            <InsightCard label="Trend" value={data.insight.trend.toUpperCase()} tone={trendTone} />
+            <InsightCard label="Momentum" value={data.insight.momentum.toUpperCase()} tone="neutral" />
+            <InsightCard label="RSI" value={data.insight.rsiSignal.toUpperCase()} tone="neutral" />
+            <InsightCard label="MACD" value={data.insight.macdSignal.toUpperCase()} tone="neutral" />
+            <InsightCard label="Volatility" value={`${data.insight.volatility}%`} tone="neutral" />
+          </div>
+        </section>
       </div>
     </main>
   );
