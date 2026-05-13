@@ -1,6 +1,6 @@
 import YahooFinance from "yahoo-finance2";
 import { ema, macd, rsi, sma, volatility } from "@/lib/indicators/technical";
-import type { Candle, QuoteResponse } from "@/lib/types/market";
+import type { Candle, QuoteResponse, SearchItem } from "@/lib/types/market";
 
 const yahooFinance = new YahooFinance();
 
@@ -35,19 +35,13 @@ export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteRes
   const from = new Date(now);
   from.setDate(now.getDate() - 180);
 
-  let candles: Candle[] = [];
+  const result = await yahooFinance.chart(symbol, {
+    period1: from,
+    period2: now,
+    interval: "1d"
+  });
 
-  try {
-    const result = await yahooFinance.chart(symbol, {
-      period1: from,
-      period2: now,
-      interval: "1d"
-    });
-
-    candles = normalizeCandles(result?.quotes);
-  } catch (error) {
-    throw new Error(error instanceof Error ? `Failed to fetch market data: ${error.message}` : "Failed to fetch market data");
-  }
+  const candles = normalizeCandles(result?.quotes);
 
   if (candles.length < 30) {
     throw new Error("Not enough data available for analysis");
@@ -63,9 +57,15 @@ export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteRes
   const latestRsi = rsi14[latest] ?? 50;
   const latestMacd = macdLine[latest] ?? 0;
   const latestSignal = signal[latest] ?? 0;
+  const close = candles[latest]?.close ?? 0;
+  const prev = candles[latest - 1]?.close ?? close;
 
   return {
     symbol: symbol.toUpperCase(),
+    name: result.meta?.longName,
+    exchange: result.meta?.exchangeName,
+    latestPrice: close,
+    changePercent: prev === 0 ? 0 : ((close - prev) / prev) * 100,
     candles,
     indicators: { sma20, ema20, rsi14, macd: macdLine, signal },
     insight: {
@@ -76,4 +76,11 @@ export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteRes
       volatility: volatility(closes)
     }
   };
+}
+
+export async function searchSymbols(query: string): Promise<SearchItem[]> {
+  const data = await yahooFinance.search(query, { quotesCount: 8, newsCount: 0 });
+  return data.quotes
+    .filter((item) => typeof item.symbol === "string")
+    .map((item) => ({ symbol: item.symbol, shortname: item.shortname, exchDisp: item.exchDisp }));
 }
