@@ -17,6 +17,10 @@ export type MarketInsight = {
 
 export type QuoteResponse = {
   symbol: string;
+  name?: string;
+  exchange?: string;
+  latestPrice: number;
+  changePercent: number;
   candles: Candle[];
   indicators: {
     sma20: Array<number | null>;
@@ -26,4 +30,10 @@ export type QuoteResponse = {
     signal: Array<number | null>;
   };
   insight: MarketInsight;
+};
+
+export type SearchItem = {
+  symbol: string;
+  shortname?: string;
+  exchDisp?: string;
 };
