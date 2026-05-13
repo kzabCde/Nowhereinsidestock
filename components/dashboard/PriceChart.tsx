@@ -16,7 +16,7 @@ export function PriceChart({ data }: PriceChartProps) {
   }));
 
   return (
-    <div className="h-[380px] w-full rounded-2xl border border-white/10 bg-panel/70 p-4 backdrop-blur">
+    <div className="h-[260px] w-full min-w-0 rounded-2xl border border-white/10 bg-panel/70 p-3 backdrop-blur sm:h-[360px] sm:p-4">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={chartData}>
           <XAxis dataKey="date" tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} />
