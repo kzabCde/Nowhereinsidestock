@@ -4,23 +4,10 @@ import type { Candle, QuoteResponse, SearchItem } from "@/lib/types/market";
 
 const yahooFinance = new YahooFinance();
 
-type YahooSearchQuoteSafe = {
-  symbol: string;
-  shortname?: unknown;
-  exchDisp?: unknown;
-};
-
 function asString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
-function isSearchQuote(item: unknown): item is YahooSearchQuoteSafe {
-  if (!item || typeof item !== "object") return false;
-
-  const record = item as Record<string, unknown>;
-
-  return typeof record.symbol === "string";
-}
 
 const getTrend = (sma20: number | null, ema20: number | null, close: number) => {
   if (!sma20 || !ema20) return "neutral" as const;
@@ -102,13 +89,21 @@ export async function searchSymbols(query: string): Promise<SearchItem[]> {
     newsCount: 0
   });
 
-  return data.quotes
-    .filter(isSearchQuote)
-    .map(
-      (item): SearchItem => ({
-        symbol: item.symbol,
-        shortname: asString(item.shortname),
-        exchDisp: asString(item.exchDisp)
-      })
-    );
+  const results: SearchItem[] = [];
+
+  for (const rawItem of data.quotes) {
+    const item = rawItem as Record<string, unknown>;
+
+    const symbol = asString(item.symbol);
+
+    if (!symbol) continue;
+
+    results.push({
+      symbol,
+      shortname: asString(item.shortname),
+      exchDisp: asString(item.exchDisp)
+    });
+  }
+
+  return results;
 }
