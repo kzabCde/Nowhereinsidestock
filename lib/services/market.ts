@@ -8,6 +8,10 @@ function asString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
 }
 
+function asNumber(value: unknown): number | undefined {
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
 
 const getTrend = (sma20: number | null, ema20: number | null, close: number) => {
   if (!sma20 || !ema20) return "neutral" as const;
@@ -45,6 +49,8 @@ export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteRes
     period2: now,
     interval: "1d"
   });
+  const profile = await yahooFinance.quoteSummary(symbol, { modules: ["assetProfile"] });
+  const assetProfile = profile.assetProfile as Record<string, unknown> | undefined;
 
   const candles = normalizeCandles(result?.quotes);
 
@@ -69,6 +75,11 @@ export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteRes
     symbol: symbol.toUpperCase(),
     name: asString(result.meta?.longName),
     exchange: asString(result.meta?.exchangeName),
+    companyDescription: asString(assetProfile?.longBusinessSummary),
+    sector: asString(assetProfile?.sector),
+    industry: asString(assetProfile?.industry),
+    website: asString(assetProfile?.website),
+    fullTimeEmployees: asNumber(assetProfile?.fullTimeEmployees),
     latestPrice: close,
     changePercent: prev === 0 ? 0 : ((close - prev) / prev) * 100,
     candles,

@@ -4,7 +4,7 @@ import type { CompareTimeframe } from "@/lib/types/compare";
 
 type PageProps = { searchParams: Promise<{ symbols?: string; timeframe?: string }> };
 
-const fallbackSymbols = ["AAPL", "MSFT"];
+const fallbackSymbols: string[] = [];
 const allowedTimeframes: CompareTimeframe[] = ["1M", "6M", "1Y", "5Y"];
 
 export default async function Page({ searchParams }: PageProps) {

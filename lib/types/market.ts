@@ -19,6 +19,11 @@ export type QuoteResponse = {
   symbol: string;
   name?: string;
   exchange?: string;
+  companyDescription?: string;
+  sector?: string;
+  industry?: string;
+  website?: string;
+  fullTimeEmployees?: number;
   latestPrice: number;
   changePercent: number;
   candles: Candle[];
