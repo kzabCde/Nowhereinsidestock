@@ -24,7 +24,7 @@ export default function NowhereInsideStockLogo({
       <span
         className={`relative z-10 block break-words text-center font-extrabold uppercase leading-tight tracking-[0.08em] text-transparent sm:whitespace-nowrap ${textSize}
           [-webkit-text-stroke:1.25px_rgba(226,232,240,0.9)] [text-stroke:1.25px_rgba(226,232,240,0.9)]
-          transition-[color,text-shadow,-webkit-text-stroke-color,filter] duration-[1200ms] ease-out
+          transition-[color,text-shadow,-webkit-text-stroke-color,filter] duration-[3500ms] ease-out
           group-hover:[-webkit-text-stroke-color:transparent] group-hover:[text-stroke-color:transparent]
           group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-cyan-100 group-hover:to-violet-300 group-hover:bg-clip-text
           group-active:[-webkit-text-stroke-color:transparent] group-active:[text-stroke-color:transparent]
