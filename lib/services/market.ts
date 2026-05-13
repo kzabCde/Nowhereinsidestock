@@ -1,6 +1,8 @@
-import yahooFinance from "yahoo-finance2";
+import YahooFinance from "yahoo-finance2";
 import { ema, macd, rsi, sma, volatility } from "@/lib/indicators/technical";
 import type { Candle, QuoteResponse } from "@/lib/types/market";
+
+const yahooFinance = new YahooFinance();
 
 const getTrend = (sma20: number | null, ema20: number | null, close: number) => {
   if (!sma20 || !ema20) return "neutral" as const;
