@@ -32,7 +32,7 @@ export default function NowhereInsideStockLogo({ compact = false, href = "/", cl
 
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-1 bottom-0 h-[2px] origin-left scale-x-0 bg-gradient-to-r from-white/75 via-cyan-300/75 to-violet-400/80 shadow-[0_0_12px_rgba(139,92,246,0.45)] transition-transform duration-700 group-hover:scale-x-100 group-active:scale-x-100"
+        className="pointer-events-none absolute inset-x-1 bottom-0 h-[2px] origin-left scale-x-0 bg-gradient-to-r from-white/75 via-cyan-300/75 to-violet-400/80 shadow-[0_0_12px_rgba(139,92,246,0.45)] transition-transform duration-2500 group-hover:scale-x-100 group-active:scale-x-100"
       />
     </Link>
   );
