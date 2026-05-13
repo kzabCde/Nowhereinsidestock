@@ -11,22 +11,39 @@ const getTrend = (sma20: number | null, ema20: number | null, close: number) => 
   return "neutral" as const;
 };
 
+const normalizeCandles = (quotes: Array<{ date?: Date; open?: number | null; close?: number | null; high?: number | null; low?: number | null; volume?: number | null }> | undefined): Candle[] => {
+  if (!quotes?.length) return [];
+
+  return quotes
+    .filter((c) => c.date instanceof Date && c.close != null && c.high != null && c.low != null)
+    .map((c) => ({
+      date: c.date!.toISOString(),
+      open: c.open ?? c.close ?? 0,
+      high: c.high ?? 0,
+      low: c.low ?? 0,
+      close: c.close ?? 0,
+      volume: c.volume ?? 0
+    }));
+};
+
 export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteResponse> {
   const now = new Date();
   const from = new Date(now);
   from.setDate(now.getDate() - 180);
 
-  const historical = await yahooFinance.historical(symbol, { period1: from, period2: now, interval: "1d" });
+  let candles: Candle[] = [];
 
-  const candles: Candle[] = historical
-    .filter((c) => c.close && c.high && c.low && c.volume)
-    .map((c) => ({
-      date: c.date.toISOString().slice(0, 10),
-      close: Number(c.close),
-      high: Number(c.high),
-      low: Number(c.low),
-      volume: Number(c.volume)
-    }));
+  try {
+    const result = await yahooFinance.chart(symbol, {
+      period1: from,
+      period2: now,
+      interval: "1d"
+    });
+
+    candles = normalizeCandles(result?.quotes);
+  } catch (error) {
+    throw new Error(error instanceof Error ? `Failed to fetch market data: ${error.message}` : "Failed to fetch market data");
+  }
 
   if (candles.length < 30) {
     throw new Error("Not enough data available for analysis");
