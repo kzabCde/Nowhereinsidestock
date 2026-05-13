@@ -55,11 +55,11 @@ export function ComparePage({ initialSymbols, timeframe, results, summary }: Pro
   const validResults = useMemo(() => results.filter((r) => !r.error), [results]);
 
   return (
-    <main className="grid-overlay min-h-screen p-4 md:p-6">
-      <div className="mx-auto max-w-7xl space-y-4">
-        <section className="printstream-shell pearl-border rounded-3xl p-4 md:p-6">
-          <h1 className="text-2xl font-bold">Compare Stocks</h1>
-          <p className="text-sm text-slate-300">Add 2-4 stock symbols and compare performance side by side.</p>
+    <main className="grid-overlay min-h-screen overflow-x-hidden px-4 py-6 sm:px-6">
+      <div className="mx-auto w-full max-w-7xl space-y-4">
+        <section className="printstream-shell pearl-border w-full max-w-full min-w-0 overflow-hidden rounded-3xl p-4 sm:p-6">
+          <h1 className="text-2xl font-bold sm:text-3xl">Compare Stocks</h1>
+          <p className="text-sm text-slate-300 sm:text-base">Add 2-4 stock symbols and compare performance side by side.</p>
           <SelectedStockChips symbols={symbols} onRemove={removeSymbol} />
           <CompareInput value={symbolInput} onChange={setSymbolInput} onAdd={() => addSymbol(symbolInput)} results={search} onPick={addSymbol} />
           <div className="mt-3 flex flex-wrap gap-2">{Object.entries(presets).map(([name, list]) => <button key={name} onClick={() => { const next = Array.from(new Set(list)).slice(0, 4); setSymbols(next); window.location.href = `/compare?symbols=${next.join(",")}&timeframe=${timeframe}`; }} className="rounded-xl border border-white/20 px-3 py-1 text-xs">{name}</button>)}</div>
@@ -68,7 +68,7 @@ export function ComparePage({ initialSymbols, timeframe, results, summary }: Pro
 
         {symbols.length < 2 ? <section className="printstream-shell rounded-2xl p-8 text-center text-slate-300">Select at least 2 stocks to compare.</section> : (
           <>
-            <section className="printstream-shell pearl-border rounded-3xl p-4"><NormalizedCompareChart stocks={validResults} /></section>
+            <section className="printstream-shell pearl-border w-full max-w-full min-w-0 overflow-hidden rounded-3xl p-3 sm:p-4"><NormalizedCompareChart stocks={validResults} /></section>
             <CompareMetricsTable results={results} />
             {summary && <CompareWinnerSummary summary={summary} />}
           </>

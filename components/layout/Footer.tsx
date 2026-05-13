@@ -9,9 +9,9 @@ const legalLinks = [
 
 export default function Footer() {
   return (
-    <footer className="mt-12 border-t border-white/10 bg-black/35 px-6 py-5 text-sm text-slate-400 backdrop-blur-md">
+    <footer className="mt-12 border-t border-white/10 bg-black/35 px-4 py-5 text-sm text-slate-400 backdrop-blur-md sm:px-6">
       <div
-        className="mx-auto flex w-full max-w-7xl flex-col gap-3 border-t border-transparent pt-1 md:flex-row md:items-center md:justify-between"
+        className="mx-auto flex w-full max-w-7xl flex-col gap-3 border-t border-transparent pt-1 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left"
         style={{ borderImage: "linear-gradient(90deg, rgba(173,139,255,0.55), rgba(122,228,255,0.45), rgba(255,166,222,0.5)) 1" }}
       >
         <p className="text-slate-400">
@@ -27,7 +27,7 @@ export default function Footer() {
           </a>
         </p>
 
-        <nav className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-slate-500 md:text-sm">
+        <nav className="flex flex-wrap justify-center gap-3 text-xs text-slate-500 sm:justify-start sm:text-sm">
           {legalLinks.map((link) =>
             link.href.startsWith("http") ? (
               <a

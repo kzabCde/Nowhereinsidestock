@@ -27,19 +27,19 @@ export default function StockDetailPage() {
     return "neutral" as const;
   }, [data]);
 
-  if (!data) return <main className="p-6">Loading...</main>;
+  if (!data) return <main className="p-4 sm:p-6">Loading...</main>;
 
   return (
-    <main className="grid-overlay min-h-screen">
-      <div className="mx-auto max-w-6xl space-y-5 p-6">
+    <main className="grid-overlay min-h-screen overflow-x-hidden">
+      <div className="mx-auto w-full max-w-6xl space-y-5 px-4 py-6 sm:px-6">
         <Link href="/" className="btn-premium inline-flex">← Back to Dashboard</Link>
 
-        <section className="printstream-shell pearl-border rounded-3xl p-6">
+        <section className="printstream-shell pearl-border w-full max-w-full min-w-0 overflow-hidden rounded-3xl p-4 sm:p-6">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
               <p className="text-sm tracking-widest text-slate-400">{data.symbol}</p>
-              <h1 className="text-3xl font-bold md:text-4xl">{data.name ?? data.symbol}</h1>
-              <p className="mt-2 text-4xl font-extrabold">${data.latestPrice.toFixed(2)}</p>
+              <h1 className="truncate text-3xl font-bold sm:text-4xl">{data.name ?? data.symbol}</h1>
+              <p className="mt-2 text-3xl font-extrabold sm:text-4xl">${data.latestPrice.toFixed(2)}</p>
               <p className={`mt-1 text-sm ${data.changePercent >= 0 ? "text-emerald-300" : "text-rose-300"}`}>{data.changePercent >= 0 ? "+" : ""}{data.changePercent.toFixed(2)}%</p>
             </div>
             <div className="space-y-2">
@@ -49,11 +49,11 @@ export default function StockDetailPage() {
           </div>
         </section>
 
-        <section className="printstream-shell pearl-border rounded-3xl p-4">
+        <section className="printstream-shell pearl-border w-full max-w-full min-w-0 overflow-hidden rounded-3xl p-3 sm:p-4">
           <PriceChart data={data} />
         </section>
 
-        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <InsightCard label="Trend" value={data.insight.trend.toUpperCase()} tone={trendTone} />
           <InsightCard label="Momentum" value={data.insight.momentum.toUpperCase()} tone="neutral" />
           <InsightCard label="RSI" value={data.insight.rsiSignal.toUpperCase()} tone="neutral" />

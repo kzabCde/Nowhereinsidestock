@@ -19,11 +19,11 @@ export function NormalizedCompareChart({ stocks }: Props) {
     return row;
   }) ?? [];
 
-  return <div className="h-[360px] w-full"> <ResponsiveContainer width="100%" height="100%"><LineChart data={rows}><XAxis dataKey="date"/><YAxis domain={[80, 180]}/><Tooltip formatter={(value, name, item) => {
+  return <div className="h-[260px] w-full min-w-0 sm:h-[360px]"> <ResponsiveContainer width="100%" height="100%"><LineChart data={rows} margin={{ left: 8, right: 8 }}><XAxis dataKey="date" tick={{ fontSize: 10 }}/><YAxis domain={[80, 180]} tick={{ fontSize: 10 }} width={34}/><Tooltip formatter={(value, name, item) => {
     const symbol = String(name);
     const normalized = Number(value);
     const close = Number(item.payload[`${symbol}_close`] ?? 0);
     const pct = normalized - 100;
     return [`Norm ${normalized.toFixed(2)} | ${pct >= 0 ? "+" : ""}${pct.toFixed(2)}% | $${close.toFixed(2)}`, symbol];
-  }} />{stocks.map((stock, idx) => <Line key={stock.symbol} dataKey={stock.symbol} dot={false} strokeWidth={2} stroke={colors[idx % colors.length]} />)}</LineChart></ResponsiveContainer></div>;
+  }} />{stocks.map((stock, idx) => <Line key={stock.symbol} dataKey={stock.symbol} dot={false} strokeWidth={2} stroke={colors[idx % colors.length]} name={stock.symbol.slice(0, 6)} />)}</LineChart></ResponsiveContainer></div>;
 }

@@ -24,12 +24,12 @@ export function MagnificentSeven() {
     })();
   }, []);
 
-  if (loading) return <div className="h-56 animate-pulse rounded-2xl bg-white/5" />;
+  if (loading) return <div className="h-56 w-full max-w-full animate-pulse rounded-2xl bg-white/5" />;
 
   return (
-    <section className="space-y-4">
+    <section className="w-full max-w-full space-y-4">
       <h2 className="text-xl font-semibold">Magnificent Seven</h2>
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {stocks.map((stock) => (
           <StockCard key={stock.symbol} stock={stock} />
         ))}

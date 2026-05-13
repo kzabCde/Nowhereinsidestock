@@ -17,10 +17,10 @@ export function InsightCard({ label, value, tone = "neutral" }: InsightCardProps
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      className="rounded-2xl border border-white/10 bg-white/5 p-4 shadow-glass backdrop-blur"
+      className="w-full max-w-full min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 shadow-glass backdrop-blur"
     >
       <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
-      <p className={`mt-2 text-2xl font-semibold ${tones[tone]}`}>{value}</p>
+      <p className={`mt-2 truncate text-2xl font-semibold ${tones[tone]}`}>{value}</p>
     </motion.div>
   );
 }
