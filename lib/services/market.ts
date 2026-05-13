@@ -16,14 +16,18 @@ const normalizeCandles = (quotes: Array<{ date?: Date; open?: number | null; clo
 
   return quotes
     .filter((c) => c.date instanceof Date && c.close != null && c.high != null && c.low != null)
-    .map((c) => ({
-      date: c.date!.toISOString(),
-      open: c.open ?? c.close ?? 0,
-      high: c.high ?? 0,
-      low: c.low ?? 0,
-      close: c.close ?? 0,
-      volume: c.volume ?? 0
-    }));
+    .map((c) => {
+      const safeDate = c.date instanceof Date ? c.date.toISOString() : new Date(0).toISOString();
+
+      return {
+        date: safeDate,
+        open: c.open ?? c.close ?? 0,
+        high: c.high ?? 0,
+        low: c.low ?? 0,
+        close: c.close ?? 0,
+        volume: c.volume ?? 0
+      };
+    });
 };
 
 export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteResponse> {
