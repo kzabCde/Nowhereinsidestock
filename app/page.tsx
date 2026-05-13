@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { MagnificentSeven } from "@/components/stocks/MagnificentSeven";
 import { FavoriteButton } from "@/components/stocks/FavoriteButton";
+import NowhereInsideStockLogo from "@/components/brand/NowhereInsideStockLogo";
 import type { SearchItem } from "@/lib/types/market";
 
 export default function HomePage() {
@@ -28,7 +29,9 @@ export default function HomePage() {
     <main className="grid-overlay min-h-screen overflow-x-hidden">
       <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         <header className="printstream-shell pearl-border glow-soft w-full max-w-full rounded-3xl p-4 text-center sm:p-8">
-          <h1 className="text-3xl font-bold tracking-tight sm:text-5xl">NowhereInsideStock</h1>
+          <div className="flex justify-center">
+            <NowhereInsideStockLogo className="justify-center" />
+          </div>
           <p className="mt-2 text-sm text-slate-300 sm:text-base">See the trend. Read the signal.</p>
           <form className="mx-auto mt-8 flex w-full max-w-2xl flex-col gap-3 sm:flex-row" action="/stocks" onSubmit={(e) => e.preventDefault()}>
             <input
