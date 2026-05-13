@@ -12,11 +12,13 @@ export function MagnificentSeven() {
 
   useEffect(() => {
     void (async () => {
-      const data = await Promise.all(symbols.map(async (symbol) => {
-        const res = await fetch(`/api/quote/${symbol}`, { cache: "force-cache" });
-        if (!res.ok) throw new Error(`Failed ${symbol}`);
-        return (await res.json()) as QuoteResponse;
-      }));
+      const data = await Promise.all(
+        symbols.map(async (symbol) => {
+          const res = await fetch(`/api/quote/${symbol}`, { cache: "force-cache" });
+          if (!res.ok) throw new Error(`Failed ${symbol}`);
+          return (await res.json()) as QuoteResponse;
+        })
+      );
       setStocks(data);
       setLoading(false);
     })();
@@ -26,9 +28,11 @@ export function MagnificentSeven() {
 
   return (
     <section className="space-y-4">
-      <h2 className="text-xl font-bold">Magnificent Seven</h2>
+      <h2 className="text-xl font-semibold">Magnificent Seven</h2>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {stocks.map((stock) => <StockCard key={stock.symbol} stock={stock} />)}
+        {stocks.map((stock) => (
+          <StockCard key={stock.symbol} stock={stock} />
+        ))}
       </div>
     </section>
   );

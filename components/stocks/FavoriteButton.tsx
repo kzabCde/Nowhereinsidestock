@@ -12,7 +12,7 @@ export function FavoriteButton({ stock }: Props) {
     <button
       aria-label={`favorite-${stock.symbol}`}
       onClick={() => toggle(stock)}
-      className={`rounded-full px-3 py-1 text-sm transition ${isFav ? "bg-amber-400/20 text-amber-300" : "bg-white/10 text-slate-300 hover:bg-white/20"}`}
+      className={`rounded-xl border px-3 py-1.5 text-sm transition ${isFav ? "border-amber-200/40 bg-amber-300/20 text-amber-200" : "border-white/20 bg-white/5 text-slate-200 hover:bg-white/10"}`}
     >
       {isFav ? "★ Favorited" : "☆ Favorite"}
     </button>

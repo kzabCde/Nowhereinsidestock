@@ -2,9 +2,52 @@
 @tailwind components;
 @tailwind utilities;
 
-:root { color-scheme: dark; }
+:root {
+  color-scheme: dark;
+}
+
 body {
   @apply bg-bg text-slate-100 antialiased;
-  background-image: radial-gradient(circle at 20% 0%, rgba(71, 168, 255, 0.12), transparent 42%),
-    radial-gradient(circle at 80% 0%, rgba(67, 230, 123, 0.08), transparent 28%);
+  background: radial-gradient(circle at 10% 0%, rgba(174, 127, 255, 0.14), transparent 32%),
+    radial-gradient(circle at 90% 10%, rgba(72, 205, 255, 0.12), transparent 30%),
+    radial-gradient(circle at 50% 100%, rgba(255, 128, 221, 0.08), transparent 30%),
+    #050507;
+}
+
+.grid-overlay {
+  background-image: linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 44px 44px;
+}
+
+@layer components {
+  .printstream-shell {
+    @apply relative overflow-hidden rounded-3xl border border-white/15 bg-black/50 backdrop-blur-xl;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 20px 60px rgba(0, 0, 0, 0.5);
+  }
+
+  .pearl-border {
+    @apply relative;
+  }
+
+  .pearl-border::before {
+    content: "";
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    pointer-events: none;
+    background: linear-gradient(120deg, rgba(159, 122, 255, 0.45), rgba(110, 243, 255, 0.28), rgba(255, 133, 214, 0.36), rgba(255, 255, 255, 0.32));
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    padding: 1px;
+    opacity: 0.9;
+  }
+
+  .glow-soft {
+    box-shadow: 0 0 30px rgba(115, 234, 255, 0.09), 0 0 38px rgba(199, 124, 255, 0.08);
+  }
+
+  .btn-premium {
+    @apply rounded-xl border border-white/20 bg-white/5 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/10;
+  }
 }

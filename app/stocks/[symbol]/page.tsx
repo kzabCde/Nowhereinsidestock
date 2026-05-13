@@ -1,19 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { InsightCard } from "@/components/dashboard/InsightCard";
 import { PriceChart } from "@/components/dashboard/PriceChart";
 import { FavoriteButton } from "@/components/stocks/FavoriteButton";
 import type { QuoteResponse } from "@/lib/types/market";
-
-type InsightTone = "neutral" | "positive" | "negative";
-
-type InsightItem = {
-  label: string;
-  value: string;
-  tone: InsightTone;
-};
 
 export default function StockDetailPage() {
   const params = useParams<{ symbol: string }>();
@@ -27,63 +20,47 @@ export default function StockDetailPage() {
     })();
   }, [symbol]);
 
-  const insights = useMemo<InsightItem[]>(() => {
-    if (!data) return [];
-
-    const trendTone: InsightTone =
-      data.insight.trend === "bullish"
-        ? "positive"
-        : data.insight.trend === "bearish"
-          ? "negative"
-          : "neutral";
-
-    return [
-      { label: "Trend", value: data.insight.trend, tone: trendTone },
-      { label: "Momentum", value: data.insight.momentum, tone: "neutral" },
-      { label: "RSI", value: data.insight.rsiSignal, tone: "neutral" },
-      { label: "MACD", value: data.insight.macdSignal, tone: "neutral" },
-      { label: "Volatility", value: `${data.insight.volatility}%`, tone: "neutral" }
-    ];
+  const trendTone = useMemo(() => {
+    if (!data) return "neutral" as const;
+    if (data.insight.trend === "bullish") return "positive" as const;
+    if (data.insight.trend === "bearish") return "negative" as const;
+    return "neutral" as const;
   }, [data]);
 
   if (!data) return <main className="p-6">Loading...</main>;
 
   return (
-    <main className="mx-auto max-w-6xl space-y-5 p-6">
-      <div className="rounded-2xl border border-white/10 bg-slate-900/70 p-5">
-        <h1 className="text-2xl font-bold">
-          {data.name ?? data.symbol} ({data.symbol})
-        </h1>
-        <p className="text-slate-300">
-          ${data.latestPrice.toFixed(2)} • {data.changePercent.toFixed(2)}%
-        </p>
-        <div className="mt-3">
-          <FavoriteButton
-            stock={{
-              symbol: data.symbol,
-              name: data.name,
-              exchange: data.exchange,
-              price: data.latestPrice,
-              changePercent: data.changePercent
-            }}
-          />
+    <main className="grid-overlay min-h-screen">
+      <div className="mx-auto max-w-6xl space-y-5 p-6">
+        <Link href="/" className="btn-premium inline-flex">← Back to Dashboard</Link>
+
+        <section className="printstream-shell pearl-border rounded-3xl p-6">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="text-sm tracking-widest text-slate-400">{data.symbol}</p>
+              <h1 className="text-3xl font-bold md:text-4xl">{data.name ?? data.symbol}</h1>
+              <p className="mt-2 text-4xl font-extrabold">${data.latestPrice.toFixed(2)}</p>
+              <p className={`mt-1 text-sm ${data.changePercent >= 0 ? "text-emerald-300" : "text-rose-300"}`}>{data.changePercent >= 0 ? "+" : ""}{data.changePercent.toFixed(2)}%</p>
+            </div>
+            <div className="space-y-2">
+              <span className="inline-block rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs uppercase">Trend: {data.insight.trend}</span>
+              <div><FavoriteButton stock={{ symbol: data.symbol, name: data.name, exchange: data.exchange, price: data.latestPrice, changePercent: data.changePercent }} /></div>
+            </div>
+          </div>
+        </section>
+
+        <section className="printstream-shell pearl-border rounded-3xl p-4">
+          <PriceChart data={data} />
+        </section>
+
+        <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
+          <InsightCard label="Trend" value={data.insight.trend.toUpperCase()} tone={trendTone} />
+          <InsightCard label="Momentum" value={data.insight.momentum.toUpperCase()} tone="neutral" />
+          <InsightCard label="RSI" value={data.insight.rsiSignal.toUpperCase()} tone="neutral" />
+          <InsightCard label="MACD" value={data.insight.macdSignal.toUpperCase()} tone="neutral" />
+          <InsightCard label="Volatility" value={`${data.insight.volatility}%`} tone="neutral" />
         </div>
       </div>
-
-      <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-5">
-        {insights.map((item) => (
-          <InsightCard key={item.label} label={item.label} value={item.value} tone={item.tone} />
-        ))}
-      </div>
-
-      <PriceChart data={data} />
-
-      <section className="rounded-2xl border border-white/10 bg-white/5 p-4">
-        <h2 className="mb-2 font-semibold">AI Insight</h2>
-        <p className="text-sm text-slate-300">
-          Trend is {data.insight.trend}, momentum is {data.insight.momentum}, with {data.insight.rsiSignal} RSI and a {data.insight.macdSignal} MACD signal.
-        </p>
-      </section>
     </main>
   );
 }
