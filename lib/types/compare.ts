@@ -10,6 +10,10 @@ export type ComparePoint = {
 
 export type CompareMetrics = {
   latestPrice: number;
+  percentChange?: number;
+  previousClose?: number | null;
+  marketTime?: string | null;
+  lastUpdated?: string;
   totalReturn: number;
   volatility: number;
   trend: "uptrend" | "downtrend" | "sideway";

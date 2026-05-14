@@ -15,12 +15,19 @@ export default function StockDetailPage() {
   const params = useParams<{ symbol: string }>();
   const symbol = params.symbol.toUpperCase();
   const [data, setData] = useState<QuoteResponse | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadQuote = async () => {
+    setRefreshing(true);
+    const res = await fetch(`/api/quote/${symbol}`, { cache: "no-store" });
+    if (res.ok) setData((await res.json()) as QuoteResponse);
+    setRefreshing(false);
+  };
 
   useEffect(() => {
-    void (async () => {
-      const res = await fetch(`/api/quote/${symbol}`, { cache: "force-cache" });
-      if (res.ok) setData((await res.json()) as QuoteResponse);
-    })();
+    void loadQuote();
+    const intervalId = window.setInterval(() => void loadQuote(), 120000);
+    return () => window.clearInterval(intervalId);
   }, [symbol]);
 
 
@@ -54,7 +61,9 @@ export default function StockDetailPage() {
               <p className={`mt-1 text-sm ${data.changePercent >= 0 ? "text-emerald-300" : "text-rose-300"}`}>{data.changePercent >= 0 ? "+" : ""}{data.changePercent.toFixed(2)}%</p>
             </div>
             <div className="space-y-2">
+              <button onClick={() => void loadQuote()} className="btn-premium text-xs" disabled={refreshing}>{refreshing ? "Refreshing..." : "Refresh"}</button>
               <span className="inline-block rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs uppercase">Trend: {data.insight.trend}</span>
+              <p className="text-xs text-slate-300">Last updated: {new Date(data.lastUpdated).toLocaleString()}</p>
               <div><FavoriteButton stock={{ symbol: data.symbol, name: data.name, exchange: data.exchange, price: data.latestPrice, changePercent: data.changePercent }} /></div>
             </div>
           </div>

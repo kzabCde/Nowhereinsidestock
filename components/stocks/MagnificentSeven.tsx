@@ -11,17 +11,20 @@ export function MagnificentSeven() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    void (async () => {
+    const load = async () => {
       const data = await Promise.all(
         symbols.map(async (symbol) => {
-          const res = await fetch(`/api/quote/${symbol}`, { cache: "force-cache" });
+          const res = await fetch(`/api/quote/${symbol}`, { cache: "no-store" });
           if (!res.ok) throw new Error(`Failed ${symbol}`);
           return (await res.json()) as QuoteResponse;
         })
       );
       setStocks(data);
       setLoading(false);
-    })();
+    };
+    void load();
+    const intervalId = window.setInterval(() => void load(), 60000);
+    return () => window.clearInterval(intervalId);
   }, []);
 
   if (loading) return <div className="h-56 w-full max-w-full animate-pulse rounded-2xl bg-white/5" />;

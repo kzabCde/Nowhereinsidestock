@@ -15,16 +15,19 @@ export function WatchlistGrid() {
 
   useEffect(() => {
     if (!watchlist.length) return;
-    void (async () => {
+    const load = async () => {
       const entries = await Promise.all(
         watchlist.map(async (item) => {
-          const res = await fetch(`/api/quote/${item.symbol}`, { cache: "force-cache" });
+          const res = await fetch(`/api/quote/${item.symbol}`, { cache: "no-store" });
           if (!res.ok) return null;
           return [item.symbol, (await res.json()) as QuoteResponse] as const;
         })
       );
       setQuotes(Object.fromEntries(entries.filter((e): e is readonly [string, QuoteResponse] => e !== null)));
-    })();
+    };
+    void load();
+    const intervalId = window.setInterval(() => void load(), 60000);
+    return () => window.clearInterval(intervalId);
   }, [watchlist]);
 
   if (!watchlist.length) {
