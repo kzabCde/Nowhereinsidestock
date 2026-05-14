@@ -49,6 +49,7 @@ export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteRes
     period2: now,
     interval: "1d"
   });
+  const quote = await yahooFinance.quote(symbol);
   const profile = await yahooFinance.quoteSummary(symbol, { modules: ["assetProfile"] });
   const assetProfile = profile.assetProfile as Record<string, unknown> | undefined;
 
@@ -68,8 +69,10 @@ export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteRes
   const latestRsi = rsi14[latest] ?? 50;
   const latestMacd = macdLine[latest] ?? 0;
   const latestSignal = signal[latest] ?? 0;
-  const close = candles[latest]?.close ?? 0;
-  const prev = candles[latest - 1]?.close ?? close;
+  const lastChartClose = candles[latest]?.close ?? 0;
+  const prev = candles[latest - 1]?.close ?? lastChartClose;
+  const latestPrice = quote.regularMarketPrice ?? lastChartClose;
+  const changePercent = quote.regularMarketChangePercent ?? (prev === 0 ? 0 : ((lastChartClose - prev) / prev) * 100);
 
   return {
     symbol: symbol.toUpperCase(),
@@ -80,8 +83,11 @@ export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteRes
     industry: asString(assetProfile?.industry),
     website: asString(assetProfile?.website),
     fullTimeEmployees: asNumber(assetProfile?.fullTimeEmployees),
-    latestPrice: close,
-    changePercent: prev === 0 ? 0 : ((close - prev) / prev) * 100,
+    latestPrice,
+    changePercent,
+    previousClose: quote.regularMarketPreviousClose,
+    marketTime: quote.regularMarketTime ? new Date(quote.regularMarketTime * 1000).toISOString() : undefined,
+    lastUpdated: new Date().toISOString(),
     candles,
     indicators: { sma20, ema20, rsi14, macd: macdLine, signal },
     insight: {

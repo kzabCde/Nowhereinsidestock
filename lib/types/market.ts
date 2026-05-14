@@ -26,6 +26,9 @@ export type QuoteResponse = {
   fullTimeEmployees?: number;
   latestPrice: number;
   changePercent: number;
+  previousClose?: number;
+  marketTime?: string;
+  lastUpdated: string;
   candles: Candle[];
   indicators: {
     sma20: Array<number | null>;

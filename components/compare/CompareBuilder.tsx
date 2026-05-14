@@ -72,7 +72,7 @@ export function CompareBuilder() {
     setLoadingResult(true);
     setResultError(null);
     try {
-      const res = await fetch(`/api/compare?symbols=${selected.join(",")}&range=${targetRange}`);
+      const res = await fetch(`/api/compare?symbols=${selected.join(",")}&range=${targetRange}`, { cache: "no-store" });
       const data = (await res.json()) as CompareApiResponse | { error: string };
       if (!res.ok || "error" in data) {
         setResultError("error" in data ? data.error : "Failed to compare symbols");
