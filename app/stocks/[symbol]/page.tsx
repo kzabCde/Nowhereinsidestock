@@ -9,6 +9,7 @@ import { FavoriteButton } from "@/components/stocks/FavoriteButton";
 import { ThaiStockSummary } from "@/components/stocks/ThaiStockSummary";
 import { CompanyProfilePanel } from "@/components/stocks/CompanyProfilePanel";
 import { ThaiCompanySummary } from "@/components/stocks/ThaiCompanySummary";
+import { SupportResistancePanel } from "@/components/stocks/SupportResistancePanel";
 import type { QuoteResponse } from "@/lib/types/market";
 
 export default function StockDetailPage() {
@@ -70,8 +71,18 @@ export default function StockDetailPage() {
         </section>
 
         <section className="printstream-shell pearl-border w-full max-w-full min-w-0 overflow-hidden rounded-3xl p-3 sm:p-4">
-          <PriceChart data={data} />
+          <PriceChart
+            data={data}
+            supports={data.supportResistance.supports}
+            resistances={data.supportResistance.resistances}
+          />
         </section>
+
+        <SupportResistancePanel
+          supports={data.supportResistance.supports}
+          resistances={data.supportResistance.resistances}
+          message={data.supportResistance.message}
+        />
 
         <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <ThaiStockSummary

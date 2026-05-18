@@ -15,6 +15,15 @@ export type MarketInsight = {
   volatility: number;
 };
 
+export type PriceZone = {
+  level: number;
+  lower: number;
+  upper: number;
+  touches: number;
+  strength: "weak" | "medium" | "strong";
+  type: "support" | "resistance";
+};
+
 export type QuoteResponse = {
   symbol: string;
   name?: string;
@@ -38,6 +47,11 @@ export type QuoteResponse = {
     signal: Array<number | null>;
   };
   insight: MarketInsight;
+  supportResistance: {
+    supports: PriceZone[];
+    resistances: PriceZone[];
+    message?: string;
+  };
 };
 
 export type SearchItem = {
