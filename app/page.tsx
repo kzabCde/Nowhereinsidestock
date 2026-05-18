@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { MagnificentSeven } from "@/components/stocks/MagnificentSeven";
 import { FavoriteButton } from "@/components/stocks/FavoriteButton";
-import { BusinessSectors } from "@/components/stocks/BusinessSectors";
 import NowhereInsideStockLogo from "@/components/brand/NowhereInsideStockLogo";
 import type { SearchItem } from "@/lib/types/market";
 
@@ -54,7 +53,7 @@ export default function HomePage() {
           </form>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
             <a href="#magnificent-seven" className="btn-premium w-full sm:w-auto">Magnificent Seven</a>
-            <a href="#business-sectors" className="btn-premium w-full sm:w-auto">Business Sectors</a>
+            <Link href="/sectors" className="btn-premium w-full sm:w-auto">Business Sectors</Link>
             <Link href="/watchlist" className="btn-premium w-full sm:w-auto">Watchlist</Link>
             <Link href="/compare" className="btn-premium w-full sm:w-auto">Compare</Link>
           </div>
@@ -83,8 +82,6 @@ export default function HomePage() {
         <div id="magnificent-seven">
           <MagnificentSeven />
         </div>
-
-        <BusinessSectors />
       </div>
     </main>
   );
