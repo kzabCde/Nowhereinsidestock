@@ -52,7 +52,7 @@ export default function HomePage() {
             </Link>
           </form>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
-            <a href="#magnificent-seven" className="btn-premium w-full sm:w-auto">Magnificent Seven</a>
+            <Link href="/rankings" className="btn-premium w-full sm:w-auto">Top Rankings</Link>
             <Link href="/watchlist" className="btn-premium w-full sm:w-auto">Watchlist</Link>
             <Link href="/compare" className="btn-premium w-full sm:w-auto">Compare</Link>
           </div>

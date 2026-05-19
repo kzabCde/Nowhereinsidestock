@@ -59,3 +59,34 @@ export type SearchItem = {
   shortname?: string;
   exchDisp?: string;
 };
+
+export type RankingType =
+  | "top-gainers"
+  | "top-losers"
+  | "most-active"
+  | "highest-market-cap"
+  | "highest-volume"
+  | "strongest-momentum"
+  | "lowest-volatility"
+  | "magnificent-seven"
+  | "thai-stocks"
+  | "ai-tech";
+
+export type RankingStock = {
+  rank: number;
+  symbol: string;
+  name: string;
+  latestPrice: number | null;
+  changePercent: number | null;
+  volume: number | null;
+  marketCap: number | null;
+  trend: "uptrend" | "downtrend" | "sideway";
+};
+
+export type RankingResponse = {
+  rankingType: RankingType;
+  title: string;
+  stocks: RankingStock[];
+  fetchedAt: string;
+  source: "Yahoo Finance";
+};

@@ -1,8 +1,34 @@
 import YahooFinance from "yahoo-finance2";
 import { ema, macd, rsi, sma, volatility } from "@/lib/indicators/technical";
-import type { Candle, PriceZone, QuoteResponse, SearchItem } from "@/lib/types/market";
+import type { Candle, PriceZone, QuoteResponse, RankingResponse, RankingStock, RankingType, SearchItem } from "@/lib/types/market";
 
 const yahooFinance = new YahooFinance();
+
+const RANKING_POOLS: Record<RankingType, string[]> = {
+  "top-gainers": ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AMD", "AVGO", "NFLX", "PLTR", "JPM", "V", "MA", "COST"],
+  "top-losers": ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AMD", "AVGO", "NFLX", "PLTR", "JPM", "V", "MA", "COST"],
+  "most-active": ["AAPL", "TSLA", "NVDA", "AMD", "PLTR", "AMZN", "META", "SOFI", "F", "BAC", "NIO", "INTC", "CCL", "PFE", "T"],
+  "highest-market-cap": ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "BRK-B", "JPM", "WMT", "LLY", "XOM", "V", "MA", "AVGO"],
+  "highest-volume": ["AAPL", "TSLA", "NVDA", "AMD", "PLTR", "AMZN", "META", "SOFI", "F", "BAC", "NIO", "INTC", "CCL", "PFE", "T"],
+  "strongest-momentum": ["NVDA", "TSLA", "AMD", "PLTR", "META", "AMZN", "AVGO", "CRM", "MSFT", "AAPL", "NFLX", "ORCL", "PANW", "CRWD", "SNOW"],
+  "lowest-volatility": ["KO", "PEP", "PG", "JNJ", "WMT", "MCD", "COST", "BRK-B", "V", "MA", "UNH", "ABBV", "MRK", "HD", "CVS"],
+  "magnificent-seven": ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA"],
+  "thai-stocks": ["PTT.BK", "PTTEP.BK", "AOT.BK", "CPALL.BK", "ADVANC.BK", "KBANK.BK", "SCB.BK", "BBL.BK", "SCC.BK", "BDMS.BK"],
+  "ai-tech": ["AAPL", "MSFT", "NVDA", "GOOGL", "META", "AMD", "AVGO", "ORCL", "CRM", "PLTR", "ARM", "TSM", "ASML"]
+};
+
+const RANKING_TITLES: Record<RankingType, string> = {
+  "top-gainers": "Top Gainers",
+  "top-losers": "Top Losers",
+  "most-active": "Most Active",
+  "highest-market-cap": "Highest Market Cap",
+  "highest-volume": "Highest Volume",
+  "strongest-momentum": "Strongest Momentum",
+  "lowest-volatility": "Lowest Volatility",
+  "magnificent-seven": "Magnificent Seven Ranking",
+  "thai-stocks": "Thai Stocks Ranking",
+  "ai-tech": "AI / Tech Ranking"
+};
 
 function asString(value: unknown): string | undefined {
   return typeof value === "string" ? value : undefined;
@@ -216,4 +242,60 @@ export async function searchSymbols(query: string): Promise<SearchItem[]> {
   }
 
   return results;
+}
+
+function toTrend(value: number | null): "uptrend" | "downtrend" | "sideway" {
+  if (value == null) return "sideway";
+  if (value > 0.2) return "uptrend";
+  if (value < -0.2) return "downtrend";
+  return "sideway";
+}
+
+function byRanking(type: RankingType, items: RankingStock[]): RankingStock[] {
+  switch (type) {
+    case "top-gainers":
+    case "magnificent-seven":
+    case "thai-stocks":
+    case "ai-tech":
+      return [...items].sort((a, b) => (b.changePercent ?? Number.NEGATIVE_INFINITY) - (a.changePercent ?? Number.NEGATIVE_INFINITY));
+    case "top-losers":
+      return [...items].sort((a, b) => (a.changePercent ?? Number.POSITIVE_INFINITY) - (b.changePercent ?? Number.POSITIVE_INFINITY));
+    case "most-active":
+    case "highest-volume":
+      return [...items].sort((a, b) => (b.volume ?? Number.NEGATIVE_INFINITY) - (a.volume ?? Number.NEGATIVE_INFINITY));
+    case "highest-market-cap":
+      return [...items].sort((a, b) => (b.marketCap ?? Number.NEGATIVE_INFINITY) - (a.marketCap ?? Number.NEGATIVE_INFINITY));
+    case "strongest-momentum":
+      return [...items].sort((a, b) => {
+        const aScore = (a.changePercent ?? -999) * 0.7 + Math.log10((a.volume ?? 1) + 1) * 0.3;
+        const bScore = (b.changePercent ?? -999) * 0.7 + Math.log10((b.volume ?? 1) + 1) * 0.3;
+        return bScore - aScore;
+      });
+    case "lowest-volatility":
+      return [...items].sort((a, b) => Math.abs(a.changePercent ?? 999) - Math.abs(b.changePercent ?? 999));
+  }
+}
+
+export async function fetchRanking(type: RankingType): Promise<RankingResponse> {
+  const symbols = RANKING_POOLS[type];
+  const quote = await yahooFinance.quote(symbols, { fields: ["symbol", "shortName", "regularMarketPrice", "regularMarketChangePercent", "regularMarketVolume", "marketCap"] });
+  const raw = Array.isArray(quote) ? quote : [quote];
+  const ranked = byRanking(type, raw.map((item) => ({
+    rank: 0,
+    symbol: item.symbol,
+    name: item.shortName ?? item.symbol,
+    latestPrice: item.regularMarketPrice ?? null,
+    changePercent: item.regularMarketChangePercent ?? null,
+    volume: item.regularMarketVolume ?? null,
+    marketCap: item.marketCap ?? null,
+    trend: toTrend(item.regularMarketChangePercent ?? null)
+  }))).slice(0, 10).map((item, index) => ({ ...item, rank: index + 1 }));
+
+  return {
+    rankingType: type,
+    title: RANKING_TITLES[type],
+    stocks: ranked,
+    fetchedAt: new Date().toISOString(),
+    source: "Yahoo Finance"
+  };
 }
