@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { CompareSearchBar } from "@/components/compare/CompareSearchBar";
 import { CompareSearchResults, type SearchSymbolItem } from "@/components/compare/CompareSearchResults";
@@ -93,6 +94,9 @@ export function CompareBuilder() {
   return (
     <main className="grid-overlay min-h-screen overflow-x-hidden px-4 py-6 sm:px-6">
       <div className="mx-auto w-full max-w-7xl space-y-4">
+        <div className="flex justify-end">
+          <Link href="/" className="btn-premium w-full text-center sm:w-auto">Back to Dashboard</Link>
+        </div>
         <section className="printstream-shell pearl-border rounded-3xl p-4 sm:p-6">
           <h1 className="text-2xl font-bold sm:text-3xl">Compare Builder</h1>
           <CompareSearchBar query={query} onChange={setQuery} loading={searchLoading} />
