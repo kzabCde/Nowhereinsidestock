@@ -17,6 +17,9 @@ export default function RankingsPage() {
   return (
     <main className="grid-overlay min-h-screen overflow-x-hidden px-4 py-6 sm:px-6">
       <div className="mx-auto w-full max-w-7xl space-y-5">
+        <div className="flex justify-end">
+          <Link href="/" className="btn-premium w-full text-center sm:w-auto">Back to Dashboard</Link>
+        </div>
         <section className="printstream-shell pearl-border rounded-3xl p-5">
           <h1 className="text-2xl font-bold sm:text-3xl">Top Rankings</h1>
           <p className="mt-1 text-sm text-slate-300">Open a ranking to load only the top 10 stocks with live Yahoo Finance quote data.</p>

@@ -38,7 +38,10 @@ export default function RankingDetailPage() {
   return (
     <main className="grid-overlay min-h-screen overflow-x-hidden px-4 py-6 sm:px-6">
       <div className="mx-auto w-full max-w-7xl space-y-4">
-        <Link href="/rankings" className="btn-premium inline-flex">← Back to Rankings</Link>
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
+          <Link href="/rankings" className="btn-premium inline-flex w-full justify-center sm:w-auto">← Back to Rankings</Link>
+          <Link href="/" className="btn-premium w-full text-center sm:w-auto">Back to Dashboard</Link>
+        </div>
         {loading && <section className="printstream-shell rounded-2xl p-6 text-slate-200">Loading ranking...</section>}
         {error && <section className="printstream-shell rounded-2xl p-6 text-rose-300">{error}</section>}
         {!loading && !error && data && (
