@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { AppHeader } from "@/components/ui/AppHeader";
 
 const rankingCards = [
   { slug: "top-gainers", title: "Top Gainers", description: "Best percentage gainers from curated liquid US stocks." },
@@ -15,8 +16,9 @@ const rankingCards = [
 
 export default function RankingsPage() {
   return (
-    <main className="grid-overlay min-h-screen overflow-x-hidden px-4 py-6 sm:px-6">
-      <div className="mx-auto w-full max-w-7xl space-y-5">
+    <main className="grid-overlay min-h-screen overflow-x-hidden">
+      <AppHeader />
+      <div className="mx-auto w-full max-w-7xl space-y-5 px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-20">
         <div className="flex justify-end">
           <Link href="/" className="btn-premium w-full text-center sm:w-auto">Back to Dashboard</Link>
         </div>

@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { MagnificentSeven } from "@/components/stocks/MagnificentSeven";
 import { FavoriteButton } from "@/components/stocks/FavoriteButton";
 import NowhereInsideStockLogo from "@/components/brand/NowhereInsideStockLogo";
+import { AppHeader } from "@/components/ui/AppHeader";
+import { IconActionButton } from "@/components/ui/IconActionButton";
 import type { SearchItem } from "@/lib/types/market";
 
 export default function HomePage() {
@@ -27,7 +29,8 @@ export default function HomePage() {
 
   return (
     <main className="grid-overlay min-h-screen overflow-x-hidden">
-      <div className="mx-auto w-full max-w-7xl space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+      <AppHeader />
+      <div className="mx-auto w-full max-w-7xl space-y-8 px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-20">
         <header className="printstream-shell pearl-border glow-soft w-full min-w-0 max-w-full rounded-3xl p-4 text-center sm:p-8">
           <div className="flex min-w-0 flex-wrap justify-center">
             <NowhereInsideStockLogo className="justify-center" />
@@ -51,10 +54,11 @@ export default function HomePage() {
               Search Stock
             </Link>
           </form>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
-            <Link href="/rankings" className="btn-premium w-full sm:w-auto">Top Rankings</Link>
-            <Link href="/watchlist" className="btn-premium w-full sm:w-auto">Watchlist</Link>
-            <Link href="/compare" className="btn-premium w-full sm:w-auto">Compare</Link>
+          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <IconActionButton href="#magnificent-seven" label="Magnificent Seven" icon={<span>✨</span>} />
+            <IconActionButton href="/rankings" label="Top Rankings" icon={<span>🏆</span>} />
+            <IconActionButton href="/watchlist" label="Watchlist" icon={<span>⭐</span>} />
+            <IconActionButton href="/compare" label="Compare" icon={<span>📊</span>} />
           </div>
         </header>
 

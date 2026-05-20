@@ -9,6 +9,7 @@ import { CompareResultChart } from "@/components/compare/CompareResultChart";
 import { CompareMetricsTable } from "@/components/compare/CompareMetricsTable";
 import { CompareSummaryCards } from "@/components/compare/CompareSummaryCards";
 import type { CompareApiResponse, CompareRange, CompareSeries } from "@/lib/types/compare";
+import { AppHeader } from "@/components/ui/AppHeader";
 
 const RANGES: CompareRange[] = ["1M", "6M", "1Y", "5Y"];
 
@@ -92,13 +93,14 @@ export function CompareBuilder() {
   const summary = useMemo(() => buildSummary(result?.series ?? []), [result]);
 
   return (
-    <main className="grid-overlay min-h-screen overflow-x-hidden px-4 py-6 sm:px-6">
-      <div className="mx-auto w-full max-w-7xl space-y-4">
+    <main className="grid-overlay min-h-screen overflow-x-hidden">
+      <AppHeader />
+      <div className="mx-auto w-full max-w-7xl space-y-4 px-4 py-10 sm:px-6 sm:py-14 lg:px-8 lg:py-20">
         <div className="flex justify-end">
           <Link href="/" className="btn-premium w-full text-center sm:w-auto">Back to Dashboard</Link>
         </div>
         <section className="printstream-shell pearl-border rounded-3xl p-4 sm:p-6">
-          <h1 className="text-2xl font-bold sm:text-3xl">Compare Builder</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">📊 Compare Builder</h1>
           <CompareSearchBar query={query} onChange={setQuery} loading={searchLoading} />
           <CompareSearchResults results={searchResults} loading={searchLoading} query={query} onAdd={addSymbol} />
           <CompareDropZone selected={selected} onRemove={removeSymbol} onDropSymbol={addSymbol} onClearAll={() => { setSelected([]); setResult(null); }} />
