@@ -2,11 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { MagnificentSeven } from "@/components/stocks/MagnificentSeven";
 import { FavoriteButton } from "@/components/stocks/FavoriteButton";
 import NowhereInsideStockLogo from "@/components/brand/NowhereInsideStockLogo";
 import { AppHeader } from "@/components/ui/AppHeader";
-import { IconActionButton } from "@/components/ui/IconActionButton";
 import type { SearchItem } from "@/lib/types/market";
 
 export default function HomePage() {
@@ -54,12 +52,7 @@ export default function HomePage() {
               Search Stock
             </Link>
           </form>
-          <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <IconActionButton href="#magnificent-seven" label="Magnificent Seven" icon={<span>✨</span>} />
-            <IconActionButton href="/rankings" label="Top Rankings" icon={<span>🏆</span>} />
-            <IconActionButton href="/watchlist" label="Watchlist" icon={<span>⭐</span>} />
-            <IconActionButton href="/compare" label="Compare" icon={<span>📊</span>} />
-          </div>
+
         </header>
 
         {results.length > 0 && (
@@ -82,9 +75,6 @@ export default function HomePage() {
           </section>
         )}
 
-        <div id="magnificent-seven">
-          <MagnificentSeven />
-        </div>
       </div>
     </main>
   );
