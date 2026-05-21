@@ -82,7 +82,8 @@ export function ComparePage({ initialSymbols, timeframe, results, summary }: Pro
       <div className="mx-auto w-full max-w-7xl space-y-4">
         <section className="printstream-shell pearl-border w-full max-w-full min-w-0 overflow-hidden rounded-3xl p-4 sm:p-6">
           <h1 className="text-2xl font-bold sm:text-3xl">Compare Stocks</h1>
-          <p className="text-sm text-slate-300 sm:text-base">Add 2-4 stock symbols and compare performance side by side.</p>
+          <p className="text-sm text-slate-300 sm:text-base">Step 1: Search stock • Step 2: Add to compare box • Step 3: View result.</p>
+          <div className="mt-3 grid gap-2 sm:grid-cols-3"><div className="rounded-xl border border-white/15 bg-white/5 p-3 text-sm">Step 1: Search stock</div><div className="rounded-xl border border-white/15 bg-white/5 p-3 text-sm">Step 2: Add to compare box</div><div className="rounded-xl border border-white/15 bg-white/5 p-3 text-sm">Step 3: View result</div></div>
           <SelectedStockChips symbols={symbols} onRemove={removeSymbol} />
           <CompareInput value={symbolInput} onChange={setSymbolInput} onAdd={() => addSymbol(symbolInput)} results={search} onPick={addSymbol} />
           <div className="mt-3 flex flex-wrap gap-2">{Object.entries(presets).map(([name, list]) => <button key={name} onClick={() => { const next = Array.from(new Set(list)).slice(0, 4); setSymbols(next); window.location.href = `/compare?symbols=${next.join(",")}&timeframe=${timeframe}`; }} className="rounded-xl border border-white/20 px-3 py-1 text-xs">{name}</button>)}</div>

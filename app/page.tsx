@@ -51,11 +51,20 @@ export default function HomePage() {
               Search Stock
             </Link>
           </form>
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:justify-center">
-            <Link href="/rankings" className="btn-premium w-full sm:w-auto">Top Rankings</Link>
-            <Link href="/watchlist" className="btn-premium w-full sm:w-auto">Watchlist</Link>
-            <Link href="/compare" className="btn-premium w-full sm:w-auto">Compare</Link>
-          </div>
+          <section className="mt-6 grid grid-cols-1 gap-3 text-left sm:grid-cols-2">
+            <Link href="/#magnificent-seven" className="rounded-2xl border border-white/15 bg-white/5 p-4 transition hover:bg-white/10">
+              <p className="text-xs uppercase text-slate-400">Explore</p><p className="mt-1 text-lg font-semibold">Explore Market</p>
+            </Link>
+            <Link href="/watchlist" className="rounded-2xl border border-white/15 bg-white/5 p-4 transition hover:bg-white/10">
+              <p className="text-xs uppercase text-slate-400">Portfolio</p><p className="mt-1 text-lg font-semibold">My Watchlist</p>
+            </Link>
+            <Link href="/compare" className="rounded-2xl border border-white/15 bg-white/5 p-4 transition hover:bg-white/10">
+              <p className="text-xs uppercase text-slate-400">Tools</p><p className="mt-1 text-lg font-semibold">Compare Stocks</p>
+            </Link>
+            <Link href="/rankings" className="rounded-2xl border border-white/15 bg-white/5 p-4 transition hover:bg-white/10">
+              <p className="text-xs uppercase text-slate-400">Discover</p><p className="mt-1 text-lg font-semibold">Top Rankings</p>
+            </Link>
+          </section>
         </header>
 
         {results.length > 0 && (
