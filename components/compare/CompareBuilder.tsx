@@ -1,13 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { CompareSearchBar } from "@/components/compare/CompareSearchBar";
 import { CompareSearchResults, type SearchSymbolItem } from "@/components/compare/CompareSearchResults";
 import { CompareDropZone } from "@/components/compare/CompareDropZone";
 import { CompareResultChart } from "@/components/compare/CompareResultChart";
 import { CompareMetricsTable } from "@/components/compare/CompareMetricsTable";
-import { CompareSummaryCards } from "@/components/compare/CompareSummaryCards";
 import type { CompareApiResponse, CompareRange, CompareSeries } from "@/lib/types/compare";
 
 const RANGES: CompareRange[] = ["1M", "6M", "1Y", "5Y"];
@@ -89,8 +88,6 @@ export function CompareBuilder() {
     }
   };
 
-  const summary = useMemo(() => buildSummary(result?.series ?? []), [result]);
-
   return (
     <main className="grid-overlay min-h-screen overflow-x-hidden px-4 py-6 sm:px-6">
       <div className="mx-auto w-full max-w-7xl space-y-4">
@@ -98,7 +95,7 @@ export function CompareBuilder() {
           <Link href="/" className="btn-premium w-full text-center sm:w-auto">Back to Dashboard</Link>
         </div>
         <section className="printstream-shell pearl-border rounded-3xl p-4 sm:p-6">
-          <h1 className="text-2xl font-bold sm:text-3xl">Compare Builder</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">Compare</h1><p className="mt-2 text-sm text-slate-300">1) Search 2) Select up to 4 3) Result</p>
           <CompareSearchBar query={query} onChange={setQuery} loading={searchLoading} />
           <CompareSearchResults results={searchResults} loading={searchLoading} query={query} onAdd={addSymbol} />
           <CompareDropZone selected={selected} onRemove={removeSymbol} onDropSymbol={addSymbol} onClearAll={() => { setSelected([]); setResult(null); }} />
@@ -118,22 +115,9 @@ export function CompareBuilder() {
           <>
             <CompareResultChart series={result.series} />
             <CompareMetricsTable series={result.series} />
-            <CompareSummaryCards summary={summary} />
           </>
         )}
       </div>
     </main>
   );
-}
-
-function buildSummary(series: CompareSeries[]) {
-  if (series.length === 0) return null;
-  const by = (pick: (item: CompareSeries) => number, dir: "max" | "min") =>
-    series.reduce((best, cur) => (dir === "max" ? (pick(cur) > pick(best) ? cur : best) : pick(cur) < pick(best) ? cur : best), series[0]);
-  return {
-    bestPerformer: by((s) => s.metrics.totalReturn, "max").symbol,
-    lowestVolatility: by((s) => s.metrics.volatility, "min").symbol,
-    strongestMomentum: by((s) => s.metrics.totalReturn - s.metrics.volatility, "max").symbol,
-    mostStable: by((s) => Math.abs(s.metrics.totalReturn), "min").symbol
-  };
 }
