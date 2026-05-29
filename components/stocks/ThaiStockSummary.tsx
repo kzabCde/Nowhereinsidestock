@@ -15,21 +15,21 @@ export type ThaiStockSummaryProps = {
 };
 
 const trendThaiMap: Record<ThaiStockSummaryProps["trend"], string> = {
-  uptrend: "แนวโน้มขาขึ้น",
-  downtrend: "แนวโน้มอ่อนตัวและมีแรงขายกดดัน",
-  sideway: "แกว่งตัวในกรอบโดยยังไม่มีทิศทางชัดเจน"
+  uptrend: "ราคาเอนเอียงไปทางขาขึ้นในระยะสั้น",
+  downtrend: "ราคายังอ่อนตัวและมีแรงขายกดดัน",
+  sideway: "ราคาแกว่งตัวในกรอบ ยังไม่มีทิศทางเด่นชัด"
 };
 
 const rsiMap: Record<string, string> = {
-  overbought: "RSI อยู่ในโซนค่อนข้างร้อนแรง อาจสะท้อนแรงซื้อที่มากในช่วงสั้น",
-  oversold: "RSI อยู่ในโซนที่อ่อนตัว อาจสะท้อนแรงขายที่เร่งตัวก่อนหน้า",
-  neutral: "RSI อยู่ระดับกลาง สะท้อนสมดุลระหว่างแรงซื้อและแรงขาย"
+  overbought: "RSI ค่อนข้างร้อนแรง ควรสังเกตว่าราคาเริ่มพักตัวหรือไม่",
+  oversold: "RSI อ่อนตัวมาก ควรดูว่าราคาเริ่มหยุดลงหรือยัง",
+  neutral: "RSI อยู่ระดับกลาง แรงซื้อและแรงขายใกล้เคียงกัน"
 };
 
 const macdMap: Record<string, string> = {
-  buy: "MACD เริ่มส่งสัญญาณเชิงบวก มีแนวโน้มว่ากระแสราคาอาจดีขึ้น",
-  sell: "MACD ส่งสัญญาณอ่อนแรง เป็นสัญญาณที่ควรระวังแรงขายระยะสั้น",
-  neutral: "MACD ยังไม่ชี้ทิศทางเด่นชัด ควรติดตามร่วมกับราคา"
+  buy: "MACD เริ่มเป็นบวก ใช้ดูแรงส่งของราคาเพิ่มเติม",
+  sell: "MACD อ่อนแรง ควรติดตามความเสี่ยงจากแรงขายระยะสั้น",
+  neutral: "MACD ยังไม่ชี้ทิศทางชัด ควรดูร่วมกับกราฟราคา"
 };
 
 export function ThaiStockSummary({
@@ -48,67 +48,66 @@ export function ThaiStockSummary({
   const displayName = name?.trim() ? name : symbol;
 
   const movementText = changePercent >= 0
-    ? `ราคาปรับขึ้น ${changePercent.toFixed(2)}% เมื่อเทียบกับช่วงที่เลือก`
-    : `ราคาปรับลง ${Math.abs(changePercent).toFixed(2)}% เมื่อเทียบกับช่วงที่เลือก`;
+    ? `ปรับขึ้น ${changePercent.toFixed(2)}%`
+    : `ปรับลง ${Math.abs(changePercent).toFixed(2)}%`;
 
-  const trendSummary = useMemo(() => {
-    return `หุ้น ${displayName} (${symbol}) ปัจจุบันมีการเปลี่ยนแปลงราคา ${changePercent >= 0 ? "+" : ""}${changePercent.toFixed(2)}% โดยระบบประเมินว่าอยู่ในภาวะ${trendThaiMap[trend]} ซึ่งอาจสะท้อนแรงซื้อหรือแรงขายในระยะสั้น`;
-  }, [changePercent, displayName, symbol, trend]);
+  const overviewText = useMemo(() => {
+    return `หุ้น ${displayName} (${symbol}) ราคาล่าสุดอยู่ที่ $${latestPrice.toFixed(2)} และ${movementText} จากข้อมูลล่าสุด`;
+  }, [displayName, latestPrice, movementText, symbol]);
 
   const momentumText = momentum
-    ? `โมเมนตัม: ${momentum} (ใช้ดูความต่อเนื่องของแรงราคา)`
-    : "โมเมนตัม: ยังไม่มีข้อมูลเพียงพอสำหรับสัญญาณนี้";
+    ? `โมเมนตัมอยู่ระดับ ${momentum} ใช้ดูความต่อเนื่องของแรงราคา`
+    : "ยังไม่มีข้อมูลโมเมนตัมเพียงพอ";
 
   const rsiText = rsiSignal
-    ? (rsiMap[rsiSignal.toLowerCase()] ?? `RSI: ${rsiSignal} ควรติดตามร่วมกับแนวรับแนวต้าน`)
-    : "RSI: ยังไม่มีข้อมูลเพียงพอสำหรับสัญญาณนี้";
+    ? (rsiMap[rsiSignal.toLowerCase()] ?? `RSI: ${rsiSignal} ควรอ่านร่วมกับแนวรับและแนวต้าน`)
+    : "ยังไม่มีข้อมูล RSI เพียงพอ";
 
   const macdText = macdSignal
     ? (macdMap[macdSignal.toLowerCase()] ?? `MACD: ${macdSignal} ควรติดตามการเปลี่ยนแปลงต่อเนื่อง`)
-    : "MACD: ยังไม่มีข้อมูลเพียงพอสำหรับสัญญาณนี้";
+    : "ยังไม่มีข้อมูล MACD เพียงพอ";
 
   return (
     <section className="printstream-shell pearl-border w-full rounded-3xl border border-white/10 bg-black/40 p-4 sm:p-5">
-      <h2 className="text-lg font-semibold text-white sm:text-xl">Thai Stock Summary Panel</h2>
-
-      <div className="mt-4 space-y-4 text-sm leading-relaxed text-slate-200 sm:text-base">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="font-semibold text-white">ภาพรวมบริษัท</h3>
-          <p>หุ้น {displayName} ({symbol}) ราคาล่าสุด ${latestPrice.toFixed(2)} และ{movementText}.</p>
-          {(sector || industry) && (
-            <p className="text-slate-300">
-              {sector && <span>Sector: {sector}</span>}
-              {sector && industry && <span> • </span>}
-              {industry && <span>Industry: {industry}</span>}
-            </p>
-          )}
+          <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Thai Summary</p>
+          <h2 className="mt-1 text-lg font-semibold text-white sm:text-xl">สรุปหุ้นแบบอ่านง่าย</h2>
+        </div>
+        {(sector || industry) && (
+          <p className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-slate-300">
+            {[sector, industry].filter(Boolean).join(" • ")}
+          </p>
+        )}
+      </div>
+
+      <div className="mt-4 grid gap-4 text-sm leading-relaxed text-slate-200 md:grid-cols-2">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+          <h3 className="font-semibold text-white">ภาพรวม</h3>
+          <p className="mt-1">{overviewText}</p>
         </div>
 
-        <div>
-          <h3 className="font-semibold text-white">สรุปแนวโน้มราคา</h3>
-          <p>{trendSummary}</p>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+          <h3 className="font-semibold text-white">แนวโน้มราคา</h3>
+          <p className="mt-1">{trendThaiMap[trend]}</p>
         </div>
 
-        <div>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
           <h3 className="font-semibold text-white">สัญญาณที่ควรจับตา</h3>
-          <ul className="list-disc space-y-1 pl-5">
+          <ul className="mt-1 list-disc space-y-1 pl-5">
             <li>{momentumText}</li>
             <li>{rsiText}</li>
             <li>{macdText}</li>
           </ul>
         </div>
 
-        <div>
-          <h3 className="font-semibold text-white">ข้อควรระวัง</h3>
-          <ul className="list-disc space-y-1 pl-5 text-slate-300">
-            <li>ความผันผวน{typeof volatility === "number" ? `ประมาณ ${volatility}%` : "ยังไม่มีข้อมูลเพียงพอสำหรับสัญญาณนี้"} อาจทำให้ราคาแกว่งแรงกว่าปกติ</li>
-            <li>สัญญาณทางเทคนิคเป็นเพียงส่วนหนึ่ง ควรติดตามข่าวและปัจจัยพื้นฐานเพิ่มเติม</li>
-          </ul>
-        </div>
-
-        <div className="rounded-2xl border border-white/15 bg-white/5 p-3">
-          <h3 className="font-semibold text-white">หมายเหตุ</h3>
-          <p className="text-slate-300">ข้อมูลนี้จัดทำเพื่อการศึกษาและการติดตามภาพรวมเท่านั้น ไม่ใช่คำแนะนำในการลงทุน</p>
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-3">
+          <h3 className="font-semibold text-white">มูลค่าประเมินและความเสี่ยง</h3>
+          <p className="mt-1">
+            ใช้เครื่องคำนวณมูลค่ายุติธรรมและโซนแนวรับ / แนวต้านด้านล่างประกอบการเรียนรู้ โดยความผันผวนปัจจุบัน
+            {typeof volatility === "number" ? ` ประมาณ ${volatility}%` : " ยังมีข้อมูลไม่เพียงพอ"}
+          </p>
+          <p className="mt-2 text-slate-300">ข้อมูลนี้เพื่อการศึกษาเท่านั้น ไม่ใช่คำแนะนำซื้อหรือขาย</p>
         </div>
       </div>
     </section>
