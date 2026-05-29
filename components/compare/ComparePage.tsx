@@ -18,7 +18,9 @@ const presets = {
 
 type Props = { initialSymbols: string[]; timeframe: CompareTimeframe; results: CompareStockResult[]; summary: WinnerSummary | null };
 
-type SearchItem = { symbol: string; shortname?: string; exchDisp?: string };
+type SearchItem = { symbol: string; shortname?: string; name?: string; exchDisp?: string; exchange?: string };
+
+type SearchApiResponse = { results?: SearchItem[] };
 
 export function ComparePage({ initialSymbols, timeframe, results, summary }: Props) {
   const [symbolInput, setSymbolInput] = useState("");
@@ -31,8 +33,20 @@ export function ComparePage({ initialSymbols, timeframe, results, summary }: Pro
 
   useEffect(() => {
     const id = setTimeout(() => {
-      if (symbolInput.length < 2) return;
-      void fetch(`/api/search?q=${encodeURIComponent(symbolInput)}`).then(async (r) => setSearch((await r.json()) as SearchItem[]));
+      if (symbolInput.length < 2) {
+        setSearch([]);
+        return;
+      }
+
+      void fetch(`/api/search?q=${encodeURIComponent(symbolInput)}`).then(async (response) => {
+        if (!response.ok) {
+          setSearch([]);
+          return;
+        }
+
+        const data = (await response.json()) as SearchApiResponse;
+        setSearch(Array.isArray(data.results) ? data.results : []);
+      });
     }, 250);
     return () => clearTimeout(id);
   }, [symbolInput]);
