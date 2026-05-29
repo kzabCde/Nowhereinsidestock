@@ -275,16 +275,15 @@ export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteRes
   };
 }
 
-export async function searchSymbols(query: string): Promise<SearchItem[]> {
-  const data = await yahooFinance.search(query, {
-    quotesCount: 8,
-    newsCount: 0
-  });
+function normalizeSearchQuotes(quotes: unknown): SearchItem[] {
+  if (!Array.isArray(quotes)) return [];
 
   const results: SearchItem[] = [];
   const seenSymbols = new Set<string>();
 
-  for (const rawItem of data.quotes) {
+  for (const rawItem of quotes) {
+    if (!rawItem || typeof rawItem !== "object") continue;
+
     const item = rawItem as Record<string, unknown>;
     const symbol = asString(item.symbol)?.trim().toUpperCase();
     const shortname = asString(item.shortname) ?? asString(item.shortName);
@@ -313,6 +312,54 @@ export async function searchSymbols(query: string): Promise<SearchItem[]> {
   }
 
   return results;
+}
+
+async function searchSymbolsFromYahooEndpoint(query: string): Promise<SearchItem[]> {
+  const params = new URLSearchParams({
+    q: query,
+    quotesCount: "8",
+    newsCount: "0",
+    listsCount: "0",
+    enableFuzzyQuery: "false",
+    quotesQueryId: "tss_match_phrase_query",
+    multiQuoteQueryId: "multi_quote_single_token_query",
+    enableCb: "false",
+    enableNavLinks: "false",
+    enableEnhancedTrivialQuery: "true"
+  });
+
+  const response = await fetch(`https://query2.finance.yahoo.com/v1/finance/search?${params.toString()}`, {
+    headers: {
+      Accept: "application/json",
+      "User-Agent": "Mozilla/5.0 NowhereInsideStock/1.0"
+    },
+    cache: "no-store"
+  });
+
+  if (!response.ok) return [];
+
+  const data: unknown = await response.json();
+  if (!data || typeof data !== "object") return [];
+
+  return normalizeSearchQuotes((data as Record<string, unknown>).quotes);
+}
+
+export async function searchSymbols(query: string): Promise<SearchItem[]> {
+  try {
+    const data = await yahooFinance.search(query, {
+      quotesCount: 8,
+      newsCount: 0,
+      enableCb: false,
+      enableNavLinks: false
+    });
+
+    const results = normalizeSearchQuotes(data.quotes);
+    if (results.length > 0) return results;
+  } catch (error) {
+    console.error("yahooFinance.search failed; trying Yahoo search endpoint fallback", error);
+  }
+
+  return searchSymbolsFromYahooEndpoint(query);
 }
 
 function toTrend(value: number | null): "uptrend" | "downtrend" | "sideway" {

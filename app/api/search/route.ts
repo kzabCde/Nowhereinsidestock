@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { searchSymbols } from "@/lib/services/market";
 import type { SearchItem } from "@/lib/types/market";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 const SEARCH_CACHE_TTL_MS = 30_000;
 const SEARCH_CACHE_MAX_ENTRIES = 100;
 
@@ -76,6 +79,6 @@ export async function GET(request: Request) {
     return json(results);
   } catch (error) {
     console.error("Yahoo Finance search failed", error);
-    return json([], { status: 502, cache: "none" });
+    return json([], { cache: "none" });
   }
 }
