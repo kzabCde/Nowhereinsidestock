@@ -156,8 +156,11 @@ export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteRes
     interval: "1d"
   });
   const quote = await yahooFinance.quote(symbol);
-  const profile = await yahooFinance.quoteSummary(symbol, { modules: ["assetProfile"] });
+  const quoteFields = quote as Record<string, unknown>;
+  const profile = await yahooFinance.quoteSummary(symbol, { modules: ["assetProfile", "defaultKeyStatistics", "summaryDetail"] });
   const assetProfile = profile.assetProfile as Record<string, unknown> | undefined;
+  const defaultKeyStatistics = profile.defaultKeyStatistics as Record<string, unknown> | undefined;
+  const summaryDetail = profile.summaryDetail as Record<string, unknown> | undefined;
 
   const candles = normalizeCandles(result?.quotes);
 
@@ -192,6 +195,15 @@ export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteRes
           resistances: buildZones(resistancePoints, latestPrice, windowCandles.length, "resistance")
         };
 
+  const valuationMetrics = {
+    trailingEps: asNumber(quoteFields.trailingEps) ?? asNumber(defaultKeyStatistics?.trailingEps),
+    forwardEps: asNumber(quoteFields.forwardEps) ?? asNumber(defaultKeyStatistics?.forwardEps),
+    trailingPE: asNumber(quoteFields.trailingPE) ?? asNumber(summaryDetail?.trailingPE),
+    forwardPE: asNumber(quoteFields.forwardPE) ?? asNumber(defaultKeyStatistics?.forwardPE),
+    bookValue: asNumber(quoteFields.bookValue) ?? asNumber(defaultKeyStatistics?.bookValue),
+    dividendRate: asNumber(quoteFields.dividendRate) ?? asNumber(summaryDetail?.dividendRate)
+  };
+
   return {
     symbol: symbol.toUpperCase(),
     name: asString(result.meta?.longName),
@@ -215,7 +227,8 @@ export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteRes
       macdSignal: latestMacd > latestSignal ? "buy" : latestMacd < latestSignal ? "sell" : "neutral",
       volatility: volatility(closes)
     },
-    supportResistance
+    supportResistance,
+    valuationMetrics
   };
 }
 
