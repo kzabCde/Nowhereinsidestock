@@ -17,6 +17,81 @@ const RANKING_POOLS: Record<RankingType, string[]> = {
   "ai-tech": ["AAPL", "MSFT", "NVDA", "GOOGL", "META", "AMD", "AVGO", "ORCL", "CRM", "PLTR", "ARM", "TSM", "ASML"]
 };
 
+
+const FALLBACK_SEARCH_ITEMS: SearchItem[] = [
+  { symbol: "AAPL", name: "Apple Inc.", exchange: "NasdaqGS", quoteType: "EQUITY" },
+  { symbol: "MSFT", name: "Microsoft Corporation", exchange: "NasdaqGS", quoteType: "EQUITY" },
+  { symbol: "NVDA", name: "NVIDIA Corporation", exchange: "NasdaqGS", quoteType: "EQUITY" },
+  { symbol: "AMZN", name: "Amazon.com, Inc.", exchange: "NasdaqGS", quoteType: "EQUITY" },
+  { symbol: "GOOGL", name: "Alphabet Inc.", exchange: "NasdaqGS", quoteType: "EQUITY" },
+  { symbol: "META", name: "Meta Platforms, Inc.", exchange: "NasdaqGS", quoteType: "EQUITY" },
+  { symbol: "TSLA", name: "Tesla, Inc.", exchange: "NasdaqGS", quoteType: "EQUITY" },
+  { symbol: "AMD", name: "Advanced Micro Devices, Inc.", exchange: "NasdaqGS", quoteType: "EQUITY" },
+  { symbol: "AVGO", name: "Broadcom Inc.", exchange: "NasdaqGS", quoteType: "EQUITY" },
+  { symbol: "NFLX", name: "Netflix, Inc.", exchange: "NasdaqGS", quoteType: "EQUITY" },
+  { symbol: "PLTR", name: "Palantir Technologies Inc.", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "JPM", name: "JPMorgan Chase & Co.", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "V", name: "Visa Inc.", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "MA", name: "Mastercard Incorporated", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "COST", name: "Costco Wholesale Corporation", exchange: "NasdaqGS", quoteType: "EQUITY" },
+  { symbol: "BRK-B", name: "Berkshire Hathaway Inc.", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "WMT", name: "Walmart Inc.", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "LLY", name: "Eli Lilly and Company", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "XOM", name: "Exxon Mobil Corporation", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "SOFI", name: "SoFi Technologies, Inc.", exchange: "NasdaqGS", quoteType: "EQUITY" },
+  { symbol: "F", name: "Ford Motor Company", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "BAC", name: "Bank of America Corporation", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "NIO", name: "NIO Inc.", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "INTC", name: "Intel Corporation", exchange: "NasdaqGS", quoteType: "EQUITY" },
+  { symbol: "CCL", name: "Carnival Corporation & plc", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "PFE", name: "Pfizer Inc.", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "T", name: "AT&T Inc.", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "CRM", name: "Salesforce, Inc.", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "ORCL", name: "Oracle Corporation", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "PANW", name: "Palo Alto Networks, Inc.", exchange: "NasdaqGS", quoteType: "EQUITY" },
+  { symbol: "CRWD", name: "CrowdStrike Holdings, Inc.", exchange: "NasdaqGS", quoteType: "EQUITY" },
+  { symbol: "SNOW", name: "Snowflake Inc.", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "KO", name: "The Coca-Cola Company", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "PEP", name: "PepsiCo, Inc.", exchange: "NasdaqGS", quoteType: "EQUITY" },
+  { symbol: "PG", name: "The Procter & Gamble Company", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "JNJ", name: "Johnson & Johnson", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "UNH", name: "UnitedHealth Group Incorporated", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "ABBV", name: "AbbVie Inc.", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "MRK", name: "Merck & Co., Inc.", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "HD", name: "The Home Depot, Inc.", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "CVS", name: "CVS Health Corporation", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "TSM", name: "Taiwan Semiconductor Manufacturing Company Limited", exchange: "NYSE", quoteType: "EQUITY" },
+  { symbol: "ASML", name: "ASML Holding N.V.", exchange: "NasdaqGS", quoteType: "EQUITY" },
+  { symbol: "ARM", name: "Arm Holdings plc", exchange: "NasdaqGS", quoteType: "EQUITY" },
+  { symbol: "PTT.BK", name: "PTT Public Company Limited", exchange: "Thailand", quoteType: "EQUITY" },
+  { symbol: "PTTEP.BK", name: "PTT Exploration and Production Public Company Limited", exchange: "Thailand", quoteType: "EQUITY" },
+  { symbol: "AOT.BK", name: "Airports of Thailand Public Company Limited", exchange: "Thailand", quoteType: "EQUITY" },
+  { symbol: "CPALL.BK", name: "CP ALL Public Company Limited", exchange: "Thailand", quoteType: "EQUITY" },
+  { symbol: "ADVANC.BK", name: "Advanced Info Service Public Company Limited", exchange: "Thailand", quoteType: "EQUITY" },
+  { symbol: "KBANK.BK", name: "Kasikornbank Public Company Limited", exchange: "Thailand", quoteType: "EQUITY" },
+  { symbol: "SCB.BK", name: "SCB X Public Company Limited", exchange: "Thailand", quoteType: "EQUITY" },
+  { symbol: "BBL.BK", name: "Bangkok Bank Public Company Limited", exchange: "Thailand", quoteType: "EQUITY" },
+  { symbol: "SCC.BK", name: "The Siam Cement Public Company Limited", exchange: "Thailand", quoteType: "EQUITY" },
+  { symbol: "BDMS.BK", name: "Bangkok Dusit Medical Services Public Company Limited", exchange: "Thailand", quoteType: "EQUITY" }
+];
+
+function fallbackSearchSymbols(query: string): SearchItem[] {
+  const normalizedQuery = query.trim().toUpperCase();
+  if (!normalizedQuery) return [];
+
+  return FALLBACK_SEARCH_ITEMS.filter((item) => {
+    const normalizedName = item.name?.toUpperCase() ?? "";
+    return item.symbol.includes(normalizedQuery) || normalizedName.includes(normalizedQuery);
+  })
+    .sort((a, b) => {
+      const aStartsWith = a.symbol.startsWith(normalizedQuery) ? 0 : 1;
+      const bStartsWith = b.symbol.startsWith(normalizedQuery) ? 0 : 1;
+      if (aStartsWith !== bStartsWith) return aStartsWith - bStartsWith;
+      return a.symbol.localeCompare(b.symbol);
+    })
+    .slice(0, 8);
+}
+
 const RANKING_TITLES: Record<RankingType, string> = {
   "top-gainers": "Top Gainers",
   "top-losers": "Top Losers",
@@ -276,29 +351,33 @@ export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteRes
 }
 
 export async function searchSymbols(query: string): Promise<SearchItem[]> {
-  const data = await yahooFinance.search(query, {
-    quotesCount: 8,
-    newsCount: 0
-  });
-
-  const results: SearchItem[] = [];
-
-  for (const rawItem of data.quotes) {
-    const item = rawItem as Record<string, unknown>;
-
-    const symbol = asString(item.symbol);
-
-    if (!symbol) continue;
-
-    results.push({
-      symbol,
-      name: asString(item.shortname) ?? asString(item.longname),
-      exchange: asString(item.exchDisp) ?? asString(item.exchange),
-      quoteType: asString(item.quoteType)
+  try {
+    const data = await yahooFinance.search(query, {
+      quotesCount: 8,
+      newsCount: 0
     });
-  }
 
-  return results;
+    const results: SearchItem[] = [];
+
+    for (const rawItem of data.quotes) {
+      const item = rawItem as Record<string, unknown>;
+
+      const symbol = asString(item.symbol);
+
+      if (!symbol) continue;
+
+      results.push({
+        symbol,
+        name: asString(item.shortname) ?? asString(item.longname),
+        exchange: asString(item.exchDisp) ?? asString(item.exchange),
+        quoteType: asString(item.quoteType)
+      });
+    }
+
+    return results;
+  } catch {
+    return fallbackSearchSymbols(query);
+  }
 }
 
 function toTrend(value: number | null): "uptrend" | "downtrend" | "sideway" {
