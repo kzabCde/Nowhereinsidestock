@@ -3,11 +3,11 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CompareSeries, CompareStockResult, CompareTimeframe, WinnerSummary } from "@/lib/types/compare";
 import { NormalizedCompareChart } from "@/components/compare/NormalizedCompareChart";
-import { CompareInput } from "@/components/compare/CompareInput";
 import { SelectedStockChips } from "@/components/compare/SelectedStockChips";
 import { CompareTimeframeTabs } from "@/components/compare/CompareTimeframeTabs";
 import { CompareMetricsTable } from "@/components/compare/CompareMetricsTable";
 import { CompareWinnerSummary } from "@/components/compare/CompareWinnerSummary";
+import { RealtimeStockSearch } from "@/components/stocks/RealtimeStockSearch";
 
 const presets = {
   "Magnificent Seven": ["AAPL", "MSFT", "NVDA", "AMZN"],
@@ -18,24 +18,14 @@ const presets = {
 
 type Props = { initialSymbols: string[]; timeframe: CompareTimeframe; results: CompareStockResult[]; summary: WinnerSummary | null };
 
-type SearchItem = { symbol: string; shortname?: string; exchDisp?: string };
 
 export function ComparePage({ initialSymbols, timeframe, results, summary }: Props) {
-  const [symbolInput, setSymbolInput] = useState("");
   const [symbols, setSymbols] = useState<string[]>(initialSymbols);
-  const [search, setSearch] = useState<SearchItem[]>([]);
 
   useEffect(() => {
     localStorage.setItem("compareSymbols", JSON.stringify(symbols));
   }, [symbols]);
 
-  useEffect(() => {
-    const id = setTimeout(() => {
-      if (symbolInput.length < 2) return;
-      void fetch(`/api/search?q=${encodeURIComponent(symbolInput)}`).then(async (r) => setSearch((await r.json()) as SearchItem[]));
-    }, 250);
-    return () => clearTimeout(id);
-  }, [symbolInput]);
 
   const addSymbol = (raw: string) => {
     const value = raw.trim().toUpperCase();
@@ -84,7 +74,9 @@ export function ComparePage({ initialSymbols, timeframe, results, summary }: Pro
           <h1 className="text-2xl font-bold sm:text-3xl">Compare Stocks</h1>
           <p className="text-sm text-slate-300 sm:text-base">Add 2-4 stock symbols and compare performance side by side.</p>
           <SelectedStockChips symbols={symbols} onRemove={removeSymbol} />
-          <CompareInput value={symbolInput} onChange={setSymbolInput} onAdd={() => addSymbol(symbolInput)} results={search} onPick={addSymbol} />
+          <div className="mt-4 max-w-xl">
+            <RealtimeStockSearch placeholder="Search and add stocks to compare..." onSelect={addSymbol} />
+          </div>
           <div className="mt-3 flex flex-wrap gap-2">{Object.entries(presets).map(([name, list]) => <button key={name} onClick={() => { const next = Array.from(new Set(list)).slice(0, 4); setSymbols(next); window.location.href = `/compare?symbols=${next.join(",")}&timeframe=${timeframe}`; }} className="rounded-xl border border-white/20 px-3 py-1 text-xs">{name}</button>)}</div>
           <CompareTimeframeTabs symbols={symbols} timeframe={timeframe} />
         </section>

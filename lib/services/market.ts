@@ -292,8 +292,9 @@ export async function searchSymbols(query: string): Promise<SearchItem[]> {
 
     results.push({
       symbol,
-      shortname: asString(item.shortname),
-      exchDisp: asString(item.exchDisp)
+      name: asString(item.shortname) ?? asString(item.longname),
+      exchange: asString(item.exchDisp) ?? asString(item.exchange),
+      quoteType: asString(item.quoteType)
     });
   }
 

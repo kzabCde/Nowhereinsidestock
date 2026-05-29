@@ -80,8 +80,9 @@ export type QuoteResponse = {
 
 export type SearchItem = {
   symbol: string;
-  shortname?: string;
-  exchDisp?: string;
+  name?: string;
+  exchange?: string;
+  quoteType?: string;
 };
 
 export type RankingType =
