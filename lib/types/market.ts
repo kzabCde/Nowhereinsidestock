@@ -24,6 +24,15 @@ export type PriceZone = {
   type: "support" | "resistance";
 };
 
+export type ValuationMetrics = {
+  trailingEps?: number;
+  forwardEps?: number;
+  trailingPE?: number;
+  forwardPE?: number;
+  bookValue?: number;
+  dividendRate?: number;
+};
+
 export type QuoteResponse = {
   symbol: string;
   name?: string;
@@ -52,6 +61,7 @@ export type QuoteResponse = {
     resistances: PriceZone[];
     message?: string;
   };
+  valuationMetrics: ValuationMetrics;
 };
 
 export type SearchItem = {

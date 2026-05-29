@@ -10,6 +10,7 @@ import { ThaiStockSummary } from "@/components/stocks/ThaiStockSummary";
 import { CompanyProfilePanel } from "@/components/stocks/CompanyProfilePanel";
 import { ThaiCompanySummary } from "@/components/stocks/ThaiCompanySummary";
 import { SupportResistancePanel } from "@/components/stocks/SupportResistancePanel";
+import { FairValueCalculator } from "@/components/stocks/FairValueCalculator";
 import type { QuoteResponse } from "@/lib/types/market";
 
 export default function StockDetailPage() {
@@ -82,6 +83,12 @@ export default function StockDetailPage() {
           supports={data.supportResistance.supports}
           resistances={data.supportResistance.resistances}
           message={data.supportResistance.message}
+        />
+
+        <FairValueCalculator
+          symbol={data.symbol}
+          currentPrice={data.latestPrice}
+          metrics={data.valuationMetrics}
         />
 
         <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
