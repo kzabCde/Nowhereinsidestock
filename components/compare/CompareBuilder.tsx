@@ -12,6 +12,17 @@ import type { CompareApiResponse, CompareRange, CompareSeries } from "@/lib/type
 
 const RANGES: CompareRange[] = ["1M", "6M", "1Y", "5Y"];
 
+type SearchApiResponse = {
+  results?: SearchSymbolItem[];
+};
+
+function parseSearchResponse(value: unknown): SearchSymbolItem[] {
+  if (!value || typeof value !== "object") return [];
+
+  const data = value as SearchApiResponse;
+  return Array.isArray(data.results) ? data.results : [];
+}
+
 export function CompareBuilder() {
   const [query, setQuery] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
@@ -39,23 +50,40 @@ export function CompareBuilder() {
   }, [selected]);
 
   useEffect(() => {
+    const controller = new AbortController();
     const id = setTimeout(async () => {
-      if (!query.trim()) {
+      const trimmedQuery = query.trim();
+      if (!trimmedQuery) {
         setSearchResults([]);
+        setSearchLoading(false);
         return;
       }
+
       setSearchLoading(true);
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-        const data = (await res.json()) as SearchSymbolItem[];
-        setSearchResults(data);
-      } catch {
+        const res = await fetch(`/api/search?q=${encodeURIComponent(trimmedQuery)}`, {
+          signal: controller.signal
+        });
+
+        if (!res.ok) {
+          setSearchResults([]);
+          return;
+        }
+
+        const data: unknown = await res.json();
+        setSearchResults(parseSearchResponse(data));
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
         setSearchResults([]);
       } finally {
-        setSearchLoading(false);
+        if (!controller.signal.aborted) setSearchLoading(false);
       }
     }, 300);
-    return () => clearTimeout(id);
+
+    return () => {
+      controller.abort();
+      clearTimeout(id);
+    };
   }, [query]);
 
   const addSymbol = (symbol: string) => {

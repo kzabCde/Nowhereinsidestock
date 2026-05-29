@@ -30,12 +30,16 @@ function toSearchResult(item: SearchItem): SearchApiResponse["results"][number] 
   };
 }
 
-function json(results: SearchApiResponse["results"]) {
+function json(
+  results: SearchApiResponse["results"],
+  options: { status?: number; cache?: "short" | "none" } = { cache: "short" }
+) {
   return NextResponse.json<SearchApiResponse>(
     { results },
     {
+      status: options.status,
       headers: {
-        "Cache-Control": "public, s-maxage=30, stale-while-revalidate=30"
+        "Cache-Control": options.cache === "none" ? "no-store" : "public, s-maxage=30, stale-while-revalidate=30"
       }
     }
   );
@@ -57,7 +61,7 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q")?.trim();
 
-  if (!q) return json([]);
+  if (!q) return json([], { cache: "none" });
 
   const normalizedQuery = q.toUpperCase();
   const cached = searchCache.get(normalizedQuery);
@@ -70,7 +74,8 @@ export async function GET(request: Request) {
     const results = (await searchSymbols(normalizedQuery)).map(toSearchResult);
     setCache(normalizedQuery, results);
     return json(results);
-  } catch {
-    return json([]);
+  } catch (error) {
+    console.error("Yahoo Finance search failed", error);
+    return json([], { status: 502, cache: "none" });
   }
 }

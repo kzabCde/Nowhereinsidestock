@@ -287,11 +287,15 @@ export async function searchSymbols(query: string): Promise<SearchItem[]> {
   for (const rawItem of data.quotes) {
     const item = rawItem as Record<string, unknown>;
     const symbol = asString(item.symbol)?.trim().toUpperCase();
-    const shortname = asString(item.shortname);
-    const longname = asString(item.longname);
-    const exchDisp = asString(item.exchDisp);
-    const quoteType = asString(item.quoteType);
+    const shortname = asString(item.shortname) ?? asString(item.shortName);
+    const longname = asString(item.longname) ?? asString(item.longName);
+    const exchDisp = asString(item.exchDisp) ?? asString(item.exchange);
+    const quoteType = asString(item.quoteType) ?? asString(item.typeDisp);
+    const index = asString(item.index);
+    const isYahooFinance = item.isYahooFinance;
 
+    if (index && index !== "quotes") continue;
+    if (isYahooFinance === false) continue;
     if (!symbol || seenSymbols.has(symbol)) continue;
 
     seenSymbols.add(symbol);
