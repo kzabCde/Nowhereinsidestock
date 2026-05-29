@@ -24,6 +24,20 @@ export type PriceZone = {
   type: "support" | "resistance";
 };
 
+export type MovingAverageStatus = "above" | "below" | "neutral" | "insufficient";
+
+export type MovingAverageCrossSignal = "golden_cross" | "death_cross" | "none" | "insufficient";
+
+export type MovingAverages = {
+  ma20: number | null;
+  ma50: number | null;
+  ma200: number | null;
+  priceVsMA20: MovingAverageStatus;
+  priceVsMA50: MovingAverageStatus;
+  priceVsMA200: MovingAverageStatus;
+  crossSignal: MovingAverageCrossSignal;
+};
+
 export type ValuationMetrics = {
   trailingEps?: number;
   forwardEps?: number;
@@ -47,12 +61,15 @@ export type QuoteResponse = {
   candles: Candle[];
   indicators: {
     sma20: Array<number | null>;
+    sma50: Array<number | null>;
+    sma200: Array<number | null>;
     ema20: Array<number | null>;
     rsi14: Array<number | null>;
     macd: Array<number | null>;
     signal: Array<number | null>;
   };
   insight: MarketInsight;
+  movingAverages: MovingAverages;
   supportResistance: {
     supports: PriceZone[];
     resistances: PriceZone[];

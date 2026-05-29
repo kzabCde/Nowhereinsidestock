@@ -9,6 +9,7 @@ import { FavoriteButton } from "@/components/stocks/FavoriteButton";
 import { ThaiStockSummary } from "@/components/stocks/ThaiStockSummary";
 import { SupportResistancePanel } from "@/components/stocks/SupportResistancePanel";
 import { FairValueCalculator } from "@/components/stocks/FairValueCalculator";
+import { MovingAveragePanel } from "@/components/stocks/MovingAveragePanel";
 import type { QuoteResponse } from "@/lib/types/market";
 
 export default function StockDetailPage() {
@@ -84,6 +85,8 @@ export default function StockDetailPage() {
           <InsightCard label="MACD" value={data.insight.macdSignal.toUpperCase()} tone="neutral" />
           <InsightCard label="Volatility" value={`${data.insight.volatility}%`} tone="neutral" />
         </section>
+
+        <MovingAveragePanel movingAverages={data.movingAverages} />
 
         <ThaiStockSummary
           symbol={data.symbol}

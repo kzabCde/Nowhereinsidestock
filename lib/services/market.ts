@@ -1,6 +1,6 @@
 import YahooFinance from "yahoo-finance2";
 import { ema, macd, rsi, sma, volatility } from "@/lib/indicators/technical";
-import type { Candle, PriceZone, QuoteResponse, RankingResponse, RankingStock, RankingType, SearchItem } from "@/lib/types/market";
+import type { Candle, MovingAverageCrossSignal, MovingAverages, MovingAverageStatus, PriceZone, QuoteResponse, RankingResponse, RankingStock, RankingType, SearchItem } from "@/lib/types/market";
 
 const yahooFinance = new YahooFinance();
 
@@ -38,6 +38,48 @@ function asNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
+const comparePriceToAverage = (price: number, average: number | null): MovingAverageStatus => {
+  if (average == null) return "insufficient";
+  if (price > average) return "above";
+  if (price < average) return "below";
+  return "neutral";
+};
+
+const getLatestValue = (values: Array<number | null>): number | null => values.at(-1) ?? null;
+
+const getCrossSignal = (ma50: Array<number | null>, ma200: Array<number | null>): MovingAverageCrossSignal => {
+  const latestIndex = Math.min(ma50.length, ma200.length) - 1;
+  if (latestIndex <= 0) return "insufficient";
+
+  const currentMa50 = ma50[latestIndex] ?? null;
+  const currentMa200 = ma200[latestIndex] ?? null;
+  const previousMa50 = ma50[latestIndex - 1] ?? null;
+  const previousMa200 = ma200[latestIndex - 1] ?? null;
+
+  if (currentMa50 == null || currentMa200 == null || previousMa50 == null || previousMa200 == null) {
+    return "insufficient";
+  }
+
+  if (previousMa50 <= previousMa200 && currentMa50 > currentMa200) return "golden_cross";
+  if (previousMa50 >= previousMa200 && currentMa50 < currentMa200) return "death_cross";
+  return "none";
+};
+
+const buildMovingAverages = (price: number, ma20Series: Array<number | null>, ma50Series: Array<number | null>, ma200Series: Array<number | null>): MovingAverages => {
+  const ma20 = getLatestValue(ma20Series);
+  const ma50 = getLatestValue(ma50Series);
+  const ma200 = getLatestValue(ma200Series);
+
+  return {
+    ma20,
+    ma50,
+    ma200,
+    priceVsMA20: comparePriceToAverage(price, ma20),
+    priceVsMA50: comparePriceToAverage(price, ma50),
+    priceVsMA200: comparePriceToAverage(price, ma200),
+    crossSignal: getCrossSignal(ma50Series, ma200Series)
+  };
+};
 
 const getTrend = (sma20: number | null, ema20: number | null, close: number) => {
   if (!sma20 || !ema20) return "neutral" as const;
@@ -148,7 +190,7 @@ const buildZones = (points: SwingPoint[], latestPrice: number, candlesLength: nu
 export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteResponse> {
   const now = new Date();
   const from = new Date(now);
-  from.setDate(now.getDate() - 180);
+  from.setDate(now.getDate() - 420);
 
   const result = await yahooFinance.chart(symbol, {
     period1: from,
@@ -168,6 +210,8 @@ export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteRes
 
   const closes = candles.map((c) => c.close);
   const sma20 = sma(closes, 20);
+  const sma50 = sma(closes, 50);
+  const sma200 = sma(closes, 200);
   const ema20 = ema(closes, 20);
   const rsi14 = rsi(closes, 14);
   const { line: macdLine, signal } = macd(closes);
@@ -181,6 +225,7 @@ export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteRes
   const latestMacd = macdLine[latest] ?? 0;
   const latestSignal = signal[latest] ?? 0;
   const changePercent = quote.regularMarketChangePercent ?? (prev === 0 ? 0 : ((lastChartClose - prev) / prev) * 100);
+  const movingAverages = buildMovingAverages(latestPrice, sma20, sma50, sma200);
   const supportPoints = extractSwings(windowCandles, "support");
   const resistancePoints = extractSwings(windowCandles, "resistance");
   const supportResistance =
@@ -216,7 +261,7 @@ export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteRes
     marketTime: quote.regularMarketTime ? new Date(quote.regularMarketTime * 1000).toISOString() : undefined,
     lastUpdated: new Date().toISOString(),
     candles,
-    indicators: { sma20, ema20, rsi14, macd: macdLine, signal },
+    indicators: { sma20, sma50, sma200, ema20, rsi14, macd: macdLine, signal },
     insight: {
       trend: getTrend(sma20[latest], ema20[latest], latestClose),
       momentum: Math.abs(latestMacd - latestSignal) > 1.2 ? "strong" : Math.abs(latestMacd - latestSignal) > 0.5 ? "moderate" : "weak",
@@ -224,6 +269,7 @@ export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteRes
       macdSignal: latestMacd > latestSignal ? "buy" : latestMacd < latestSignal ? "sell" : "neutral",
       volatility: volatility(closes)
     },
+    movingAverages,
     supportResistance,
     valuationMetrics
   };
