@@ -282,19 +282,30 @@ export async function searchSymbols(query: string): Promise<SearchItem[]> {
   });
 
   const results: SearchItem[] = [];
+  const seenSymbols = new Set<string>();
 
   for (const rawItem of data.quotes) {
     const item = rawItem as Record<string, unknown>;
+    const symbol = asString(item.symbol)?.trim().toUpperCase();
+    const shortname = asString(item.shortname);
+    const longname = asString(item.longname);
+    const exchDisp = asString(item.exchDisp);
+    const quoteType = asString(item.quoteType);
 
-    const symbol = asString(item.symbol);
+    if (!symbol || seenSymbols.has(symbol)) continue;
 
-    if (!symbol) continue;
-
+    seenSymbols.add(symbol);
     results.push({
       symbol,
-      shortname: asString(item.shortname),
-      exchDisp: asString(item.exchDisp)
+      name: shortname ?? longname,
+      exchange: exchDisp,
+      type: quoteType,
+      shortname,
+      exchDisp,
+      quoteType
     });
+
+    if (results.length >= 8) break;
   }
 
   return results;
