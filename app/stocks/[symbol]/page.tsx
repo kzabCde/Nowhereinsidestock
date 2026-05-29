@@ -7,8 +7,6 @@ import { InsightCard } from "@/components/dashboard/InsightCard";
 import { PriceChart } from "@/components/dashboard/PriceChart";
 import { FavoriteButton } from "@/components/stocks/FavoriteButton";
 import { ThaiStockSummary } from "@/components/stocks/ThaiStockSummary";
-import { CompanyProfilePanel } from "@/components/stocks/CompanyProfilePanel";
-import { ThaiCompanySummary } from "@/components/stocks/ThaiCompanySummary";
 import { SupportResistancePanel } from "@/components/stocks/SupportResistancePanel";
 import { FairValueCalculator } from "@/components/stocks/FairValueCalculator";
 import type { QuoteResponse } from "@/lib/types/market";
@@ -79,10 +77,26 @@ export default function StockDetailPage() {
           />
         </section>
 
-        <SupportResistancePanel
-          supports={data.supportResistance.supports}
-          resistances={data.supportResistance.resistances}
-          message={data.supportResistance.message}
+        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <InsightCard label="Trend" value={data.insight.trend.toUpperCase()} tone={trendTone} />
+          <InsightCard label="Momentum" value={data.insight.momentum.toUpperCase()} tone="neutral" />
+          <InsightCard label="RSI" value={data.insight.rsiSignal.toUpperCase()} tone="neutral" />
+          <InsightCard label="MACD" value={data.insight.macdSignal.toUpperCase()} tone="neutral" />
+          <InsightCard label="Volatility" value={`${data.insight.volatility}%`} tone="neutral" />
+        </section>
+
+        <ThaiStockSummary
+          symbol={data.symbol}
+          name={data.name}
+          sector={data.sector}
+          industry={data.industry}
+          latestPrice={data.latestPrice}
+          changePercent={data.changePercent}
+          trend={thaiTrend}
+          momentum={data.insight.momentum}
+          rsiSignal={data.insight.rsiSignal}
+          macdSignal={data.insight.macdSignal}
+          volatility={data.insight.volatility}
         />
 
         <FairValueCalculator
@@ -91,50 +105,11 @@ export default function StockDetailPage() {
           metrics={data.valuationMetrics}
         />
 
-        <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <ThaiStockSummary
-            symbol={data.symbol}
-            name={data.name}
-            latestPrice={data.latestPrice}
-            changePercent={data.changePercent}
-            trend={thaiTrend}
-            momentum={data.insight.momentum}
-            rsiSignal={data.insight.rsiSignal}
-            macdSignal={data.insight.macdSignal}
-            volatility={data.insight.volatility}
-          />
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
-            <InsightCard label="Trend" value={data.insight.trend.toUpperCase()} tone={trendTone} />
-            <InsightCard label="Momentum" value={data.insight.momentum.toUpperCase()} tone="neutral" />
-            <InsightCard label="RSI" value={data.insight.rsiSignal.toUpperCase()} tone="neutral" />
-            <InsightCard label="MACD" value={data.insight.macdSignal.toUpperCase()} tone="neutral" />
-            <InsightCard label="Volatility" value={`${data.insight.volatility}%`} tone="neutral" />
-          </div>
-        </section>
-
-        <section className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <ThaiCompanySummary
-            symbol={data.symbol}
-            name={data.name}
-            companyDescription={data.companyDescription}
-            sector={data.sector}
-            industry={data.industry}
-            trend={data.insight.trend}
-            indicators={{
-              momentum: data.insight.momentum,
-              rsiSignal: data.insight.rsiSignal,
-              macdSignal: data.insight.macdSignal
-            }}
-          />
-          <CompanyProfilePanel
-            description={data.companyDescription}
-            sector={data.sector}
-            industry={data.industry}
-            website={data.website}
-            fullTimeEmployees={data.fullTimeEmployees}
-          />
-        </section>
+        <SupportResistancePanel
+          supports={data.supportResistance.supports}
+          resistances={data.supportResistance.resistances}
+          message={data.supportResistance.message}
+        />
       </div>
     </main>
   );
