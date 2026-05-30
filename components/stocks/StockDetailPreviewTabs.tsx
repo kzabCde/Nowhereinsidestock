@@ -3,6 +3,9 @@
 import { useMemo, useState, type ComponentType, type KeyboardEvent, type SVGProps } from "react";
 import { Activity, Calculator, Languages, Layers, LayoutDashboard, Radar, TrendingUp } from "lucide-react";
 import { InsightCard } from "@/components/dashboard/InsightCard";
+import { MetricCard } from "@/components/ui/MetricCard";
+import { SectionCard } from "@/components/ui/SectionCard";
+import { TabButton } from "@/components/ui/TabButton";
 import { PriceChart } from "@/components/dashboard/PriceChart";
 import { FavoriteButton } from "@/components/stocks/FavoriteButton";
 import { FairValueCalculator } from "@/components/stocks/FairValueCalculator";
@@ -114,7 +117,7 @@ function OverviewPreview({ data, onRefresh, refreshing = false }: OverviewPrevie
   ];
 
   return (
-    <section className="printstream-shell pearl-border w-full max-w-full min-w-0 overflow-hidden rounded-3xl p-4 sm:p-6">
+    <SectionCard className="w-full">
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0">
           <p className="text-sm tracking-widest text-slate-400">{data.symbol}</p>
@@ -143,10 +146,7 @@ function OverviewPreview({ data, onRefresh, refreshing = false }: OverviewPrevie
 
       <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {overviewItems.map((item) => (
-          <article key={item.label} className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-            <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{item.label}</p>
-            <p className="mt-2 break-words text-lg font-semibold text-white">{item.value}</p>
-          </article>
+          <MetricCard key={item.label} label={item.label} value={item.value} />
         ))}
       </div>
 
@@ -154,13 +154,13 @@ function OverviewPreview({ data, onRefresh, refreshing = false }: OverviewPrevie
         <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Thai overview</p>
         <p className="mt-2 text-sm leading-7 text-slate-200">{getThaiOverviewText(data)}</p>
       </div>
-    </section>
+    </SectionCard>
   );
 }
 
 function SignalsPanel({ data }: StockDetailPreviewTabsProps) {
   return (
-    <section className="printstream-shell pearl-border w-full max-w-full min-w-0 overflow-hidden rounded-3xl p-4 sm:p-5">
+    <SectionCard className="w-full">
       <div className="mb-4">
         <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Signals</p>
         <h2 className="mt-1 text-xl font-bold text-white">Technical signal preview</h2>
@@ -175,7 +175,7 @@ function SignalsPanel({ data }: StockDetailPreviewTabsProps) {
         <InsightCard label="MACD" value={data.insight.macdSignal.toUpperCase()} tone="neutral" />
         <InsightCard label="Volatility" value={`${data.insight.volatility}%`} tone="neutral" />
       </div>
-    </section>
+    </SectionCard>
   );
 }
 
@@ -202,32 +202,26 @@ export function StockDetailPreviewTabs({ data, onRefresh, refreshing = false }: 
 
   return (
     <section className="w-full max-w-full min-w-0 space-y-4">
-      <div className="printstream-shell w-full max-w-full min-w-0 overflow-hidden rounded-3xl p-2 sm:p-3">
+      <div className="premium-card w-full rounded-3xl border border-white/10 bg-white/[0.03] p-2 sm:p-3">
         <div aria-label="Stock detail previews" className="flex max-w-full gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0" role="tablist">
           {tabs.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
 
             return (
-              <button
+              <TabButton
+                active={isActive}
                 aria-selected={isActive}
-                className={`group inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-left text-sm transition focus:outline-none focus:ring-2 focus:ring-cyan-200/70 sm:px-4 ${
-                  isActive
-                    ? "pearl-border border-white/25 bg-white/10 text-white shadow-glass"
-                    : "border-white/10 bg-white/[0.03] text-slate-300 hover:border-white/20 hover:bg-white/[0.06] hover:text-white"
-                }`}
+                eyebrow={tab.eyebrow}
+                icon={<Icon className={isActive ? "text-cyan-100" : "text-slate-400"} size={18} />}
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 onKeyDown={handleKeyDown}
                 role="tab"
                 type="button"
               >
-                <Icon className={isActive ? "text-cyan-100" : "text-slate-400 group-hover:text-slate-200"} size={18} />
-                <span className="min-w-0">
-                  <span className="block whitespace-nowrap font-semibold leading-5">{tab.label}</span>
-                  <span className="block whitespace-nowrap text-[11px] leading-4 text-slate-400">{tab.eyebrow}</span>
-                </span>
-              </button>
+                {tab.label}
+              </TabButton>
             );
           })}
         </div>

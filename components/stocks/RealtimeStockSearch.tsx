@@ -189,7 +189,7 @@ export function RealtimeStockSearch({
         aria-expanded={showDropdown}
         aria-controls={listboxId}
         aria-activedescendant={highlightedIndex >= 0 ? `${listboxId}-${highlightedIndex}` : undefined}
-        className="h-14 w-full min-w-0 rounded-2xl border border-white/20 bg-black/50 px-4 text-base uppercase text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300 focus:ring-2 focus:ring-cyan-300/20 sm:px-5 sm:text-lg"
+        className="h-14 w-full min-w-0 rounded-3xl border border-white/15 bg-black/35 px-4 text-base uppercase text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-200/60 focus:bg-black/45 focus:ring-2 focus:ring-cyan-200/15 sm:px-5 sm:text-lg"
         placeholder={placeholder}
         autoComplete="off"
         spellCheck={false}
@@ -199,7 +199,7 @@ export function RealtimeStockSearch({
         <div
           id={listboxId}
           role="listbox"
-          className="absolute left-0 right-0 z-30 mt-2 max-h-80 w-full min-w-0 overflow-y-auto overflow-x-hidden rounded-2xl border border-white/15 bg-zinc-950/95 p-2 text-left shadow-2xl shadow-cyan-950/30 backdrop-blur-xl"
+          className="absolute left-0 right-0 z-30 mt-2 max-h-80 w-full min-w-0 overflow-y-auto overflow-x-hidden rounded-3xl border border-white/15 bg-zinc-950/95 p-2 text-left shadow-2xl shadow-black/40 backdrop-blur-xl"
         >
           {isLoading && <div className="px-3 py-3 text-sm text-slate-300">Loading suggestions…</div>}
 

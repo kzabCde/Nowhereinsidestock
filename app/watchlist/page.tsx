@@ -1,16 +1,16 @@
-import Link from "next/link";
 import { WatchlistGrid } from "@/components/stocks/WatchlistGrid";
+import { PageShell } from "@/components/ui/PageShell";
+import { SectionCard } from "@/components/ui/SectionCard";
 
 export default function WatchlistPage() {
   return (
-    <main className="grid-overlay min-h-screen overflow-x-hidden">
-      <div className="mx-auto w-full max-w-6xl space-y-4 px-4 py-6 sm:px-6">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-3xl font-bold">Watchlist</h1>
-          <Link href="/" className="btn-premium w-full text-center sm:w-auto">Back to Dashboard</Link>
-        </div>
-        <WatchlistGrid />
-      </div>
-    </main>
+    <PageShell className="space-y-6">
+      <SectionCard>
+        <p className="section-kicker">Favorites</p>
+        <h1 className="mt-2 text-3xl font-semibold text-white sm:text-4xl">Watchlist</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-300">Monitor saved stocks, remove favorites, open detail pages, or send tickers into the compare builder.</p>
+      </SectionCard>
+      <WatchlistGrid />
+    </PageShell>
   );
 }

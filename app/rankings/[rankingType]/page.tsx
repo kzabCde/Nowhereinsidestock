@@ -4,6 +4,11 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { FavoriteButton } from "@/components/stocks/FavoriteButton";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
+import { MetricCard } from "@/components/ui/MetricCard";
+import { PageShell } from "@/components/ui/PageShell";
+import { SectionCard } from "@/components/ui/SectionCard";
 import type { RankingResponse } from "@/lib/types/market";
 
 function formatNumber(value: number | null): string {
@@ -36,45 +41,49 @@ export default function RankingDetailPage() {
   }, [params.rankingType]);
 
   return (
-    <main className="grid-overlay min-h-screen overflow-x-hidden px-4 py-6 sm:px-6">
-      <div className="mx-auto w-full max-w-7xl space-y-4">
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-between">
-          <Link href="/rankings" className="btn-premium inline-flex w-full justify-center sm:w-auto">← Back to Rankings</Link>
-          <Link href="/" className="btn-premium w-full text-center sm:w-auto">Back to Dashboard</Link>
-        </div>
-        {loading && <section className="printstream-shell rounded-2xl p-6 text-slate-200">Loading ranking...</section>}
-        {error && <section className="printstream-shell rounded-2xl p-6 text-rose-300">{error}</section>}
-        {!loading && !error && data && (
-          <section className="printstream-shell pearl-border rounded-3xl p-4 sm:p-6">
-            <h1 className="text-2xl font-bold sm:text-3xl">{data.title}</h1>
-            <p className="mt-1 text-xs text-slate-400">Source: {data.source} • Fetched at: {new Date(data.fetchedAt).toLocaleString()}</p>
-            {data.stocks.length === 0 ? <p className="mt-4 text-slate-300">No ranking data available.</p> : (
-              <div className="mt-4 space-y-3">
-                {data.stocks.map((stock) => (
-                  <article key={stock.symbol} className="rounded-2xl border border-white/15 bg-black/20 p-3">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="text-lg font-semibold">#{stock.rank} {stock.symbol}</p>
-                      <span className="rounded-full border border-white/20 px-2 py-0.5 text-xs uppercase">{stock.trend}</span>
+    <PageShell size="wide" className="space-y-6">
+      {loading && <LoadingSkeleton label="Loading ranking" />}
+      {error && <ErrorState message={error} />}
+      {!loading && !error && data && (
+        <>
+          <SectionCard>
+            <p className="section-kicker">Top 10</p>
+            <h1 className="mt-2 text-3xl font-semibold text-white sm:text-4xl">{data.title}</h1>
+            <p className="mt-3 text-xs leading-5 text-slate-400">Source: {data.source} • Fetched at: {new Date(data.fetchedAt).toLocaleString()}</p>
+          </SectionCard>
+
+          {data.stocks.length === 0 ? <ErrorState message="No ranking data available." /> : (
+            <section className="grid gap-4 lg:grid-cols-2">
+              {data.stocks.map((stock) => {
+                const positive = stock.changePercent != null && stock.changePercent >= 0;
+                return (
+                  <SectionCard key={stock.symbol} as="article" className="space-y-4">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="section-kicker">#{stock.rank}</p>
+                        <h2 className="mt-2 text-2xl font-semibold text-white">{stock.symbol}</h2>
+                        <p className="truncate text-sm text-slate-300">{stock.name}</p>
+                      </div>
+                      <span className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] uppercase text-slate-300">{stock.trend}</span>
                     </div>
-                    <p className="text-sm text-slate-300">{stock.name}</p>
-                    <div className="mt-2 grid grid-cols-2 gap-2 text-sm md:grid-cols-4">
-                      <p>Price: {stock.latestPrice == null ? "-" : `$${stock.latestPrice.toFixed(2)}`}</p>
-                      <p className={stock.changePercent != null && stock.changePercent >= 0 ? "text-emerald-300" : "text-rose-300"}>Change: {stock.changePercent == null ? "-" : `${stock.changePercent.toFixed(2)}%`}</p>
-                      <p>Vol: {formatNumber(stock.volume)}</p>
-                      <p>Mkt Cap: {formatNumber(stock.marketCap)}</p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <MetricCard label="Price" value={stock.latestPrice == null ? "-" : `$${stock.latestPrice.toFixed(2)}`} />
+                      <MetricCard label="Change" value={stock.changePercent == null ? "-" : `${positive ? "+" : ""}${stock.changePercent.toFixed(2)}%`} tone={positive ? "positive" : "negative"} />
+                      <MetricCard label="Volume" value={formatNumber(stock.volume)} />
+                      <MetricCard label="Market cap" value={formatNumber(stock.marketCap)} />
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                       <FavoriteButton stock={{ symbol: stock.symbol, name: stock.name, price: stock.latestPrice ?? undefined, changePercent: stock.changePercent ?? undefined }} />
-                      <Link href={`/stocks/${stock.symbol}`} className="btn-premium">View Detail</Link>
-                      <Link href={`/compare?symbols=${stock.symbol}`} className="btn-premium">Add to Compare</Link>
+                      <Link href={`/stocks/${stock.symbol}`} className="btn-premium w-full text-center sm:w-auto">View Detail</Link>
+                      <Link href={`/compare?symbols=${stock.symbol}`} className="btn-premium w-full text-center sm:w-auto">Add to Compare</Link>
                     </div>
-                  </article>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
-      </div>
-    </main>
+                  </SectionCard>
+                );
+              })}
+            </section>
+          )}
+        </>
+      )}
+    </PageShell>
   );
 }

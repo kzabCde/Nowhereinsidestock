@@ -3,6 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useWatchlistStore } from "@/store/watchlist-store";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { MetricCard } from "@/components/ui/MetricCard";
+import { PremiumButton } from "@/components/ui/PremiumButton";
+import { SectionCard } from "@/components/ui/SectionCard";
 import type { QuoteResponse } from "@/lib/types/market";
 
 const mag7 = ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA"];
@@ -32,36 +36,47 @@ export function WatchlistGrid() {
 
   if (!watchlist.length) {
     return (
-      <div className="printstream-shell pearl-border w-full max-w-full min-w-0 overflow-hidden rounded-2xl p-4 text-center sm:p-8">
-        <p className="mb-4 text-sm text-slate-300 sm:text-base">No favorites yet. Quick-add a Magnificent Seven stock:</p>
-        <div className="flex flex-col justify-center gap-2 sm:flex-row sm:flex-wrap">
-          {mag7.map((symbol) => (
-            <button key={symbol} onClick={() => addStock({ symbol })} className="btn-premium">+ {symbol}</button>
-          ))}
-        </div>
-      </div>
+      <EmptyState
+        title="No favorites yet"
+        description="Start from rankings, search, or quick-add a Magnificent Seven stock to build your watchlist."
+        actions={
+          <>
+            <PremiumButton href="/rankings" tone="primary">Browse rankings</PremiumButton>
+            {mag7.map((symbol) => (
+              <PremiumButton key={symbol} onClick={() => addStock({ symbol })}>+ {symbol}</PremiumButton>
+            ))}
+          </>
+        }
+      />
     );
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
       {watchlist.map((item) => {
         const q = quotes[item.symbol];
+        const positive = (q?.changePercent ?? item.changePercent ?? 0) >= 0;
         return (
-          <article key={item.symbol} className="printstream-shell pearl-border w-full max-w-full min-w-0 overflow-hidden rounded-2xl p-4">
-            <div className="flex items-start justify-between">
+          <SectionCard key={item.symbol} as="article" className="space-y-5">
+            <div className="flex items-start justify-between gap-4">
               <div className="min-w-0">
-                <h3 className="truncate font-semibold">{q?.name ?? item.name ?? item.symbol}</h3>
-                <p className="truncate text-xs text-slate-400">{item.symbol}</p>
+                <p className="truncate text-xs font-semibold uppercase tracking-[0.28em] text-slate-500">{item.symbol}</p>
+                <h3 className="mt-2 truncate text-xl font-semibold text-white">{q?.name ?? item.name ?? item.symbol}</h3>
               </div>
-              <span className="text-xs uppercase text-slate-300">{q?.insight.trend ?? "-"}</span>
+              <span className="shrink-0 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] uppercase text-slate-300">{q?.insight.trend ?? "loading"}</span>
             </div>
-            <p className="mt-2 text-xl font-semibold">{q ? `$${q.latestPrice.toFixed(2)}` : "Loading..."}</p>
-            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap">
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <MetricCard label="Latest price" value={q ? `$${q.latestPrice.toFixed(2)}` : "Loading..."} />
+              <MetricCard label="Change" value={q ? `${positive ? "+" : ""}${q.changePercent.toFixed(2)}%` : "—"} tone={positive ? "positive" : "negative"} />
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
               <button onClick={() => removeStock(item.symbol)} className="btn-premium w-full border-rose-300/30 text-rose-200 sm:w-auto">Remove</button>
               <Link href={`/stocks/${item.symbol}`} className="btn-premium w-full text-center sm:w-auto">View Detail</Link>
+              <Link href={`/compare?symbols=${item.symbol}`} className="btn-premium w-full text-center sm:w-auto">Add to Compare</Link>
             </div>
-          </article>
+          </SectionCard>
         );
       })}
     </div>
