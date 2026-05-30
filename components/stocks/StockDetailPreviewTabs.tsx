@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useState, type ComponentType, type KeyboardEvent, type SVGProps } from "react";
-import { Activity, Calculator, Languages, Layers, LayoutDashboard, LineChart, TrendingUp } from "lucide-react";
+import { Activity, Calculator, Languages, Layers, LayoutDashboard, LineChart, Radar, TrendingUp } from "lucide-react";
 import { InsightCard } from "@/components/dashboard/InsightCard";
 import { PriceChart } from "@/components/dashboard/PriceChart";
 import { FairValueCalculator } from "@/components/stocks/FairValueCalculator";
 import { MovingAveragePanel } from "@/components/stocks/MovingAveragePanel";
+import { NextSignalPanel } from "@/components/stocks/NextSignalPanel";
 import { SupportResistancePanel } from "@/components/stocks/SupportResistancePanel";
 import { ThaiStockSummary } from "@/components/stocks/ThaiStockSummary";
 import type { QuoteResponse } from "@/lib/types/market";
@@ -17,7 +18,8 @@ export type StockDetailTab =
   | "moving-average"
   | "support-resistance"
   | "fair-value"
-  | "thai-summary";
+  | "thai-summary"
+  | "next-signal";
 
 type StockDetailPreviewTabsProps = {
   data: QuoteResponse;
@@ -37,7 +39,8 @@ const tabs: TabConfig[] = [
   { id: "moving-average", label: "Moving Average", eyebrow: "Trend system", icon: TrendingUp },
   { id: "support-resistance", label: "Support / Resistance", eyebrow: "Key zones", icon: Layers },
   { id: "fair-value", label: "Fair Value", eyebrow: "Valuation", icon: Calculator },
-  { id: "thai-summary", label: "Thai Summary", eyebrow: "อ่านง่าย", icon: Languages }
+  { id: "thai-summary", label: "Thai Summary", eyebrow: "อ่านง่าย", icon: Languages },
+  { id: "next-signal", label: "Next Signal", eyebrow: "จุดที่ควรจับตาต่อไป", icon: Radar }
 ];
 
 function getThaiTrend(data: QuoteResponse): "uptrend" | "downtrend" | "sideway" {
@@ -99,6 +102,17 @@ function OverviewPreview({ data }: StockDetailPreviewTabsProps) {
       </div>
     </section>
   );
+}
+
+function getLatestVolume(data: QuoteResponse): number | null {
+  const latestCandle = data.candles.at(-1);
+  return latestCandle && Number.isFinite(latestCandle.volume) ? latestCandle.volume : null;
+}
+
+function getAverageVolume(data: QuoteResponse): number | null {
+  const volumes = data.candles.slice(-20).map((candle) => candle.volume).filter(Number.isFinite);
+  if (volumes.length === 0) return null;
+  return volumes.reduce((sum, volume) => sum + volume, 0) / volumes.length;
 }
 
 function SignalsPanel({ data }: StockDetailPreviewTabsProps) {
@@ -206,6 +220,20 @@ export function StockDetailPreviewTabs({ data }: StockDetailPreviewTabsProps) {
             rsiSignal={data.insight.rsiSignal}
             macdSignal={data.insight.macdSignal}
             volatility={data.insight.volatility}
+          />
+        )}
+        {activeTab === "next-signal" && (
+          <NextSignalPanel
+            symbol={data.symbol}
+            latestPrice={data.latestPrice}
+            changePercent={data.changePercent}
+            trend={getThaiTrend(data)}
+            movingAverages={data.movingAverages}
+            supportResistance={data.supportResistance}
+            rsiSignal={data.insight.rsiSignal}
+            macdSignal={data.insight.macdSignal}
+            volume={getLatestVolume(data)}
+            averageVolume={getAverageVolume(data)}
           />
         )}
       </div>
