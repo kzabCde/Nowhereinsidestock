@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
@@ -8,6 +9,11 @@ const nextConfig: NextConfig = {
     }
   },
   webpack: (config, { isServer }) => {
+    config.resolve.alias = {
+      ...(config.resolve.alias ?? {}),
+      "lucide-react": path.resolve(__dirname, "components/icons/lucide-react.tsx")
+    };
+
     if (isServer) {
       config.resolve.alias = {
         ...(config.resolve.alias ?? {}),

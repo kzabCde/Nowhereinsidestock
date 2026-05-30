@@ -21,6 +21,9 @@
     "paths": {
       "@/*": [
         "./*"
+      ],
+      "lucide-react": [
+        "./components/icons/lucide-react"
       ]
     },
     "ignoreDeprecations": "5.0",
