@@ -101,6 +101,14 @@ export const LineChart = createIcon([
   { kind: "polyline", points: "7 16 11 12 14 15 20 9" }
 ]);
 
+export const Radar = createIcon([
+  { kind: "path", d: "M19.07 4.93A10 10 0 1 0 4.93 19.07" },
+  { kind: "path", d: "M13 11.5a2 2 0 1 0-1.5 1.5" },
+  { kind: "path", d: "M15.7 8.3a6 6 0 1 0-7.4 7.4" },
+  { kind: "path", d: "M22 2 12 12" },
+  { kind: "path", d: "M16 2h6v6" }
+]);
+
 export const TrendingUp = createIcon([
   { kind: "polyline", points: "22 7 13.5 15.5 8.5 10.5 2 17" },
   { kind: "polyline", points: "16 7 22 7 22 13" }
