@@ -1,3 +1,23 @@
+import Link from "next/link";
+import { MagnificentSeven } from "@/components/stocks/MagnificentSeven";
+import NowhereInsideStockLogo from "@/components/brand/NowhereInsideStockLogo";
+import { RealtimeStockSearch } from "@/components/stocks/RealtimeStockSearch";
+import { PageShell } from "@/components/ui/PageShell";
+import { SectionCard } from "@/components/ui/SectionCard";
+import { PremiumButton } from "@/components/ui/PremiumButton";
+
+const actions = [
+  { href: "/rankings", title: "Rankings", description: "Top 10 live leaders by category." },
+  { href: "/watchlist", title: "Watchlist", description: "Track favorite stocks in one clean list." },
+  { href: "/compare", title: "Compare", description: "Normalize performance across 2–4 stocks." }
+];
+
+const rankingPreview = [
+  { href: "/rankings/top-gainers", title: "Top Gainers", label: "Live momentum" },
+  { href: "/rankings/most-active", title: "Most Active", label: "Volume focus" },
+  { href: "/rankings/strongest-momentum", title: "Strongest Momentum", label: "Trend blend" }
+];
+
 export default function HomePage() {
   return (
     <PageShell size="wide" className="space-y-8 sm:space-y-12">
