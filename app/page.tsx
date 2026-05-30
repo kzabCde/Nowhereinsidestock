@@ -28,12 +28,7 @@ export default function HomePage() {
           <div className="mx-auto mb-8 w-full max-w-2xl">
             <RealtimeStockSearch placeholder="Search stock symbol, company, or ticker..." />
           </div>
-
-          {/* Logo */}
-          <div className="mx-auto flex max-w-full justify-center">
-            <NowhereInsideStockLogo className="justify-center" />
-          </div>
-
+    
           {/* Tagline */}
           <p className="mx-auto mt-4 max-w-2xl text-balance text-base leading-7 text-slate-300 sm:text-lg">
             A minimal signal dashboard for live quotes, technical context, rankings, watchlists, and normalized stock comparisons.
