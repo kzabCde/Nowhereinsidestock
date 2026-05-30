@@ -1,13 +1,17 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { CompareSearchBar } from "@/components/compare/CompareSearchBar";
 import { CompareSearchResults, type SearchSymbolItem } from "@/components/compare/CompareSearchResults";
 import { CompareDropZone } from "@/components/compare/CompareDropZone";
 import { CompareResultChart } from "@/components/compare/CompareResultChart";
 import { CompareMetricsTable } from "@/components/compare/CompareMetricsTable";
 import { CompareSummaryCards } from "@/components/compare/CompareSummaryCards";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
+import { PageShell } from "@/components/ui/PageShell";
+import { SectionCard } from "@/components/ui/SectionCard";
 import type { CompareApiResponse, CompareRange, CompareSeries } from "@/lib/types/compare";
 
 const RANGES: CompareRange[] = ["1M", "6M", "1Y", "5Y"];
@@ -23,7 +27,12 @@ function parseSearchResponse(value: unknown): SearchSymbolItem[] {
   return Array.isArray(data.results) ? data.results : [];
 }
 
+function sanitizeSymbols(symbols: string[]) {
+  return symbols.map((s) => s.trim().toUpperCase()).filter((s, i, arr) => s && arr.indexOf(s) === i).slice(0, 4);
+}
+
 export function CompareBuilder() {
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchSymbolItem[]>([]);
@@ -34,16 +43,21 @@ export function CompareBuilder() {
   const [resultError, setResultError] = useState<string | null>(null);
 
   useEffect(() => {
+    const urlSymbols = sanitizeSymbols((searchParams.get("symbols") ?? "").split(","));
+    if (urlSymbols.length > 0) {
+      setSelected(urlSymbols);
+      return;
+    }
+
     const raw = localStorage.getItem("compareSymbols");
     if (!raw) return;
     try {
       const parsed = JSON.parse(raw) as string[];
-      const sanitized = parsed.map((s) => s.toUpperCase()).filter((s, i, arr) => s && arr.indexOf(s) === i).slice(0, 4);
-      setSelected(sanitized);
+      setSelected(sanitizeSymbols(parsed));
     } catch {
       setSelected([]);
     }
-  }, []);
+  }, [searchParams]);
 
   useEffect(() => {
     localStorage.setItem("compareSymbols", JSON.stringify(selected));
@@ -120,37 +134,35 @@ export function CompareBuilder() {
   const summary = useMemo(() => buildSummary(result?.series ?? []), [result]);
 
   return (
-    <main className="grid-overlay min-h-screen overflow-x-hidden px-4 py-6 sm:px-6">
-      <div className="mx-auto w-full max-w-7xl space-y-4">
-        <div className="flex justify-end">
-          <Link href="/" className="btn-premium w-full text-center sm:w-auto">Back to Dashboard</Link>
+    <PageShell size="wide" className="space-y-6">
+      <SectionCard>
+        <p className="section-kicker">Normalized comparison</p>
+        <h1 className="mt-2 text-3xl font-semibold text-white sm:text-4xl">Compare Stocks</h1>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">Search stocks, add up to 4 tickers, and compare normalized performance with metrics side by side.</p>
+        <CompareSearchBar query={query} onChange={setQuery} loading={searchLoading} />
+        <CompareSearchResults results={searchResults} loading={searchLoading} query={query} onAdd={addSymbol} />
+        <CompareDropZone selected={selected} onRemove={removeSymbol} onDropSymbol={addSymbol} onClearAll={() => { setSelected([]); setResult(null); }} />
+        <div className="mt-4 flex flex-wrap gap-2">
+          {RANGES.map((item) => (
+            <button key={item} onClick={() => { setRange(item); if (result) void fetchResult(item); }} className={`rounded-2xl border px-4 py-2 text-sm font-semibold transition ${range === item ? "border-cyan-200/50 bg-cyan-200/10 text-cyan-50" : "border-white/15 bg-white/[0.035] text-slate-300 hover:bg-white/[0.06]"}`}>
+              {item}
+            </button>
+          ))}
         </div>
-        <section className="printstream-shell pearl-border rounded-3xl p-4 sm:p-6">
-          <h1 className="text-2xl font-bold sm:text-3xl">Compare Builder</h1>
-          <CompareSearchBar query={query} onChange={setQuery} loading={searchLoading} />
-          <CompareSearchResults results={searchResults} loading={searchLoading} query={query} onAdd={addSymbol} />
-          <CompareDropZone selected={selected} onRemove={removeSymbol} onDropSymbol={addSymbol} onClearAll={() => { setSelected([]); setResult(null); }} />
-          <div className="mt-3 flex flex-wrap gap-2">
-            {RANGES.map((item) => (
-              <button key={item} onClick={() => { setRange(item); if (result) void fetchResult(item); }} className={`rounded-xl border px-3 py-1 text-xs ${range === item ? "border-cyan-300 text-cyan-200" : "border-white/20 text-slate-300"}`}>
-                {item}
-              </button>
-            ))}
-          </div>
-          <button disabled={selected.length < 2 || loadingResult} onClick={() => void fetchResult()} className="btn-premium mt-4 disabled:cursor-not-allowed disabled:opacity-50">Result</button>
-        </section>
+        <button disabled={selected.length < 2 || loadingResult} onClick={() => void fetchResult()} className="btn-premium mt-5 w-full sm:w-auto">Show Result</button>
+      </SectionCard>
 
-        {loadingResult && <section className="printstream-shell pearl-border rounded-3xl p-6">Loading comparison result...</section>}
-        {resultError && <section className="printstream-shell rounded-3xl border border-rose-300/40 p-6 text-rose-200">{resultError}</section>}
-        {result && !loadingResult && (
-          <>
-            <CompareResultChart series={result.series} />
-            <CompareMetricsTable series={result.series} />
-            <CompareSummaryCards summary={summary} />
-          </>
-        )}
-      </div>
-    </main>
+      {selected.length < 2 && <SectionCard variant="quiet" className="text-center text-slate-300">Select at least 2 stocks to compare.</SectionCard>}
+      {loadingResult && <LoadingSkeleton label="Loading comparison result" />}
+      {resultError && <ErrorState message={resultError} />}
+      {result && !loadingResult && (
+        <>
+          <CompareResultChart series={result.series} />
+          <CompareMetricsTable series={result.series} />
+          <CompareSummaryCards summary={summary} />
+        </>
+      )}
+    </PageShell>
   );
 }
 
