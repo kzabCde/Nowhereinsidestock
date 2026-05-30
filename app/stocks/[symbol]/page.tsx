@@ -1,15 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import { InsightCard } from "@/components/dashboard/InsightCard";
-import { PriceChart } from "@/components/dashboard/PriceChart";
 import { FavoriteButton } from "@/components/stocks/FavoriteButton";
-import { ThaiStockSummary } from "@/components/stocks/ThaiStockSummary";
-import { SupportResistancePanel } from "@/components/stocks/SupportResistancePanel";
-import { FairValueCalculator } from "@/components/stocks/FairValueCalculator";
-import { MovingAveragePanel } from "@/components/stocks/MovingAveragePanel";
+import { StockDetailPreviewTabs } from "@/components/stocks/StockDetailPreviewTabs";
 import type { QuoteResponse } from "@/lib/types/market";
 
 export default function StockDetailPage() {
@@ -31,20 +26,6 @@ export default function StockDetailPage() {
     return () => window.clearInterval(intervalId);
   }, [symbol]);
 
-
-  const thaiTrend = useMemo(() => {
-    if (!data) return "sideway" as const;
-    if (data.insight.trend === "bullish") return "uptrend" as const;
-    if (data.insight.trend === "bearish") return "downtrend" as const;
-    return "sideway" as const;
-  }, [data]);
-
-  const trendTone = useMemo(() => {
-    if (!data) return "neutral" as const;
-    if (data.insight.trend === "bullish") return "positive" as const;
-    if (data.insight.trend === "bearish") return "negative" as const;
-    return "neutral" as const;
-  }, [data]);
 
   if (!data) return <main className="p-4 sm:p-6">Loading...</main>;
 
@@ -70,49 +51,7 @@ export default function StockDetailPage() {
           </div>
         </section>
 
-        <section className="printstream-shell pearl-border w-full max-w-full min-w-0 overflow-hidden rounded-3xl p-3 sm:p-4">
-          <PriceChart
-            data={data}
-            supports={data.supportResistance.supports}
-            resistances={data.supportResistance.resistances}
-          />
-        </section>
-
-        <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
-          <InsightCard label="Trend" value={data.insight.trend.toUpperCase()} tone={trendTone} />
-          <InsightCard label="Momentum" value={data.insight.momentum.toUpperCase()} tone="neutral" />
-          <InsightCard label="RSI" value={data.insight.rsiSignal.toUpperCase()} tone="neutral" />
-          <InsightCard label="MACD" value={data.insight.macdSignal.toUpperCase()} tone="neutral" />
-          <InsightCard label="Volatility" value={`${data.insight.volatility}%`} tone="neutral" />
-        </section>
-
-        <MovingAveragePanel movingAverages={data.movingAverages} />
-
-        <ThaiStockSummary
-          symbol={data.symbol}
-          name={data.name}
-          sector={data.sector}
-          industry={data.industry}
-          latestPrice={data.latestPrice}
-          changePercent={data.changePercent}
-          trend={thaiTrend}
-          momentum={data.insight.momentum}
-          rsiSignal={data.insight.rsiSignal}
-          macdSignal={data.insight.macdSignal}
-          volatility={data.insight.volatility}
-        />
-
-        <FairValueCalculator
-          symbol={data.symbol}
-          currentPrice={data.latestPrice}
-          metrics={data.valuationMetrics}
-        />
-
-        <SupportResistancePanel
-          supports={data.supportResistance.supports}
-          resistances={data.supportResistance.resistances}
-          message={data.supportResistance.message}
-        />
+        <StockDetailPreviewTabs data={data} />
       </div>
     </main>
   );
