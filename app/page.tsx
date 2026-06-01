@@ -21,16 +21,13 @@ const rankingPreview = [
 export default function HomePage() {
   return (
     <PageShell size="wide" className="space-y-8 sm:space-y-12">
-      <section className="py-2 sm:py-6 lg:py-8">
+     <section className="py-2 sm:py-6 lg:py-8">
         <SectionCard className="px-4 py-8 text-center sm:px-8 sm:py-12 lg:px-12 lg:py-16">
-          
-          {/* Search Bar Top */}
-          <div className="mx-auto mb-8 w-full max-w-2xl">
+          <div className="mx-auto w-full max-w-2xl">
             <RealtimeStockSearch placeholder="Search stock symbol, company, or ticker..." />
           </div>
-    
-          {/* Tagline */}
-          <p className="mx-auto mt-4 max-w-2xl text-balance text-base leading-7 text-slate-300 sm:text-lg">
+      
+          <p className="mx-auto mt-6 max-w-2xl text-balance text-base leading-7 text-slate-300 sm:text-lg">
             A minimal signal dashboard for live quotes, technical context, rankings, watchlists, and normalized stock comparisons.
           </p>
         </SectionCard>
