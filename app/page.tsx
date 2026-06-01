@@ -27,7 +27,7 @@ export default function HomePage() {
             <RealtimeStockSearch placeholder="Search stock symbol, company, or ticker..." />
           </div>
       
-          <p className="mx-auto mt-6 max-w-2xl text-balance text-base leading-7 text-slate-300 sm:text-lg">
+          <p className="mx-auto mt-10 max-w-2xl text-balance text-base leading-7 text-slate-300 sm:text-lg">
             A minimal signal dashboard for live quotes, technical context, rankings, watchlists, and normalized stock comparisons.
           </p>
         </SectionCard>
