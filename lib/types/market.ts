@@ -7,6 +7,8 @@ export type Candle = {
   volume: number;
 };
 
+export type ChartRange = "1M" | "3M" | "6M" | "1Y" | "3Y" | "5Y";
+
 export type MarketInsight = {
   trend: "bullish" | "bearish" | "neutral";
   momentum: "strong" | "moderate" | "weak";

@@ -1,8 +1,34 @@
 import YahooFinance from "yahoo-finance2";
 import { ema, macd, rsi, sma, volatility } from "@/lib/indicators/technical";
-import type { Candle, MovingAverageCrossSignal, MovingAverages, MovingAverageStatus, PriceZone, QuoteResponse, RankingResponse, RankingStock, RankingType, SearchItem } from "@/lib/types/market";
+import type { Candle, ChartRange, MovingAverageCrossSignal, MovingAverages, MovingAverageStatus, PriceZone, QuoteResponse, RankingResponse, RankingStock, RankingType, SearchItem } from "@/lib/types/market";
 
 const yahooFinance = new YahooFinance();
+
+const DEFAULT_CHART_RANGE: ChartRange = "6M";
+
+type ChartInterval = "1d" | "1wk";
+
+type ChartRangeConfig = {
+  days: number;
+  interval: ChartInterval;
+};
+
+const CHART_RANGE_CONFIG: Record<ChartRange, ChartRangeConfig> = {
+  "1M": { days: 30, interval: "1d" },
+  "3M": { days: 90, interval: "1d" },
+  "6M": { days: 180, interval: "1d" },
+  "1Y": { days: 365, interval: "1d" },
+  "3Y": { days: 1095, interval: "1wk" },
+  "5Y": { days: 1825, interval: "1wk" }
+};
+
+export function parseChartRange(value: string | null | undefined): ChartRange {
+  if (value === "1M" || value === "3M" || value === "6M" || value === "1Y" || value === "3Y" || value === "5Y") {
+    return value;
+  }
+
+  return DEFAULT_CHART_RANGE;
+}
 
 const RANKING_POOLS: Record<RankingType, string[]> = {
   "top-gainers": ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AMD", "AVGO", "NFLX", "PLTR", "JPM", "V", "MA", "COST"],
@@ -187,15 +213,16 @@ const buildZones = (points: SwingPoint[], latestPrice: number, candlesLength: nu
   return ordered.map(({ score: _score, ...zone }) => zone);
 };
 
-export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteResponse> {
+export async function fetchQuoteWithIndicators(symbol: string, range: ChartRange = DEFAULT_CHART_RANGE): Promise<QuoteResponse> {
   const now = new Date();
+  const rangeConfig = CHART_RANGE_CONFIG[range];
   const from = new Date(now);
-  from.setDate(now.getDate() - 420);
+  from.setDate(now.getDate() - rangeConfig.days);
 
   const result = await yahooFinance.chart(symbol, {
     period1: from,
     period2: now,
-    interval: "1d"
+    interval: rangeConfig.interval
   });
   const quote = await yahooFinance.quote(symbol);
   const quoteFields = quote as Record<string, unknown>;
@@ -206,7 +233,7 @@ export async function fetchQuoteWithIndicators(symbol: string): Promise<QuoteRes
 
   const candles = normalizeCandles(result?.quotes);
 
-  const windowCandles = candles.slice(-180);
+  const windowCandles = candles;
 
   const closes = candles.map((c) => c.close);
   const sma20 = sma(closes, 20);
