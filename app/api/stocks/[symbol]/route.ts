@@ -10,6 +10,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ symb
     const { searchParams } = new URL(request.url);
     const range = parseChartRange(searchParams.get("range"));
     const data = await fetchQuoteWithIndicators(symbol, range);
+
     return NextResponse.json(data, {
       status: 200,
       headers: {
