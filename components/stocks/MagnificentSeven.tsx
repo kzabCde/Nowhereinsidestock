@@ -36,15 +36,14 @@ export function MagnificentSeven() {
   if (loading) return <LoadingSkeleton label="Loading Magnificent Seven" />;
 
   return (
-    <section className="w-full max-w-full space-y-5">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+    <section className="space-y-4">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="section-kicker">Live preview</p>
-          <h2 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">Magnificent Seven</h2>
+          <p className="section-kicker">Live preview · refreshes every 60s</p>
+          <h2 className="mt-1.5 text-xl font-semibold text-white">Magnificent Seven</h2>
         </div>
-        <p className="text-sm text-slate-400">Auto-refreshes every 60 seconds.</p>
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {stocks.map((stock) => (
           <StockCard key={stock.symbol} stock={stock} />
         ))}

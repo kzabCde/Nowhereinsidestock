@@ -42,32 +42,44 @@ export function SearchModal() {
         if (e.target === backdropRef.current) close();
       }}
     >
-      <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" aria-hidden="true" />
+      <div className="absolute inset-0 bg-bg/80 backdrop-blur-md" aria-hidden="true" />
       <div className="relative w-full max-w-2xl">
-        <div className="overflow-hidden rounded-3xl border border-white/15 bg-zinc-950/98 shadow-2xl shadow-black/60 backdrop-blur-2xl">
-          <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
-            <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">Search stocks</span>
+        <div className="overflow-hidden rounded-2xl border border-white/[0.1] bg-surface shadow-elevated">
+          {/* Header */}
+          <div className="flex items-center gap-3 border-b border-white/[0.06] px-4 py-3">
+            <span className="section-kicker">Search stocks</span>
             <button
               type="button"
               onClick={close}
               aria-label="Close search"
-              className="ml-auto flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/[0.04] text-slate-400 transition hover:bg-white/[0.08] hover:text-white"
+              className="ml-auto flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.08] bg-white/[0.04] text-slate-500 transition hover:bg-white/[0.08] hover:text-white"
             >
-              <X size={14} />
+              <X size={13} />
             </button>
           </div>
+
+          {/* Search input + inline results */}
           <div className="p-3">
             <RealtimeStockSearch
-              placeholder="Search stock symbol, company, or ticker..."
+              placeholder="Search stock symbol, company, or ticker…"
               mode="navigate"
               layout="inline"
               maxResults={12}
               onSelect={close}
             />
           </div>
-          <p className="border-t border-white/10 px-4 py-2.5 text-xs text-slate-600">
-            Press <kbd className="rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-slate-500">Esc</kbd> to close · <kbd className="rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-slate-500">↑↓</kbd> to navigate · <kbd className="rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-slate-500">↵</kbd> to open
-          </p>
+
+          {/* Footer hint */}
+          <div className="border-t border-white/[0.06] px-4 py-2">
+            <p className="text-[11px] text-slate-700">
+              <kbd className="rounded border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 text-slate-600">↑↓</kbd>{" "}
+              navigate ·{" "}
+              <kbd className="rounded border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 text-slate-600">↵</kbd>{" "}
+              open ·{" "}
+              <kbd className="rounded border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 text-slate-600">Esc</kbd>{" "}
+              close
+            </p>
+          </div>
         </div>
       </div>
     </div>

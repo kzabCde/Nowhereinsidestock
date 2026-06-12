@@ -1,10 +1,22 @@
-import { SectionCard } from "@/components/ui/SectionCard";
+type ErrorStateProps = {
+  message: string;
+  onRetry?: () => void;
+};
 
-export function ErrorState({ message }: { message: string }) {
+export function ErrorState({ message, onRetry }: ErrorStateProps) {
   return (
-    <SectionCard variant="danger" className="text-rose-100">
-      <p className="text-xs uppercase tracking-[0.3em] text-rose-200/75">Unable to load</p>
-      <p className="mt-2 text-sm leading-6">{message}</p>
-    </SectionCard>
+    <div className="rounded-2xl border border-danger/20 bg-danger/5 p-5">
+      <p className="section-kicker text-danger/60">Error</p>
+      <p className="mt-1.5 text-sm leading-6 text-slate-300">{message}</p>
+      {onRetry ? (
+        <button
+          type="button"
+          onClick={onRetry}
+          className="mt-3 btn-premium text-xs"
+        >
+          Try again
+        </button>
+      ) : null}
+    </div>
   );
 }

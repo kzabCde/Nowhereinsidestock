@@ -13,11 +13,11 @@ type PremiumLinkProps = CommonProps & AnchorHTMLAttributes<HTMLAnchorElement> & 
 function classes(tone: CommonProps["tone"] = "neutral", className = "") {
   const toneClass =
     tone === "primary"
-      ? "border-cyan-200/40 bg-cyan-200/10 text-cyan-50 hover:border-cyan-100/60 hover:bg-cyan-200/15"
+      ? "border-accent/60 bg-accent text-white hover:bg-[#63b6ff]"
       : tone === "danger"
-        ? "border-rose-300/35 bg-rose-300/10 text-rose-100 hover:bg-rose-300/15"
-        : "border-white/15 bg-white/[0.04] text-slate-100 hover:border-white/25 hover:bg-white/[0.08]";
-  return `inline-flex min-h-10 items-center justify-center gap-2 rounded-2xl border px-4 py-2 text-sm font-semibold transition focus:outline-none focus:ring-2 focus:ring-cyan-200/40 disabled:cursor-not-allowed disabled:opacity-45 ${toneClass} ${className}`;
+        ? "border-danger/25 bg-danger/10 text-danger hover:bg-danger/15 hover:border-danger/40"
+        : "border-white/[0.1] bg-white/[0.04] text-slate-200 hover:border-white/[0.18] hover:bg-white/[0.08] hover:text-white";
+  return `inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-xl border px-3.5 py-1.5 text-sm font-medium transition-all focus:outline-none focus:ring-2 focus:ring-accent/30 disabled:cursor-not-allowed disabled:opacity-40 ${toneClass} ${className}`;
 }
 
 export function PremiumButton(props: PremiumButtonProps | PremiumLinkProps) {

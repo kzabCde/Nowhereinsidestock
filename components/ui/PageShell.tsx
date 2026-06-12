@@ -10,7 +10,9 @@ export function PageShell({ children, className = "", size = "default" }: PageSh
   const maxWidth = size === "wide" ? "max-w-7xl" : "max-w-6xl";
   return (
     <main className="grid-overlay min-h-screen w-full overflow-x-hidden">
-      <div className={`mx-auto w-full ${maxWidth} px-4 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16 ${className}`}>{children}</div>
+      <div className={`mx-auto w-full ${maxWidth} px-4 py-8 sm:px-6 sm:py-10 lg:px-8 lg:py-12 ${className}`}>
+        {children}
+      </div>
     </main>
   );
 }

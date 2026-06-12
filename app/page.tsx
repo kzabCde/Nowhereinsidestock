@@ -1,102 +1,112 @@
 import Link from "next/link";
+import { BarChart2, GitCompare, Star } from "lucide-react";
 import { MagnificentSeven } from "@/components/stocks/MagnificentSeven";
-import NowhereInsideStockLogo from "@/components/brand/NowhereInsideStockLogo";
 import { SearchTriggerButton } from "@/components/ui/SearchTriggerButton";
 import { PageShell } from "@/components/ui/PageShell";
-import { SectionCard } from "@/components/ui/SectionCard";
-import { PremiumButton } from "@/components/ui/PremiumButton";
 
 const actions = [
-  { href: "/rankings", title: "Rankings", description: "Top 10 live leaders by category." },
-  { href: "/watchlist", title: "Watchlist", description: "Track favorite stocks in one clean list." },
-  { href: "/compare", title: "Compare", description: "Normalize performance across 2–4 stocks." }
-];
+  {
+    href: "/rankings",
+    icon: BarChart2,
+    title: "Rankings",
+    description: "Top 10 live leaders by category — gainers, volume, momentum, and more."
+  },
+  {
+    href: "/watchlist",
+    icon: Star,
+    title: "Watchlist",
+    description: "Monitor saved stocks with live quotes in one clean list."
+  },
+  {
+    href: "/compare",
+    icon: GitCompare,
+    title: "Compare",
+    description: "Normalize performance across 2–4 stocks on a shared timeline."
+  }
+] as const;
 
 const rankingPreview = [
-  { href: "/rankings/top-gainers", title: "Top Gainers", label: "Live momentum" },
-  { href: "/rankings/most-active", title: "Most Active", label: "Volume focus" },
+  { href: "/rankings/top-gainers", title: "Top Gainers", label: "Best % change" },
+  { href: "/rankings/most-active", title: "Most Active", label: "Highest volume" },
   { href: "/rankings/strongest-momentum", title: "Strongest Momentum", label: "Trend blend" }
 ];
 
 export default function HomePage() {
   return (
-    <PageShell size="wide" className="space-y-8 sm:space-y-12">
-      <section className="py-2 sm:py-6 lg:py-8">
-        <SectionCard className="depth-hero px-4 py-8 text-center sm:px-8 sm:py-12 lg:px-12 lg:py-16">
-          <div className="mx-auto w-full max-w-2xl">
-            <SearchTriggerButton placeholder="Search stock symbol, company, or ticker..." />
-          </div>
-
-          <p className="mx-auto mt-10 max-w-2xl text-balance text-base leading-7 text-slate-300 sm:text-lg">
-            A minimal signal dashboard for live quotes, technical context, rankings, watchlists, and normalized stock comparisons.
+    <PageShell size="wide" className="space-y-12 sm:space-y-16">
+      {/* ── Hero ── */}
+      <section className="pt-4 text-center sm:pt-8">
+        <p className="section-kicker">Stock intelligence platform</p>
+        <h1 className="mt-3 text-3xl font-bold tracking-tight text-white sm:text-4xl lg:text-5xl">
+          See the trend.{" "}
+          <span className="text-slate-500">Read the signal.</span>
+        </h1>
+        <p className="mx-auto mt-4 max-w-xl text-base text-slate-500 sm:text-lg">
+          Live quotes, technical signals, rankings, watchlists, and normalized stock comparisons.
+        </p>
+        <div className="mx-auto mt-8 max-w-2xl">
+          <SearchTriggerButton placeholder="Search stock symbol, company, or ticker…" />
+          <p className="mt-2.5 text-xs text-slate-700">
+            Press <kbd className="rounded border border-white/[0.08] bg-white/[0.04] px-1.5 py-0.5 text-slate-600">⌘K</kbd> to search from anywhere
           </p>
-        </SectionCard>
+        </div>
       </section>
 
+      {/* ── Quick actions ── */}
       <section className="grid gap-3 sm:grid-cols-3">
-        {actions.map((action) => (
+        {actions.map(({ href, icon: Icon, title, description }) => (
           <Link
-            key={action.href}
-            href={action.href}
-            className="premium-card group rounded-3xl border border-white/10 bg-white/[0.035] p-5 transition hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.06]"
+            key={href}
+            href={href}
+            className="group flex flex-col rounded-2xl border border-white/[0.08] bg-surface p-5 transition-all hover:border-white/[0.14] hover:bg-elevated"
           >
-            <p className="section-kicker">Open</p>
-            <h2 className="mt-3 text-xl font-semibold text-white">
-              {action.title}
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-slate-400">
-              {action.description}
-            </p>
-            <span className="mt-5 inline-flex text-sm font-semibold text-cyan-100 transition group-hover:text-white">
-              View →
+            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl border border-white/[0.08] bg-elevated">
+              <Icon size={17} className="text-slate-400" />
+            </div>
+            <h2 className="text-base font-semibold text-white">{title}</h2>
+            <p className="mt-1 flex-1 text-sm leading-6 text-slate-500">{description}</p>
+            <span className="mt-4 inline-flex items-center text-sm font-medium text-accent opacity-0 transition-opacity group-hover:opacity-100">
+              Open →
             </span>
           </Link>
         ))}
       </section>
 
-      <section id="magnificent-seven" className="py-2">
+      {/* ── Magnificent Seven ── */}
+      <section>
         <MagnificentSeven />
       </section>
 
-      <SectionCard className="space-y-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      {/* ── Rankings preview ── */}
+      <section className="space-y-4">
+        <div className="flex items-center justify-between gap-4">
           <div>
-            <p className="section-kicker">Preview</p>
-            <h2 className="mt-2 text-2xl font-semibold text-white sm:text-3xl">
-              Top Rankings
-            </h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-300">
-              Open a category to load only the top 10 using live Yahoo Finance quote data.
-            </p>
+            <p className="section-kicker">Rankings</p>
+            <h2 className="mt-1.5 text-xl font-semibold text-white">Top categories</h2>
           </div>
-
-          <PremiumButton href="/rankings" className="w-full sm:w-auto">
-            All rankings
-          </PremiumButton>
+          <Link
+            href="/rankings"
+            className="btn-premium text-xs"
+          >
+            View all
+          </Link>
         </div>
-
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-3">
           {rankingPreview.map((item) => (
             <Link
               key={item.href}
               href={item.href}
-              className="rounded-2xl border border-white/10 bg-black/20 p-4 transition hover:border-cyan-200/30 hover:bg-white/[0.045]"
+              className="group rounded-2xl border border-white/[0.08] bg-surface p-4 transition-all hover:border-white/[0.14] hover:bg-elevated"
             >
-              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">
-                {item.label}
-              </p>
-
-              <h3 className="mt-3 text-lg font-semibold text-white">
-                {item.title}
-              </h3>
-
-              <p className="mt-4 text-sm font-medium text-cyan-100">
+              <p className="section-kicker">{item.label}</p>
+              <h3 className="mt-2 text-base font-semibold text-white">{item.title}</h3>
+              <p className="mt-3 text-sm font-medium text-accent opacity-0 transition-opacity group-hover:opacity-100">
                 Load top 10 →
               </p>
             </Link>
           ))}
         </div>
-      </SectionCard>
+      </section>
     </PageShell>
   );
 }

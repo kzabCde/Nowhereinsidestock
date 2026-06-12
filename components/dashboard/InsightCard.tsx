@@ -6,8 +6,8 @@ type InsightCardProps = {
   tone?: "neutral" | "positive" | "negative";
 };
 
-const tones = {
-  neutral: "text-slate-200",
+const tones: Record<NonNullable<InsightCardProps["tone"]>, string> = {
+  neutral: "text-white",
   positive: "text-success",
   negative: "text-danger"
 };
@@ -15,12 +15,13 @@ const tones = {
 export function InsightCard({ label, value, tone = "neutral" }: InsightCardProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full max-w-full min-w-0 overflow-hidden rounded-2xl border border-white/10 bg-white/5 p-4 shadow-glass backdrop-blur"
+      transition={{ duration: 0.22 }}
+      className="rounded-xl border border-white/[0.08] bg-elevated p-4"
     >
-      <p className="text-xs uppercase tracking-wide text-slate-400">{label}</p>
-      <p className={`mt-2 truncate text-2xl font-semibold ${tones[tone]}`}>{value}</p>
+      <p className="section-kicker">{label}</p>
+      <p className={`mt-2 truncate text-xl font-bold tracking-tight ${tones[tone]}`}>{value}</p>
     </motion.div>
   );
 }
