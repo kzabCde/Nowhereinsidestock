@@ -140,7 +140,7 @@ function OverviewPreview({ data, onRefresh, refreshing = false }: OverviewPrevie
         </div>
       </div>
 
-      <div className="mt-5 w-full max-w-full min-w-0 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03] p-2 sm:p-3">
+      <div className="mt-5 w-full max-w-full min-w-0 overflow-hidden rounded-3xl border border-white/10 depth-card p-2 sm:p-3">
         <PriceChart data={data} supports={data.supportResistance.supports} resistances={data.supportResistance.resistances} />
       </div>
 
@@ -150,7 +150,7 @@ function OverviewPreview({ data, onRefresh, refreshing = false }: OverviewPrevie
         ))}
       </div>
 
-      <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+      <div className="mt-5 rounded-2xl border border-white/10 depth-panel p-4">
         <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Thai overview</p>
         <p className="mt-2 text-sm leading-7 text-slate-200">{getThaiOverviewText(data)}</p>
       </div>
@@ -203,27 +203,38 @@ export function StockDetailPreviewTabs({ data, onRefresh, refreshing = false }: 
   return (
     <section className="w-full max-w-full min-w-0 space-y-4">
       <div className="premium-card w-full rounded-3xl border border-white/10 bg-white/[0.03] p-2 sm:p-3">
-        <div aria-label="Stock detail previews" className="flex max-w-full gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0" role="tablist">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
+        <div className="relative">
+          <div
+            aria-label="Stock detail previews"
+            className="flex max-w-full gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            role="tablist"
+          >
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
 
-            return (
-              <TabButton
-                active={isActive}
-                aria-selected={isActive}
-                eyebrow={tab.eyebrow}
-                icon={<Icon className={isActive ? "text-cyan-100" : "text-slate-400"} size={18} />}
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                onKeyDown={handleKeyDown}
-                role="tab"
-                type="button"
-              >
-                {tab.label}
-              </TabButton>
-            );
-          })}
+              return (
+                <TabButton
+                  active={isActive}
+                  aria-selected={isActive}
+                  eyebrow={tab.eyebrow}
+                  icon={<Icon className={isActive ? "text-cyan-100" : "text-slate-400"} size={18} />}
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  onKeyDown={handleKeyDown}
+                  role="tab"
+                  type="button"
+                >
+                  {tab.label}
+                </TabButton>
+              );
+            })}
+          </div>
+          {/* Scroll-fade indicator — visible on mobile only */}
+          <div
+            className="pointer-events-none absolute inset-y-0 right-0 w-12 bg-gradient-to-l from-[#070A10] to-transparent sm:hidden"
+            aria-hidden="true"
+          />
         </div>
       </div>
 

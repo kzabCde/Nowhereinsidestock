@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { MagnificentSeven } from "@/components/stocks/MagnificentSeven";
 import NowhereInsideStockLogo from "@/components/brand/NowhereInsideStockLogo";
-import { RealtimeStockSearch } from "@/components/stocks/RealtimeStockSearch";
+import { SearchTriggerButton } from "@/components/ui/SearchTriggerButton";
 import { PageShell } from "@/components/ui/PageShell";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { PremiumButton } from "@/components/ui/PremiumButton";
@@ -21,12 +21,12 @@ const rankingPreview = [
 export default function HomePage() {
   return (
     <PageShell size="wide" className="space-y-8 sm:space-y-12">
-     <section className="py-2 sm:py-6 lg:py-8">
-        <SectionCard className="px-4 py-8 text-center sm:px-8 sm:py-12 lg:px-12 lg:py-16">
+      <section className="py-2 sm:py-6 lg:py-8">
+        <SectionCard className="depth-hero px-4 py-8 text-center sm:px-8 sm:py-12 lg:px-12 lg:py-16">
           <div className="mx-auto w-full max-w-2xl">
-            <RealtimeStockSearch placeholder="Search stock symbol, company, or ticker..." />
+            <SearchTriggerButton placeholder="Search stock symbol, company, or ticker..." />
           </div>
-      
+
           <p className="mx-auto mt-10 max-w-2xl text-balance text-base leading-7 text-slate-300 sm:text-lg">
             A minimal signal dashboard for live quotes, technical context, rankings, watchlists, and normalized stock comparisons.
           </p>
