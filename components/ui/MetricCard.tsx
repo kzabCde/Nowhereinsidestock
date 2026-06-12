@@ -6,11 +6,13 @@ type MetricCardProps = {
 };
 
 export function MetricCard({ label, value, tone = "neutral", className = "" }: MetricCardProps) {
-  const toneClass = tone === "positive" ? "text-emerald-200" : tone === "negative" ? "text-rose-200" : "text-white";
+  const valueClass =
+    tone === "positive" ? "text-success" : tone === "negative" ? "text-danger" : "text-white";
+
   return (
-    <article className={`rounded-2xl border border-white/10 bg-white/[0.035] p-4 ${className}`}>
-      <p className="text-xs uppercase tracking-[0.2em] text-slate-500">{label}</p>
-      <p className={`mt-2 break-words text-lg font-semibold ${toneClass}`}>{value}</p>
+    <article className={`rounded-xl border border-white/[0.08] bg-elevated p-3.5 ${className}`}>
+      <p className="section-kicker">{label}</p>
+      <p className={`mt-1.5 break-words text-base font-semibold tabular-nums ${valueClass}`}>{value}</p>
     </article>
   );
 }

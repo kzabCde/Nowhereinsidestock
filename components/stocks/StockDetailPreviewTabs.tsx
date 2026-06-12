@@ -96,18 +96,17 @@ function OverviewPreview({ data, onRefresh, refreshing = false }: OverviewPrevie
   const range = useMemo(() => {
     const closes = data.candles.map((candle) => candle.close).filter(Number.isFinite);
     if (closes.length === 0) return null;
-    return {
-      low: Math.min(...closes),
-      high: Math.max(...closes)
-    };
+    return { low: Math.min(...closes), high: Math.max(...closes) };
   }, [data.candles]);
 
   const latestVolume = useMemo(() => getLatestVolume(data), [data]);
   const averageVolume = useMemo(() => getAverageVolume(data), [data]);
 
+  const positive = data.changePercent >= 0;
+
   const overviewItems = [
     { label: "Previous close", value: formatPrice(data.previousClose) },
-    { label: "Recent range", value: range ? `${formatPrice(range.low)} - ${formatPrice(range.high)}` : "—" },
+    { label: "Range (period)", value: range ? `${formatPrice(range.low)} – ${formatPrice(range.high)}` : "—" },
     { label: "Exchange", value: data.exchange ?? "—" },
     { label: "Market time", value: data.marketTime ? new Date(data.marketTime).toLocaleString() : "—" },
     { label: "Latest volume", value: formatNumber(latestVolume) },
@@ -117,42 +116,64 @@ function OverviewPreview({ data, onRefresh, refreshing = false }: OverviewPrevie
   ];
 
   return (
-    <SectionCard className="w-full">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+    <SectionCard className="w-full space-y-5">
+      {/* Price hero */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <p className="text-sm tracking-widest text-slate-400">{data.symbol}</p>
-          <h1 className="truncate text-3xl font-bold text-white sm:text-4xl">{data.name ?? data.symbol}</h1>
-          <p className="mt-2 text-3xl font-extrabold text-white sm:text-4xl">{formatPrice(data.latestPrice)}</p>
-          <p className={`mt-1 text-sm font-semibold ${data.changePercent >= 0 ? "text-emerald-300" : "text-rose-300"}`}>{formatPercent(data.changePercent)}</p>
+          <p className="section-kicker">{data.symbol} · {data.exchange ?? "US"}</p>
+          <h1 className="mt-1.5 truncate text-2xl font-bold text-white sm:text-3xl">
+            {data.name ?? data.symbol}
+          </h1>
+          <div className="mt-3 flex items-baseline gap-3">
+            <p className="text-3xl font-bold tabular-nums text-white sm:text-4xl">
+              {formatPrice(data.latestPrice)}
+            </p>
+            <p className={`text-base font-semibold tabular-nums ${positive ? "text-success" : "text-danger"}`}>
+              {formatPercent(data.changePercent)}
+            </p>
+          </div>
         </div>
 
-        <div className="flex flex-col items-start gap-2 lg:items-end">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 sm:flex-col sm:items-end sm:gap-2">
+          <div className="flex gap-2">
             {onRefresh ? (
               <button onClick={onRefresh} className="btn-premium text-xs" disabled={refreshing} type="button">
-                {refreshing ? "Refreshing..." : "Refresh"}
+                {refreshing ? "Refreshing…" : "Refresh"}
               </button>
             ) : null}
-            <FavoriteButton stock={{ symbol: data.symbol, name: data.name, exchange: data.exchange, price: data.latestPrice, changePercent: data.changePercent }} />
+            <FavoriteButton
+              stock={{ symbol: data.symbol, name: data.name, exchange: data.exchange, price: data.latestPrice, changePercent: data.changePercent }}
+            />
           </div>
-          <span className="inline-block rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs uppercase text-slate-200">Trend: {data.insight.trend}</span>
-          <p className="text-xs text-slate-300">Last updated: {new Date(data.lastUpdated).toLocaleString()}</p>
+          <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+            data.insight.trend === "bullish" ? "border-success/25 bg-success/10 text-success" :
+            data.insight.trend === "bearish" ? "border-danger/25 bg-danger/10 text-danger" :
+            "border-white/[0.08] bg-white/[0.04] text-slate-400"
+          }`}>
+            {data.insight.trend}
+          </span>
+          <p className="text-xs text-slate-600">
+            Updated {new Date(data.lastUpdated).toLocaleTimeString()}
+          </p>
         </div>
       </div>
 
-      <div className="mt-5 w-full max-w-full min-w-0 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.03] p-2 sm:p-3">
+      {/* Chart */}
+      <div className="w-full overflow-hidden rounded-xl border border-white/[0.08] bg-elevated p-2 sm:p-3">
         <PriceChart data={data} supports={data.supportResistance.supports} resistances={data.supportResistance.resistances} />
       </div>
 
-      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Key metrics */}
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
         {overviewItems.map((item) => (
           <MetricCard key={item.label} label={item.label} value={item.value} />
         ))}
       </div>
 
-      <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.04] p-4">
-        <p className="text-xs uppercase tracking-[0.25em] text-slate-500">Thai overview</p>
-        <p className="mt-2 text-sm leading-7 text-slate-200">{getThaiOverviewText(data)}</p>
+      {/* Thai overview */}
+      <div className="rounded-xl border border-white/[0.08] bg-elevated p-4">
+        <p className="section-kicker">ภาพรวมภาษาไทย</p>
+        <p className="mt-2 text-sm leading-7 text-slate-300">{getThaiOverviewText(data)}</p>
       </div>
     </SectionCard>
   );
@@ -160,15 +181,15 @@ function OverviewPreview({ data, onRefresh, refreshing = false }: OverviewPrevie
 
 function SignalsPanel({ data }: StockDetailPreviewTabsProps) {
   return (
-    <SectionCard className="w-full">
-      <div className="mb-4">
-        <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Signals</p>
-        <h2 className="mt-1 text-xl font-bold text-white">Technical signal preview</h2>
-        <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">
-          Focused momentum, RSI, MACD, volatility, and trend readings without repeating the deeper section tools.
+    <SectionCard className="w-full space-y-5">
+      <div>
+        <p className="section-kicker">Technical Signals</p>
+        <h2 className="mt-1.5 text-xl font-bold text-white">Momentum & Indicators</h2>
+        <p className="mt-1.5 text-sm text-slate-500">
+          RSI, MACD, trend, and momentum readings from current market data.
         </p>
       </div>
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
         <InsightCard label="Trend" value={data.insight.trend.toUpperCase()} tone={getTrendTone(data)} />
         <InsightCard label="Momentum" value={data.insight.momentum.toUpperCase()} tone="neutral" />
         <InsightCard label="RSI" value={data.insight.rsiSignal.toUpperCase()} tone="neutral" />
@@ -201,29 +222,39 @@ export function StockDetailPreviewTabs({ data, onRefresh, refreshing = false }: 
   };
 
   return (
-    <section className="w-full max-w-full min-w-0 space-y-4">
-      <div className="premium-card w-full rounded-3xl border border-white/10 bg-white/[0.03] p-2 sm:p-3">
-        <div aria-label="Stock detail previews" className="flex max-w-full gap-2 overflow-x-auto pb-1 sm:flex-wrap sm:overflow-visible sm:pb-0" role="tablist">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
+    <section className="w-full max-w-full min-w-0 space-y-3">
+      <div className="rounded-xl border border-white/[0.08] bg-surface p-1.5">
+        <div className="relative">
+          <div
+            aria-label="Stock detail sections"
+            className="flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap"
+            role="tablist"
+          >
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
 
-            return (
-              <TabButton
-                active={isActive}
-                aria-selected={isActive}
-                eyebrow={tab.eyebrow}
-                icon={<Icon className={isActive ? "text-cyan-100" : "text-slate-400"} size={18} />}
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                onKeyDown={handleKeyDown}
-                role="tab"
-                type="button"
-              >
-                {tab.label}
-              </TabButton>
-            );
-          })}
+              return (
+                <TabButton
+                  active={isActive}
+                  aria-selected={isActive}
+                  eyebrow={tab.eyebrow}
+                  icon={<Icon size={15} />}
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  onKeyDown={handleKeyDown}
+                  role="tab"
+                  type="button"
+                >
+                  {tab.label}
+                </TabButton>
+              );
+            })}
+          </div>
+          <div
+            className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-surface to-transparent sm:hidden"
+            aria-hidden="true"
+          />
         </div>
       </div>
 

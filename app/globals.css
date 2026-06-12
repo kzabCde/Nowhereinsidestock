@@ -18,10 +18,7 @@ body {
 
 body {
   @apply bg-bg text-slate-100 antialiased;
-  background:
-    radial-gradient(circle at 12% 0%, rgba(167, 139, 250, 0.12), transparent 30%),
-    radial-gradient(circle at 88% 4%, rgba(34, 211, 238, 0.10), transparent 28%),
-    linear-gradient(180deg, #070707 0%, #050507 42%, #08080a 100%);
+  background: #07090F;
 }
 
 button,
@@ -32,46 +29,75 @@ textarea {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Subtle geometric grid — barely visible */
 .grid-overlay {
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.018) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.018) 1px, transparent 1px);
-  background-size: 48px 48px;
+    linear-gradient(rgba(255, 255, 255, 0.013) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.013) 1px, transparent 1px);
+  background-size: 64px 64px;
 }
 
 @layer components {
+  /* ─── Core surface card ─── */
   .premium-card,
   .printstream-shell {
-    @apply relative max-w-full min-w-0 overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 24px 80px rgba(0, 0, 0, 0.24);
+    @apply relative max-w-full min-w-0 overflow-hidden rounded-2xl border border-white/[0.08] bg-surface;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
   }
 
+  /* Pearl border — simplified to a brighter border, no complex gradient mask */
   .pearl-border {
-    @apply relative;
+    @apply border-white/[0.12];
   }
 
   .pearl-border::before {
-    content: "";
-    position: absolute;
-    inset: -1px;
-    border-radius: inherit;
-    pointer-events: none;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.20), rgba(103, 232, 249, 0.18), rgba(167, 139, 250, 0.18), rgba(255, 255, 255, 0.08));
-    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-    mask-composite: exclude;
-    padding: 1px;
-    opacity: 0.85;
+    display: none;
   }
 
   .glow-soft {
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05), 0 16px 50px rgba(0, 0, 0, 0.24);
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 4px 20px rgba(0, 0, 0, 0.3);
   }
 
+  /* ─── Buttons ─── */
   .btn-premium {
-    @apply inline-flex min-h-10 items-center justify-center rounded-2xl border border-white/15 bg-white/[0.04] px-4 py-2 text-sm font-semibold text-slate-100 transition hover:border-white/25 hover:bg-white/[0.08] focus:outline-none focus:ring-2 focus:ring-cyan-200/40 disabled:cursor-not-allowed disabled:opacity-45;
+    @apply inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-xl border border-white/[0.1] bg-white/[0.04] px-3.5 py-1.5 text-sm font-medium text-slate-200 transition-all hover:border-white/[0.18] hover:bg-white/[0.08] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/15 disabled:cursor-not-allowed disabled:opacity-40;
   }
 
+  .btn-primary {
+    @apply inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-xl border border-accent/60 bg-accent px-3.5 py-1.5 text-sm font-medium text-white transition-all hover:bg-[#63b6ff] focus:outline-none focus:ring-2 focus:ring-accent/30 disabled:cursor-not-allowed disabled:opacity-40;
+  }
+
+  /* ─── Labels & badges ─── */
   .section-kicker {
-    @apply text-xs font-semibold uppercase tracking-[0.28em] text-slate-500;
+    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500;
+  }
+
+  .badge {
+    @apply inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400;
+  }
+
+  .badge-positive {
+    @apply badge border-success/25 bg-success/10 text-success;
+  }
+
+  .badge-negative {
+    @apply badge border-danger/25 bg-danger/10 text-danger;
+  }
+
+  .badge-neutral {
+    @apply badge;
+  }
+
+  /* ─── Depth layers (legacy — kept for backward compat) ─── */
+  .depth-hero {
+    @apply bg-white/[0.02];
+  }
+
+  .depth-card {
+    @apply bg-elevated;
+  }
+
+  .depth-panel {
+    @apply bg-white/[0.06];
   }
 }

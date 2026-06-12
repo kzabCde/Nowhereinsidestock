@@ -113,3 +113,35 @@ export const TrendingUp = createIcon([
   { kind: "polyline", points: "22 7 13.5 15.5 8.5 10.5 2 17" },
   { kind: "polyline", points: "16 7 22 7 22 13" }
 ]);
+
+export const Search = createIcon([
+  { kind: "circle", cx: 11, cy: 11, r: 8 },
+  { kind: "path", d: "m21 21-4.34-4.34" }
+]);
+
+export const X = createIcon([
+  { kind: "path", d: "M18 6 6 18" },
+  { kind: "path", d: "m6 6 12 12" }
+]);
+
+export const Home = createIcon([
+  { kind: "path", d: "M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" },
+  { kind: "path", d: "M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" }
+]);
+
+export const Star = createIcon([
+  { kind: "path", d: "M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" }
+]);
+
+export const BarChart2 = createIcon([
+  { kind: "path", d: "M5 21v-6" },
+  { kind: "path", d: "M12 21V3" },
+  { kind: "path", d: "M19 21V9" }
+]);
+
+export const GitCompare = createIcon([
+  { kind: "circle", cx: 18, cy: 18, r: 3 },
+  { kind: "circle", cx: 6, cy: 6, r: 3 },
+  { kind: "path", d: "M13 6h3a2 2 0 0 1 2 2v7" },
+  { kind: "path", d: "M11 18H8a2 2 0 0 1-2-2V9" }
+]);

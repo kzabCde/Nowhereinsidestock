@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { SectionCard } from "@/components/ui/SectionCard";
 
 type EmptyStateProps = {
   title: string;
@@ -9,11 +8,15 @@ type EmptyStateProps = {
 
 export function EmptyState({ title, description, actions }: EmptyStateProps) {
   return (
-    <SectionCard className="text-center">
-      <p className="text-xs uppercase tracking-[0.3em] text-slate-500">Empty state</p>
-      <h2 className="mt-2 text-2xl font-semibold text-white">{title}</h2>
-      <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-300">{description}</p>
-      {actions ? <div className="mt-5 flex flex-col justify-center gap-2 sm:flex-row sm:flex-wrap">{actions}</div> : null}
-    </SectionCard>
+    <div className="flex flex-col items-center py-16 text-center">
+      <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-white/[0.08] bg-surface">
+        <span className="text-2xl text-slate-600">○</span>
+      </div>
+      <h2 className="text-lg font-semibold text-white">{title}</h2>
+      <p className="mt-2 max-w-sm text-sm leading-6 text-slate-500">{description}</p>
+      {actions ? (
+        <div className="mt-6 flex flex-wrap justify-center gap-2">{actions}</div>
+      ) : null}
+    </div>
   );
 }

@@ -1,60 +1,50 @@
 import Link from "next/link";
-import NowhereInsideStockLogo from "@/components/brand/NowhereInsideStockLogo";
 
 const legalLinks = [
   { href: "/privacy", label: "Privacy" },
   { href: "/terms", label: "Terms" },
   { href: "/disclaimer", label: "Disclaimer" },
-  { href: "https://github.com", label: "GitHub" }
+  { href: "https://github.com", label: "GitHub", external: true }
 ];
 
 export default function Footer() {
   return (
-    <footer className="mt-12 border-t border-white/10 bg-black/35 px-4 py-5 text-sm text-slate-400 backdrop-blur-md sm:px-6">
-      <div className="mx-auto mb-4 w-full max-w-7xl">
-        <NowhereInsideStockLogo compact className="mx-auto sm:mx-0" />
-      </div>
-
-      <div
-        className="mx-auto flex w-full max-w-7xl flex-col gap-3 border-t border-transparent pt-1 text-center sm:flex-row sm:items-center sm:justify-between sm:text-left"
-        style={{ borderImage: "linear-gradient(90deg, rgba(173,139,255,0.55), rgba(122,228,255,0.45), rgba(255,166,222,0.5)) 1" }}
-      >
-        <p className="text-slate-400">
+    <footer className="mt-16 border-t border-white/[0.06] bg-bg px-4 py-6 sm:px-6">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-slate-500">
           © 2026{" "}
           <a
             href="https://nowheredev.vercel.app/"
             target="_blank"
             rel="noopener noreferrer"
-            className="font-semibold tracking-wide text-slate-300 transition-colors hover:text-white"
-            aria-label="Visit NOWHEREDEV website"
+            className="font-medium text-slate-400 transition-colors hover:text-white"
           >
             NOWHEREDEV
           </a>
         </p>
 
-        <nav className="flex flex-wrap justify-center gap-3 text-xs text-slate-500 sm:justify-start sm:text-sm">
+        <nav className="flex flex-wrap gap-4 text-xs text-slate-600">
           {legalLinks.map((link) =>
-            link.href.startsWith("http") ? (
+            link.external ? (
               <a
                 key={link.label}
                 href={link.href}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="transition-colors hover:text-slate-200"
+                className="transition-colors hover:text-slate-300"
               >
                 {link.label}
               </a>
             ) : (
-              <Link key={link.label} href={link.href} className="transition-colors hover:text-slate-200">
+              <Link key={link.label} href={link.href} className="transition-colors hover:text-slate-300">
                 {link.label}
               </Link>
             )
           )}
         </nav>
       </div>
-
-      <p className="mx-auto mt-3 max-w-7xl text-xs text-slate-500">
-        Market data is provided for educational and informational purposes only. Not financial advice.
+      <p className="mx-auto mt-4 max-w-7xl text-xs text-slate-700">
+        Market data for educational purposes only. Not financial advice.
       </p>
     </footer>
   );

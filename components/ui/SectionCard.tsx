@@ -15,16 +15,18 @@ export function SectionCard<T extends ElementType = "section">({
   ...props
 }: SectionCardProps<T>) {
   const Component = as ?? "section";
+
   const variantClass =
     variant === "danger"
-      ? "border-rose-300/35 bg-rose-950/10"
+      ? "border-danger/20 bg-danger/5"
       : variant === "quiet"
-        ? "border-white/10 bg-white/[0.025]"
-        : "pearl-border border-white/10 bg-white/[0.04]";
+        ? "border-white/[0.06] bg-white/[0.02]"
+        : "border-white/[0.08] bg-surface";
 
   return (
     <Component
-      className={`premium-card rounded-3xl border p-4 sm:p-6 ${variantClass} ${className}`}
+      className={`overflow-hidden rounded-2xl border p-5 sm:p-6 ${variantClass} ${className}`}
+      style={{ boxShadow: "0 1px 0 rgba(255,255,255,0.04) inset" }}
       {...props}
     >
       {children}
