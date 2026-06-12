@@ -37,16 +37,16 @@ export function SearchModal() {
   return (
     <div
       ref={backdropRef}
-      className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-[10vh]"
+      className="fixed inset-0 z-50 flex items-start justify-center px-4 pt-[8vh]"
       onPointerDown={(e) => {
         if (e.target === backdropRef.current) close();
       }}
     >
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
-      <div className="relative w-full max-w-xl">
+      <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" aria-hidden="true" />
+      <div className="relative w-full max-w-2xl">
         <div className="overflow-hidden rounded-3xl border border-white/15 bg-zinc-950/98 shadow-2xl shadow-black/60 backdrop-blur-2xl">
           <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
-            <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">Search</span>
+            <span className="text-xs font-semibold uppercase tracking-widest text-slate-500">Search stocks</span>
             <button
               type="button"
               onClick={close}
@@ -60,11 +60,13 @@ export function SearchModal() {
             <RealtimeStockSearch
               placeholder="Search stock symbol, company, or ticker..."
               mode="navigate"
+              layout="inline"
+              maxResults={12}
               onSelect={close}
             />
           </div>
           <p className="border-t border-white/10 px-4 py-2.5 text-xs text-slate-600">
-            Press <kbd className="rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-slate-500">Esc</kbd> to close
+            Press <kbd className="rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-slate-500">Esc</kbd> to close · <kbd className="rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-slate-500">↑↓</kbd> to navigate · <kbd className="rounded border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-slate-500">↵</kbd> to open
           </p>
         </div>
       </div>

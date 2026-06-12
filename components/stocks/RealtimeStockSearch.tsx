@@ -19,6 +19,9 @@ export type RealtimeStockSearchProps = {
   placeholder?: string;
   onSelect?: (symbol: string) => void;
   mode?: "navigate" | "callback";
+  /** "dropdown" floats results below the input (default). "inline" renders results in document flow — use inside modals. */
+  layout?: "dropdown" | "inline";
+  maxResults?: number;
 };
 
 const DEBOUNCE_MS = 300;
@@ -36,19 +39,21 @@ function isSuggestion(value: unknown): value is StockSearchSuggestion {
   );
 }
 
-function parseSearchResponse(value: unknown): StockSearchSuggestion[] {
+function parseSearchResponse(value: unknown, maxResults = 8): StockSearchSuggestion[] {
   if (!value || typeof value !== "object") return [];
 
   const response = value as SearchResponse;
   if (!Array.isArray(response.results)) return [];
 
-  return response.results.filter(isSuggestion).slice(0, 8);
+  return response.results.filter(isSuggestion).slice(0, maxResults);
 }
 
 export function RealtimeStockSearch({
   placeholder = "Search stock symbol...",
   onSelect,
-  mode = "navigate"
+  mode = "navigate",
+  layout = "dropdown",
+  maxResults = 8
 }: RealtimeStockSearchProps) {
   const router = useRouter();
   const listboxId = useId();
@@ -98,7 +103,7 @@ export function RealtimeStockSearch({
         }
 
         const data: unknown = await response.json();
-        const suggestions = parseSearchResponse(data);
+        const suggestions = parseSearchResponse(data, maxResults);
         setResults(suggestions);
         setHighlightedIndex(suggestions.length > 0 ? 0 : -1);
       } catch (searchError) {
@@ -188,6 +193,68 @@ export function RealtimeStockSearch({
     }
   };
 
+  const resultList = showDropdown ? (
+    <div
+      id={listboxId}
+      role="listbox"
+      className={
+        layout === "inline"
+          ? "mt-1 w-full min-w-0 text-left"
+          : "absolute left-0 right-0 z-30 mt-2 w-full min-w-0 overflow-x-hidden rounded-3xl border border-white/15 bg-zinc-950/95 p-2 text-left shadow-2xl shadow-black/40 backdrop-blur-xl"
+      }
+    >
+      {isLoading && <div className="px-3 py-3 text-sm text-slate-300">Loading suggestions…</div>}
+
+      {!isLoading && error && <div className="px-3 py-3 text-sm text-rose-300">{error}</div>}
+
+      {!isLoading && !error && results.length === 0 && debouncedQuery.length >= MIN_QUERY_LENGTH && (
+        <div className="px-3 py-3 text-sm text-slate-400">No matching stocks found.</div>
+      )}
+
+      {!error && results.length > 0 && (
+        <div
+          ref={resultListRef}
+          className={`min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain scroll-smooth pr-1 [scrollbar-color:rgba(148,163,184,0.45)_transparent] [scrollbar-width:thin] ${
+            layout === "inline" ? "max-h-[420px]" : "max-h-[160px]"
+          }`}
+        >
+          {results.map((item, index) => {
+            const isHighlighted = index === highlightedIndex;
+            const label = item.name ?? "Unknown company";
+
+            return (
+              <button
+                key={item.symbol}
+                ref={(element) => {
+                  optionRefs.current[index] = element;
+                }}
+                id={`${listboxId}-${index}`}
+                type="button"
+                role="option"
+                aria-selected={isHighlighted}
+                onMouseEnter={() => setHighlightedIndex(index)}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => selectSymbol(item.symbol)}
+                className={`flex w-full min-w-0 items-center justify-between gap-3 rounded-xl px-3 py-3 text-left transition ${
+                  isHighlighted ? "bg-cyan-300/15 text-white" : "text-slate-100 hover:bg-white/10"
+                }`}
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-sm font-semibold tracking-wide text-white sm:text-base">{item.symbol}</span>
+                  <span className="block truncate text-xs text-slate-400 sm:text-sm">{label}</span>
+                </span>
+                <span className="flex max-w-[42%] shrink-0 flex-col items-end gap-1 text-[0.65rem] uppercase tracking-wide text-slate-400 sm:flex-row sm:items-center sm:text-xs">
+                  {item.exchange && <span className="max-w-full truncate rounded-full border border-white/10 px-2 py-1">{item.exchange}</span>}
+                  {item.type && <span className="max-w-full truncate rounded-full border border-white/10 px-2 py-1">{item.type}</span>}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  ) : null;
+
   return (
     <div ref={rootRef} className="relative w-full min-w-0">
       <input
@@ -210,61 +277,7 @@ export function RealtimeStockSearch({
         spellCheck={false}
       />
 
-      {showDropdown && (
-        <div
-          id={listboxId}
-          role="listbox"
-          className="absolute left-0 right-0 z-30 mt-2 w-full min-w-0 overflow-x-hidden rounded-3xl border border-white/15 bg-zinc-950/95 p-2 text-left shadow-2xl shadow-black/40 backdrop-blur-xl"
-        >
-          {isLoading && <div className="px-3 py-3 text-sm text-slate-300">Loading suggestions…</div>}
-
-          {!isLoading && error && <div className="px-3 py-3 text-sm text-rose-300">{error}</div>}
-
-          {!isLoading && !error && results.length === 0 && debouncedQuery.length >= MIN_QUERY_LENGTH && (
-            <div className="px-3 py-3 text-sm text-slate-400">No matching stocks found.</div>
-          )}
-
-          {!error && results.length > 0 && (
-            <div
-              ref={resultListRef}
-              className="max-h-[160px] min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain scroll-smooth pr-1 [scrollbar-color:rgba(148,163,184,0.45)_transparent] [scrollbar-width:thin]"
-            >
-              {results.map((item, index) => {
-                const isHighlighted = index === highlightedIndex;
-                const label = item.name ?? "Unknown company";
-
-                return (
-                  <button
-                    key={item.symbol}
-                    ref={(element) => {
-                      optionRefs.current[index] = element;
-                    }}
-                    id={`${listboxId}-${index}`}
-                    type="button"
-                    role="option"
-                    aria-selected={isHighlighted}
-                    onMouseEnter={() => setHighlightedIndex(index)}
-                    onMouseDown={(event) => event.preventDefault()}
-                    onClick={() => selectSymbol(item.symbol)}
-                    className={`flex w-full min-w-0 items-center justify-between gap-3 rounded-xl px-3 py-3 text-left transition ${
-                      isHighlighted ? "bg-cyan-300/15 text-white" : "text-slate-100 hover:bg-white/10"
-                    }`}
-                  >
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold tracking-wide text-white sm:text-base">{item.symbol}</span>
-                      <span className="block truncate text-xs text-slate-400 sm:text-sm">{label}</span>
-                    </span>
-                    <span className="flex max-w-[42%] shrink-0 flex-col items-end gap-1 text-[0.65rem] uppercase tracking-wide text-slate-400 sm:flex-row sm:items-center sm:text-xs">
-                      {item.exchange && <span className="max-w-full truncate rounded-full border border-white/10 px-2 py-1">{item.exchange}</span>}
-                      {item.type && <span className="max-w-full truncate rounded-full border border-white/10 px-2 py-1">{item.type}</span>}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
+      {layout === "inline" ? resultList : showDropdown ? resultList : null}
     </div>
   );
 }
