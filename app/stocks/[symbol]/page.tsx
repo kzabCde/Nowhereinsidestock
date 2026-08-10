@@ -22,10 +22,7 @@ export default function StockDetailPage() {
     setError(null);
     try {
       const res = await fetch(`/api/quote/${encodeURIComponent(symbol)}`);
-      if (!res.ok) {
-        const payload = (await res.json().catch(() => null)) as { message?: string } | null;
-        throw new Error(payload?.message ?? (locale === "th" ? `ไม่สามารถโหลดข้อมูล ${symbol} ได้` : `Unable to load ${symbol}`));
-      }
+      if (!res.ok) throw new Error(locale === "th" ? `ไม่สามารถโหลดข้อมูล ${symbol} ได้` : `Unable to load ${symbol}`);
       setData((await res.json()) as QuoteResponse);
     } catch (reason) {
       setError(reason instanceof Error ? reason.message : (locale === "th" ? "ไม่สามารถโหลดข้อมูลหุ้นได้" : "Unable to load stock data"));
