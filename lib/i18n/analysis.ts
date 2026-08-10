@@ -1,4 +1,5 @@
 import type { Locale } from "./config";
+import { macdLabel, rsiLabel } from "./market-labels";
 import type { NextSignalCode } from "@/lib/analysis/next-signal";
 import type { SignalEvidence } from "@/lib/analysis/signal-score";
 import type { MovingAverages } from "@/lib/types/market";
@@ -75,16 +76,8 @@ export function translateEvidence(locale: Locale, evidence: SignalEvidence): str
 
 export function translateTrendContext(locale: Locale, trend: "uptrend" | "downtrend" | "sideway"): string {
   const text = {
-    en: {
-      uptrend: "The primary technical trend remains constructive.",
-      downtrend: "The primary technical trend remains under pressure.",
-      sideway: "Price is moving sideways without a dominant directional trend."
-    },
-    th: {
-      uptrend: "แนวโน้มทางเทคนิคหลักยังอยู่ในภาพเชิงบวก",
-      downtrend: "แนวโน้มทางเทคนิคหลักยังอยู่ภายใต้แรงกดดัน",
-      sideway: "ราคาเคลื่อนไหวในกรอบและยังไม่มีทิศทางเด่นชัด"
-    }
+    en: { uptrend: "The primary technical trend remains constructive.", downtrend: "The primary technical trend remains under pressure.", sideway: "Price is moving sideways without a dominant directional trend." },
+    th: { uptrend: "แนวโน้มทางเทคนิคหลักยังอยู่ในภาพเชิงบวก", downtrend: "แนวโน้มทางเทคนิคหลักยังอยู่ภายใต้แรงกดดัน", sideway: "ราคาเคลื่อนไหวในกรอบและยังไม่มีทิศทางเด่นชัด" }
   } as const;
   return text[locale][trend];
 }
@@ -102,24 +95,15 @@ export function translateMovingAverageContext(locale: Locale, movingAverages?: M
 }
 
 export function translateIndicatorContext(locale: Locale, rsiSignal?: string, macdSignal?: string): string {
-  if (locale === "th") {
-    const rsi = rsiSignal ? `RSI อยู่ในสถานะ ${rsiSignal}` : "RSI ยังไม่มีข้อมูลเพียงพอ";
-    const macd = macdSignal ? `MACD อยู่ในสถานะ ${macdSignal}` : "MACD ยังไม่มีข้อมูลเพียงพอ";
-    return `${rsi} และ ${macd}`;
-  }
-  const rsi = rsiSignal ? `RSI status: ${rsiSignal}` : "RSI data is insufficient";
-  const macd = macdSignal ? `MACD status: ${macdSignal}` : "MACD data is insufficient";
-  return `${rsi}; ${macd}.`;
+  const rsi = rsiLabel(locale, rsiSignal);
+  const macd = macdLabel(locale, macdSignal);
+  return locale === "th" ? `RSI: ${rsi} และ MACD: ${macd}` : `RSI: ${rsi}; MACD: ${macd}.`;
 }
 
 export function translateVolumeContext(locale: Locale, volume: number | null | undefined, averageVolume: number | null | undefined): string {
   const formatter = new Intl.NumberFormat(locale === "th" ? "th-TH" : "en-US", { notation: "compact", maximumFractionDigits: 1 });
   if (typeof volume !== "number" || !Number.isFinite(volume)) return locale === "th" ? "ยังไม่มีข้อมูลปริมาณซื้อขายล่าสุด" : "Latest volume is unavailable.";
-  if (typeof averageVolume !== "number" || !Number.isFinite(averageVolume) || averageVolume <= 0) {
-    return locale === "th" ? `Volume ล่าสุด ${formatter.format(volume)} แต่ยังไม่มีค่าเฉลี่ยที่ใช้เทียบได้` : `Latest volume is ${formatter.format(volume)}, but a comparable average is unavailable.`;
-  }
+  if (typeof averageVolume !== "number" || !Number.isFinite(averageVolume) || averageVolume <= 0) return locale === "th" ? `Volume ล่าสุด ${formatter.format(volume)} แต่ยังไม่มีค่าเฉลี่ยที่ใช้เทียบได้` : `Latest volume is ${formatter.format(volume)}, but a comparable average is unavailable.`;
   const ratio = volume / averageVolume;
-  return locale === "th"
-    ? `Volume ล่าสุด ${formatter.format(volume)} เท่ากับ ${ratio.toFixed(2)}× ของค่าเฉลี่ย ${formatter.format(averageVolume)}`
-    : `Latest volume is ${formatter.format(volume)}, or ${ratio.toFixed(2)}× the average of ${formatter.format(averageVolume)}.`;
+  return locale === "th" ? `Volume ล่าสุด ${formatter.format(volume)} เท่ากับ ${ratio.toFixed(2)}× ของค่าเฉลี่ย ${formatter.format(averageVolume)}` : `Latest volume is ${formatter.format(volume)}, or ${ratio.toFixed(2)}× the average of ${formatter.format(averageVolume)}.`;
 }
