@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { CompareCorrelationMatrix } from "@/components/compare/CompareCorrelationMatrix";
 import { CompareSearchBar } from "@/components/compare/CompareSearchBar";
 import { CompareSearchResults, type SearchSymbolItem } from "@/components/compare/CompareSearchResults";
 import { CompareDropZone } from "@/components/compare/CompareDropZone";
@@ -16,13 +17,10 @@ import type { CompareApiResponse, CompareRange, CompareSeries } from "@/lib/type
 
 const RANGES: CompareRange[] = ["1M", "6M", "1Y", "5Y"];
 
-type SearchApiResponse = {
-  results?: SearchSymbolItem[];
-};
+type SearchApiResponse = { results?: SearchSymbolItem[] };
 
 function parseSearchResponse(value: unknown): SearchSymbolItem[] {
   if (!value || typeof value !== "object") return [];
-
   const data = value as SearchApiResponse;
   return Array.isArray(data.results) ? data.results : [];
 }
@@ -75,15 +73,11 @@ export function CompareBuilder() {
 
       setSearchLoading(true);
       try {
-        const res = await fetch(`/api/search?q=${encodeURIComponent(trimmedQuery)}`, {
-          signal: controller.signal
-        });
-
+        const res = await fetch(`/api/search?q=${encodeURIComponent(trimmedQuery)}`, { signal: controller.signal });
         if (!res.ok) {
           setSearchResults([]);
           return;
         }
-
         const data: unknown = await res.json();
         setSearchResults(parseSearchResponse(data));
       } catch (error) {
@@ -106,9 +100,7 @@ export function CompareBuilder() {
     setSelected((prev) => [...prev, normalized]);
   };
 
-  const removeSymbol = (symbol: string) => {
-    setSelected((prev) => prev.filter((s) => s !== symbol));
-  };
+  const removeSymbol = (symbol: string) => setSelected((prev) => prev.filter((s) => s !== symbol));
 
   const fetchResult = async (targetRange: CompareRange = range) => {
     if (selected.length < 2 || selected.length > 4) return;
@@ -138,7 +130,7 @@ export function CompareBuilder() {
       <SectionCard>
         <p className="section-kicker">Normalized comparison</p>
         <h1 className="mt-2 text-3xl font-semibold text-white sm:text-4xl">Compare Stocks</h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">Search stocks, add up to 4 tickers, and compare normalized performance with metrics side by side.</p>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">Search stocks, add up to 4 tickers, and compare normalized performance, risk, and return correlation side by side.</p>
         <CompareSearchBar query={query} onChange={setQuery} loading={searchLoading} />
         <CompareSearchResults results={searchResults} loading={searchLoading} query={query} onAdd={addSymbol} />
         <CompareDropZone selected={selected} onRemove={removeSymbol} onDropSymbol={addSymbol} onClearAll={() => { setSelected([]); setResult(null); }} />
@@ -159,6 +151,7 @@ export function CompareBuilder() {
         <>
           <CompareResultChart series={result.series} />
           <CompareMetricsTable series={result.series} />
+          <CompareCorrelationMatrix series={result.series} />
           <CompareSummaryCards summary={summary} />
         </>
       )}
@@ -173,7 +166,7 @@ function buildSummary(series: CompareSeries[]) {
   return {
     bestPerformer: by((s) => s.metrics.totalReturn, "max").symbol,
     lowestVolatility: by((s) => s.metrics.volatility, "min").symbol,
-    strongestMomentum: by((s) => s.metrics.totalReturn - s.metrics.volatility, "max").symbol,
-    mostStable: by((s) => Math.abs(s.metrics.totalReturn), "min").symbol
+    strongestMomentum: by((s) => s.metrics.momentumScore ?? 0, "max").symbol,
+    mostStable: by((s) => s.metrics.maxDrawdown ?? Math.abs(s.metrics.totalReturn), "min").symbol
   };
 }
