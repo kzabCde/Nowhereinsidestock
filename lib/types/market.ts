@@ -12,6 +12,7 @@ export type ChartRange = "1M" | "3M" | "6M" | "1Y" | "3Y" | "5Y";
 export type MarketInsight = {
   trend: "bullish" | "bearish" | "neutral";
   momentum: "strong" | "moderate" | "weak";
+  momentumScore: number;
   rsiSignal: "overbought" | "oversold" | "neutral";
   macdSignal: "buy" | "sell" | "neutral";
   volatility: number;
@@ -53,6 +54,7 @@ export type QuoteResponse = {
   symbol: string;
   name?: string;
   exchange?: string;
+  currency?: string;
   sector?: string;
   industry?: string;
   latestPrice: number;
@@ -102,15 +104,20 @@ export type RankingType =
   | "thai-stocks"
   | "ai-tech";
 
+export type RankingScope = "market-screener" | "curated-universe";
+
 export type RankingStock = {
   rank: number;
   symbol: string;
   name: string;
+  currency?: string;
   latestPrice: number | null;
   changePercent: number | null;
   volume: number | null;
   marketCap: number | null;
   trend: "uptrend" | "downtrend" | "sideway";
+  momentumScore?: number | null;
+  volatility?: number | null;
 };
 
 export type RankingResponse = {
@@ -119,4 +126,6 @@ export type RankingResponse = {
   stocks: RankingStock[];
   fetchedAt: string;
   source: "Yahoo Finance";
+  scope: RankingScope;
+  scopeLabel: string;
 };
