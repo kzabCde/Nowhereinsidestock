@@ -12,7 +12,7 @@ export function normalizeLocale(value: string | null | undefined): Locale | null
 }
 
 export function translate(locale: Locale, key: MessageKey, values?: Record<string, string | number>): string {
-  let text = messages[locale][key] ?? messages.en[key] ?? key;
+  let text: string = messages[locale][key] ?? messages.en[key] ?? key;
   if (!values) return text;
   for (const [name, value] of Object.entries(values)) {
     text = text.replaceAll(`{${name}}`, String(value));
