@@ -1,10 +1,10 @@
 import { unstable_cache } from "next/cache";
+import YahooFinance from "yahoo-finance2";
+import { maxDrawdown, sharpeRatio, sortinoRatio } from "@/lib/finance/risk";
 import { ema, macd, normalizedMomentum, rsi, sma, volatility } from "@/lib/indicators/technical";
 import type { CompareMetric, CompareStockResult, CompareTimeframe, WinnerSummary } from "@/lib/types/compare";
-import YahooFinance from "yahoo-finance2";
 
 const yahooFinance = new YahooFinance();
-
 const timeframeToDays: Record<CompareTimeframe, number> = { "1M": 30, "6M": 180, "1Y": 365, "5Y": 365 * 5 };
 
 function round(value: number): number {
@@ -23,11 +23,9 @@ const fetchCached = unstable_cache(
     const now = new Date();
     const from = new Date(now);
     from.setDate(now.getDate() - timeframeToDays[timeframe]);
-
-    const result = await yahooFinance.chart(symbol, { period1: from, period2: now, interval: "1d" });
-    return result;
+    return yahooFinance.chart(symbol, { period1: from, period2: now, interval: "1d" });
   },
-  ["compare-stocks-v2"],
+  ["compare-stocks-v3"],
   { revalidate: 300 }
 );
 
@@ -36,9 +34,7 @@ export async function fetchCompareStock(symbol: string, timeframe: CompareTimefr
     const result = await fetchCached(symbol, timeframe);
     const rawQuotes = (result.quotes ?? []) as Array<{ date?: Date; close?: number | null; volume?: number | null }>;
     const quotes = rawQuotes.filter((q) => q.date && q.close != null && q.volume != null);
-    if (quotes.length < 30) {
-      return { symbol, name: symbol, points: [], metrics: emptyMetric(symbol), error: "Not enough historical data" };
-    }
+    if (quotes.length < 30) return { symbol, name: symbol, points: [], metrics: emptyMetric(symbol), error: "Not enough historical data" };
 
     const closes = quotes.map((q) => q.close as number);
     const volumes = quotes.map((q) => q.volume as number);
@@ -73,7 +69,10 @@ export async function fetchCompareStock(symbol: string, timeframe: CompareTimefr
       rsi: round(latestRsi),
       macdSignal: latestMacd == null || latestSignal == null ? "neutral" : latestMacd > latestSignal ? "buy" : latestMacd < latestSignal ? "sell" : "neutral",
       trendDirection: getTrend(latestClose, sma20[sma20.length - 1], ema20[ema20.length - 1]),
-      momentumScore: normalizedMomentum(latestMacd, latestSignal, latestClose)
+      momentumScore: normalizedMomentum(latestMacd, latestSignal, latestClose),
+      maxDrawdown: maxDrawdown(closes),
+      sharpeRatio: sharpeRatio(closes),
+      sortinoRatio: sortinoRatio(closes)
     };
 
     return { symbol: symbol.toUpperCase(), name: metrics.name, points, metrics };
@@ -94,7 +93,10 @@ function emptyMetric(symbol: string): CompareMetric {
     rsi: 0,
     macdSignal: "neutral",
     trendDirection: "neutral",
-    momentumScore: 0
+    momentumScore: 0,
+    maxDrawdown: 0,
+    sharpeRatio: 0,
+    sortinoRatio: 0
   };
 }
 
