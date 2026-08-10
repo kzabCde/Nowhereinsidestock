@@ -25,7 +25,7 @@ const fetchCached = unstable_cache(
     from.setDate(now.getDate() - timeframeToDays[timeframe]);
     return yahooFinance.chart(symbol, { period1: from, period2: now, interval: "1d" });
   },
-  ["compare-stocks-v3"],
+  ["compare-stocks-v4"],
   { revalidate: 300 }
 );
 
@@ -62,6 +62,7 @@ export async function fetchCompareStock(symbol: string, timeframe: CompareTimefr
       symbol: symbol.toUpperCase(),
       name: (result.meta?.longName as string | undefined) ?? symbol.toUpperCase(),
       latestPrice: round(latestClose),
+      currency: (result.meta?.currency as string | undefined) ?? "USD",
       percentChange: round(((latestClose - prevClose) / prevClose) * 100),
       totalReturn: round(((latestClose - firstClose) / firstClose) * 100),
       volatility: volatility(closes),
@@ -86,6 +87,7 @@ function emptyMetric(symbol: string): CompareMetric {
     symbol: symbol.toUpperCase(),
     name: symbol.toUpperCase(),
     latestPrice: 0,
+    currency: "USD",
     percentChange: 0,
     totalReturn: 0,
     volatility: 0,
