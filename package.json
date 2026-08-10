@@ -3,13 +3,14 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "next dev --webpack",
+    "build": "next build --webpack",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-strip-types --test tests/*.test.ts",
-    "check": "npm run test && npm run typecheck && npm run build"
+    "check": "npm run test && npm run lint && npm run typecheck && npm run build"
   },
   "dependencies": {
     "framer-motion": "^12.10.5",
