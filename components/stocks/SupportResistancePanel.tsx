@@ -9,7 +9,7 @@ const toneClass: Record<PriceZone["strength"], string> = {
   strong: "bg-emerald-500/20 text-emerald-200 border-emerald-400/30"
 };
 
-export function SupportResistancePanel({ supports, resistances }: { supports: PriceZone[]; resistances: PriceZone[] }) {
+export function SupportResistancePanel({ supports, resistances }: { supports: PriceZone[]; resistances: PriceZone[]; message?: string }) {
   const { locale } = useI18n();
   const th = locale === "th";
   const strengthLabel = (strength: PriceZone["strength"]) => {
