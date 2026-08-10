@@ -35,7 +35,6 @@ export type CompareApiResponse = {
   series: CompareSeries[];
 };
 
-// Legacy compatibility types
 export type CompareMetric = {
   symbol: string;
   name: string;
@@ -48,7 +47,11 @@ export type CompareMetric = {
   macdSignal: "buy" | "sell" | "neutral";
   trendDirection: "bullish" | "bearish" | "neutral";
   momentumScore: number;
+  maxDrawdown: number;
+  sharpeRatio: number;
+  sortinoRatio: number;
 };
+
 export type CompareSeriesPoint = { date: string; normalized: number; close: number };
 export type CompareStockResult = { symbol: string; name: string; points: CompareSeriesPoint[]; metrics: CompareMetric; error?: string };
 export type WinnerSummary = { bestPerformer: string; lowestVolatility: string; strongestMomentum: string; mostStable: string; highestVolume: string };
