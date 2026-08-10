@@ -1,5 +1,5 @@
-import type { Candle } from "@/lib/types/market";
-import { maxDrawdown } from "@/lib/finance/risk";
+import type { Candle } from "../types/market.ts";
+import { maxDrawdown } from "../finance/risk.ts";
 
 export type BacktestTrade = {
   entryDate: string;
