@@ -13,12 +13,34 @@ export type SignalScoreInput = {
   resistances?: PriceZone[];
 };
 
+export type SignalEvidenceCode =
+  | "trendBullish"
+  | "trendBearish"
+  | "priceAboveMovingAverages"
+  | "priceBelowMovingAverages"
+  | "goldenCross"
+  | "deathCross"
+  | "macdBuy"
+  | "macdSell"
+  | "rsiOversold"
+  | "rsiOverbought"
+  | "momentumStrong"
+  | "volumeWeak"
+  | "volumeConfirm"
+  | "nearSupport"
+  | "nearResistance";
+
+export type SignalEvidence = {
+  code: SignalEvidenceCode;
+  value?: number;
+};
+
 export type SignalScoreResult = {
   score: number;
   stance: "bullish" | "neutral" | "bearish";
   confidence: "high" | "medium" | "low";
-  reasons: string[];
-  cautions: string[];
+  reasons: SignalEvidence[];
+  cautions: SignalEvidence[];
 };
 
 function clamp(value: number, min: number, max: number): number {
@@ -33,17 +55,17 @@ function nearestDistancePercent(price: number, zones: PriceZone[]): number | nul
 export function buildSignalScore(input: SignalScoreInput): SignalScoreResult {
   let score = 50;
   let evidence = 0;
-  const reasons: string[] = [];
-  const cautions: string[] = [];
+  const reasons: SignalEvidence[] = [];
+  const cautions: SignalEvidence[] = [];
 
   if (input.trend === "uptrend") {
     score += 14;
     evidence += 1;
-    reasons.push("Primary trend is bullish");
+    reasons.push({ code: "trendBullish" });
   } else if (input.trend === "downtrend") {
     score -= 14;
     evidence += 1;
-    cautions.push("Primary trend is bearish");
+    cautions.push({ code: "trendBearish" });
   }
 
   const ma = input.movingAverages;
@@ -53,68 +75,65 @@ export function buildSignalScore(input: SignalScoreInput): SignalScoreResult {
     if (aboveCount >= 2) {
       score += 10;
       evidence += 1;
-      reasons.push(`Price is above ${aboveCount} key moving averages`);
+      reasons.push({ code: "priceAboveMovingAverages", value: aboveCount });
     } else if (belowCount >= 2) {
       score -= 10;
       evidence += 1;
-      cautions.push(`Price is below ${belowCount} key moving averages`);
+      cautions.push({ code: "priceBelowMovingAverages", value: belowCount });
     }
 
     if (ma.crossSignal === "golden_cross") {
       score += 10;
       evidence += 1;
-      reasons.push("MA50 crossed above MA200 (Golden Cross)");
+      reasons.push({ code: "goldenCross" });
     } else if (ma.crossSignal === "death_cross") {
       score -= 10;
       evidence += 1;
-      cautions.push("MA50 crossed below MA200 (Death Cross)");
+      cautions.push({ code: "deathCross" });
     }
   }
 
   if (input.macdSignal === "buy") {
     score += 8;
     evidence += 1;
-    reasons.push("MACD is above its signal line");
+    reasons.push({ code: "macdBuy" });
   } else if (input.macdSignal === "sell") {
     score -= 8;
     evidence += 1;
-    cautions.push("MACD is below its signal line");
+    cautions.push({ code: "macdSell" });
   }
 
   if (input.rsiSignal === "oversold") {
     score += 4;
     evidence += 1;
-    reasons.push("RSI is oversold; reversal potential is elevated");
+    reasons.push({ code: "rsiOversold" });
   } else if (input.rsiSignal === "overbought") {
     score -= 4;
     evidence += 1;
-    cautions.push("RSI is overbought; pullback risk is elevated");
+    cautions.push({ code: "rsiOverbought" });
   }
 
   if (typeof input.momentumScore === "number" && Number.isFinite(input.momentumScore)) {
     evidence += 1;
     if (input.momentumScore >= 1) {
       score += input.macdSignal === "sell" ? -5 : 5;
-      (input.macdSignal === "sell" ? cautions : reasons).push("Normalized momentum is strong relative to price");
+      (input.macdSignal === "sell" ? cautions : reasons).push({ code: "momentumStrong" });
     }
   }
 
   if (
-    typeof input.volume === "number" &&
-    Number.isFinite(input.volume) &&
-    typeof input.averageVolume === "number" &&
-    Number.isFinite(input.averageVolume) &&
-    input.averageVolume > 0
+    typeof input.volume === "number" && Number.isFinite(input.volume) &&
+    typeof input.averageVolume === "number" && Number.isFinite(input.averageVolume) && input.averageVolume > 0
   ) {
     evidence += 1;
     const ratio = input.volume / input.averageVolume;
     if (ratio >= 1.5) {
       if (input.trend === "downtrend" || input.macdSignal === "sell") {
         score -= 5;
-        cautions.push(`Volume is ${ratio.toFixed(1)}× average while signals are weak`);
+        cautions.push({ code: "volumeWeak", value: ratio });
       } else {
         score += 5;
-        reasons.push(`Volume is ${ratio.toFixed(1)}× average, confirming participation`);
+        reasons.push({ code: "volumeConfirm", value: ratio });
       }
     }
   }
@@ -123,23 +142,17 @@ export function buildSignalScore(input: SignalScoreInput): SignalScoreResult {
   const resistanceDistance = nearestDistancePercent(input.latestPrice, input.resistances ?? []);
   if (supportDistance != null && supportDistance <= 2) {
     evidence += 1;
-    reasons.push("Price is within 2% of a detected support zone");
+    reasons.push({ code: "nearSupport" });
   }
   if (resistanceDistance != null && resistanceDistance <= 2) {
     evidence += 1;
     score -= 3;
-    cautions.push("Price is within 2% of a detected resistance zone");
+    cautions.push({ code: "nearResistance" });
   }
 
   const normalizedScore = Math.round(clamp(score, 0, 100));
   const stance = normalizedScore >= 62 ? "bullish" : normalizedScore <= 38 ? "bearish" : "neutral";
   const confidence = evidence >= 6 ? "high" : evidence >= 3 ? "medium" : "low";
 
-  return {
-    score: normalizedScore,
-    stance,
-    confidence,
-    reasons: reasons.slice(0, 5),
-    cautions: cautions.slice(0, 5)
-  };
+  return { score: normalizedScore, stance, confidence, reasons: reasons.slice(0, 5), cautions: cautions.slice(0, 5) };
 }
