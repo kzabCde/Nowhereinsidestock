@@ -1,13 +1,18 @@
-import Link from "next/link";
+"use client";
 
-const legalLinks = [
-  { href: "/privacy", label: "Privacy" },
-  { href: "/terms", label: "Terms" },
-  { href: "/disclaimer", label: "Disclaimer" },
-  { href: "https://github.com", label: "GitHub", external: true }
+import Link from "next/link";
+import { useI18n } from "@/components/i18n/I18nProvider";
+import type { MessageKey } from "@/lib/i18n/messages";
+
+const legalLinks: Array<{ href: string; label?: MessageKey; text?: string; external?: boolean }> = [
+  { href: "/privacy", label: "nav.privacy" },
+  { href: "/terms", label: "nav.terms" },
+  { href: "/disclaimer", label: "nav.disclaimer" },
+  { href: "https://github.com", text: "GitHub", external: true }
 ];
 
 export default function Footer() {
+  const { t } = useI18n();
   return (
     <footer className="mt-16 border-t border-white/[0.06] bg-bg px-4 py-6 sm:px-6">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -24,28 +29,21 @@ export default function Footer() {
         </p>
 
         <nav className="flex flex-wrap gap-4 text-xs text-slate-600">
-          {legalLinks.map((link) =>
-            link.external ? (
-              <a
-                key={link.label}
-                href={link.href}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="transition-colors hover:text-slate-300"
-              >
-                {link.label}
+          {legalLinks.map((link) => {
+            const label = link.label ? t(link.label) : link.text;
+            return link.external ? (
+              <a key={link.href} href={link.href} target="_blank" rel="noopener noreferrer" className="transition-colors hover:text-slate-300">
+                {label}
               </a>
             ) : (
-              <Link key={link.label} href={link.href} className="transition-colors hover:text-slate-300">
-                {link.label}
+              <Link key={link.href} href={link.href} className="transition-colors hover:text-slate-300">
+                {label}
               </Link>
-            )
-          )}
+            );
+          })}
         </nav>
       </div>
-      <p className="mx-auto mt-4 max-w-7xl text-xs text-slate-700">
-        Market data for educational purposes only. Not financial advice.
-      </p>
+      <p className="mx-auto mt-4 max-w-7xl text-xs text-slate-700">{t("footer.marketDisclaimer")}</p>
     </footer>
   );
 }

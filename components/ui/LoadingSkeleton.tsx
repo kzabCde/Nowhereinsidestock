@@ -1,4 +1,9 @@
-export function LoadingSkeleton({ label = "Loading..." }: { label?: string }) {
+"use client";
+
+import { useI18n } from "@/components/i18n/I18nProvider";
+
+export function LoadingSkeleton({ label }: { label?: string }) {
+  const { t } = useI18n();
   return (
     <div className="space-y-4" role="status">
       <div className="h-[11px] w-20 animate-pulse rounded-full bg-white/[0.06]" />
@@ -9,7 +14,7 @@ export function LoadingSkeleton({ label = "Loading..." }: { label?: string }) {
         <div className="h-24 animate-pulse rounded-xl bg-white/[0.06]" />
         <div className="h-24 animate-pulse rounded-xl bg-white/[0.06]" />
       </div>
-      <span className="sr-only">{label}</span>
+      <span className="sr-only">{label ?? t("common.loading")}</span>
     </div>
   );
 }

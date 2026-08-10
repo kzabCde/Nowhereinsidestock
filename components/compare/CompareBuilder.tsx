@@ -13,10 +13,10 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { PageShell } from "@/components/ui/PageShell";
 import { SectionCard } from "@/components/ui/SectionCard";
+import { useI18n } from "@/components/i18n/I18nProvider";
 import type { CompareApiResponse, CompareRange, CompareSeries } from "@/lib/types/compare";
 
 const RANGES: CompareRange[] = ["1M", "6M", "1Y", "5Y"];
-
 type SearchApiResponse = { results?: SearchSymbolItem[] };
 
 function parseSearchResponse(value: unknown): SearchSymbolItem[] {
@@ -39,6 +39,7 @@ export function CompareBuilder() {
   const [loadingResult, setLoadingResult] = useState(false);
   const [result, setResult] = useState<CompareApiResponse | null>(null);
   const [resultError, setResultError] = useState<string | null>(null);
+  const { locale, t } = useI18n();
 
   useEffect(() => {
     const urlSymbols = sanitizeSymbols((searchParams.get("symbols") ?? "").split(","));
@@ -46,7 +47,6 @@ export function CompareBuilder() {
       setSelected(urlSymbols);
       return;
     }
-
     const raw = localStorage.getItem("compareSymbols");
     if (!raw) return;
     try {
@@ -70,7 +70,6 @@ export function CompareBuilder() {
         setSearchLoading(false);
         return;
       }
-
       setSearchLoading(true);
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(trimmedQuery)}`, { signal: controller.signal });
@@ -87,7 +86,6 @@ export function CompareBuilder() {
         if (!controller.signal.aborted) setSearchLoading(false);
       }
     }, 300);
-
     return () => {
       controller.abort();
       clearTimeout(id);
@@ -110,13 +108,13 @@ export function CompareBuilder() {
       const res = await fetch(`/api/compare?symbols=${selected.join(",")}&range=${targetRange}`, { cache: "no-store" });
       const data = (await res.json()) as CompareApiResponse | { error: string };
       if (!res.ok || "error" in data) {
-        setResultError("error" in data ? data.error : "Failed to compare symbols");
+        setResultError("error" in data ? data.error : (locale === "th" ? "ไม่สามารถเปรียบเทียบหุ้นได้" : "Failed to compare symbols"));
         setResult(null);
       } else {
         setResult(data);
       }
     } catch {
-      setResultError("Unable to load comparison data.");
+      setResultError(locale === "th" ? "ไม่สามารถโหลดข้อมูลเปรียบเทียบได้" : "Unable to load comparison data.");
       setResult(null);
     } finally {
       setLoadingResult(false);
@@ -128,24 +126,22 @@ export function CompareBuilder() {
   return (
     <PageShell size="wide" className="space-y-6">
       <SectionCard>
-        <p className="section-kicker">Normalized comparison</p>
-        <h1 className="mt-2 text-3xl font-semibold text-white sm:text-4xl">Compare Stocks</h1>
-        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">Search stocks, add up to 4 tickers, and compare normalized performance, risk, and return correlation side by side.</p>
+        <p className="section-kicker">{t("compare.eyebrow")}</p>
+        <h1 className="mt-2 text-3xl font-semibold text-white sm:text-4xl">{t("compare.title")}</h1>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">{t("compare.description")}</p>
         <CompareSearchBar query={query} onChange={setQuery} loading={searchLoading} />
         <CompareSearchResults results={searchResults} loading={searchLoading} query={query} onAdd={addSymbol} />
         <CompareDropZone selected={selected} onRemove={removeSymbol} onDropSymbol={addSymbol} onClearAll={() => { setSelected([]); setResult(null); }} />
         <div className="mt-4 flex flex-wrap gap-2">
           {RANGES.map((item) => (
-            <button key={item} onClick={() => { setRange(item); if (result) void fetchResult(item); }} className={`rounded-2xl border px-4 py-2 text-sm font-semibold transition ${range === item ? "border-cyan-200/50 bg-cyan-200/10 text-cyan-50" : "border-white/15 bg-white/[0.035] text-slate-300 hover:bg-white/[0.06]"}`}>
-              {item}
-            </button>
+            <button key={item} onClick={() => { setRange(item); if (result) void fetchResult(item); }} className={`rounded-2xl border px-4 py-2 text-sm font-semibold transition ${range === item ? "border-cyan-200/50 bg-cyan-200/10 text-cyan-50" : "border-white/15 bg-white/[0.035] text-slate-300 hover:bg-white/[0.06]"}`}>{item}</button>
           ))}
         </div>
-        <button disabled={selected.length < 2 || loadingResult} onClick={() => void fetchResult()} className="btn-premium mt-5 w-full sm:w-auto">Show Result</button>
+        <button disabled={selected.length < 2 || loadingResult} onClick={() => void fetchResult()} className="btn-premium mt-5 w-full sm:w-auto">{t("compare.showResult")}</button>
       </SectionCard>
 
-      {selected.length < 2 && <SectionCard variant="quiet" className="text-center text-slate-300">Select at least 2 stocks to compare.</SectionCard>}
-      {loadingResult && <LoadingSkeleton label="Loading comparison result" />}
+      {selected.length < 2 && <SectionCard variant="quiet" className="text-center text-slate-300">{t("compare.selectAtLeast")}</SectionCard>}
+      {loadingResult && <LoadingSkeleton label={t("compare.loading")} />}
       {resultError && <ErrorState message={resultError} />}
       {result && !loadingResult && (
         <>
@@ -161,8 +157,7 @@ export function CompareBuilder() {
 
 function buildSummary(series: CompareSeries[]) {
   if (series.length === 0) return null;
-  const by = (pick: (item: CompareSeries) => number, dir: "max" | "min") =>
-    series.reduce((best, cur) => (dir === "max" ? (pick(cur) > pick(best) ? cur : best) : pick(cur) < pick(best) ? cur : best), series[0]);
+  const by = (pick: (item: CompareSeries) => number, dir: "max" | "min") => series.reduce((best, cur) => (dir === "max" ? (pick(cur) > pick(best) ? cur : best) : pick(cur) < pick(best) ? cur : best), series[0]);
   return {
     bestPerformer: by((s) => s.metrics.totalReturn, "max").symbol,
     lowestVolatility: by((s) => s.metrics.volatility, "min").symbol,
