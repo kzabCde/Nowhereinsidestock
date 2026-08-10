@@ -1,5 +1,5 @@
 import { unstable_cache } from "next/cache";
-import { ema, macd, rsi, sma, volatility } from "@/lib/indicators/technical";
+import { ema, macd, normalizedMomentum, rsi, sma, volatility } from "@/lib/indicators/technical";
 import type { CompareMetric, CompareStockResult, CompareTimeframe, WinnerSummary } from "@/lib/types/compare";
 import YahooFinance from "yahoo-finance2";
 
@@ -27,7 +27,7 @@ const fetchCached = unstable_cache(
     const result = await yahooFinance.chart(symbol, { period1: from, period2: now, interval: "1d" });
     return result;
   },
-  ["compare-stocks"],
+  ["compare-stocks-v2"],
   { revalidate: 300 }
 );
 
@@ -50,8 +50,8 @@ export async function fetchCompareStock(symbol: string, timeframe: CompareTimefr
     const sma20 = sma(closes, 20);
     const ema20 = ema(closes, 20);
     const latestRsi = rsi14[rsi14.length - 1] ?? 50;
-    const latestMacd = macdResult.line[macdResult.line.length - 1] ?? 0;
-    const latestSignal = macdResult.signal[macdResult.signal.length - 1] ?? 0;
+    const latestMacd = macdResult.line[macdResult.line.length - 1] ?? null;
+    const latestSignal = macdResult.signal[macdResult.signal.length - 1] ?? null;
 
     const points = quotes.map((q) => {
       const close = q.close as number;
@@ -71,9 +71,9 @@ export async function fetchCompareStock(symbol: string, timeframe: CompareTimefr
       volatility: volatility(closes),
       averageVolume: round(volumes.reduce((acc, cur) => acc + cur, 0) / volumes.length),
       rsi: round(latestRsi),
-      macdSignal: latestMacd > latestSignal ? "buy" : latestMacd < latestSignal ? "sell" : "neutral",
+      macdSignal: latestMacd == null || latestSignal == null ? "neutral" : latestMacd > latestSignal ? "buy" : latestMacd < latestSignal ? "sell" : "neutral",
       trendDirection: getTrend(latestClose, sma20[sma20.length - 1], ema20[ema20.length - 1]),
-      momentumScore: round(Math.abs(latestMacd - latestSignal) * 100)
+      momentumScore: normalizedMomentum(latestMacd, latestSignal, latestClose)
     };
 
     return { symbol: symbol.toUpperCase(), name: metrics.name, points, metrics };
@@ -83,7 +83,19 @@ export async function fetchCompareStock(symbol: string, timeframe: CompareTimefr
 }
 
 function emptyMetric(symbol: string): CompareMetric {
-  return { symbol: symbol.toUpperCase(), name: symbol.toUpperCase(), latestPrice: 0, percentChange: 0, totalReturn: 0, volatility: 0, averageVolume: 0, rsi: 0, macdSignal: "neutral", trendDirection: "neutral", momentumScore: 0 };
+  return {
+    symbol: symbol.toUpperCase(),
+    name: symbol.toUpperCase(),
+    latestPrice: 0,
+    percentChange: 0,
+    totalReturn: 0,
+    volatility: 0,
+    averageVolume: 0,
+    rsi: 0,
+    macdSignal: "neutral",
+    trendDirection: "neutral",
+    momentumScore: 0
+  };
 }
 
 export function buildWinnerSummary(metrics: CompareMetric[]): WinnerSummary {
