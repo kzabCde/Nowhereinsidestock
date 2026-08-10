@@ -4,6 +4,7 @@ import { useMemo, useState, type ComponentType, type KeyboardEvent, type SVGProp
 import { Activity, Calculator, Languages, Layers, LayoutDashboard, Radar, TrendingUp } from "lucide-react";
 import { InsightCard } from "@/components/dashboard/InsightCard";
 import { PriceChart } from "@/components/dashboard/PriceChart";
+import { BacktestPanel } from "@/components/stocks/BacktestPanel";
 import { FairValueCalculator } from "@/components/stocks/FairValueCalculator";
 import { FavoriteButton } from "@/components/stocks/FavoriteButton";
 import { MovingAveragePanel } from "@/components/stocks/MovingAveragePanel";
@@ -22,23 +23,13 @@ export type StockDetailTab =
   | "moving-average"
   | "support-resistance"
   | "fair-value"
+  | "backtest"
   | "thai-summary"
   | "next-signal";
 
-type StockDetailPreviewTabsProps = {
-  data: QuoteResponse;
-  onRefresh?: () => void;
-  refreshing?: boolean;
-};
-
+type StockDetailPreviewTabsProps = { data: QuoteResponse; onRefresh?: () => void; refreshing?: boolean };
 type OverviewPreviewProps = StockDetailPreviewTabsProps;
-
-type TabConfig = {
-  id: StockDetailTab;
-  label: string;
-  eyebrow: string;
-  icon: ComponentType<SVGProps<SVGSVGElement> & { size?: number | string }>;
-};
+type TabConfig = { id: StockDetailTab; label: string; eyebrow: string; icon: ComponentType<SVGProps<SVGSVGElement> & { size?: number | string }> };
 
 const tabs: TabConfig[] = [
   { id: "overview", label: "Overview", eyebrow: "Snapshot", icon: LayoutDashboard },
@@ -46,8 +37,9 @@ const tabs: TabConfig[] = [
   { id: "moving-average", label: "Moving Average", eyebrow: "Trend system", icon: TrendingUp },
   { id: "support-resistance", label: "Support / Resistance", eyebrow: "Key zones", icon: Layers },
   { id: "fair-value", label: "Fair Value", eyebrow: "Valuation", icon: Calculator },
+  { id: "backtest", label: "Backtest", eyebrow: "Historical test", icon: TrendingUp },
   { id: "thai-summary", label: "Thai Summary", eyebrow: "อ่านง่าย", icon: Languages },
-  { id: "next-signal", label: "Next Signal", eyebrow: "จุดที่ควรจับตาต่อไป", icon: Radar }
+  { id: "next-signal", label: "Next Signal", eyebrow: "Explainable score", icon: Radar }
 ];
 
 function getThaiTrend(data: QuoteResponse): "uptrend" | "downtrend" | "sideway" {
@@ -123,39 +115,19 @@ function OverviewPreview({ data, onRefresh, refreshing = false }: OverviewPrevie
             <p className={`text-base font-semibold tabular-nums ${positive ? "text-success" : "text-danger"}`}>{formatPercent(data.changePercent)}</p>
           </div>
         </div>
-
         <div className="flex flex-wrap items-center gap-2 sm:flex-col sm:items-end sm:gap-2">
           <div className="flex gap-2">
-            {onRefresh ? (
-              <button onClick={onRefresh} className="btn-premium text-xs" disabled={refreshing} type="button">
-                {refreshing ? "Refreshing…" : "Refresh"}
-              </button>
-            ) : null}
+            {onRefresh ? <button onClick={onRefresh} className="btn-premium text-xs" disabled={refreshing} type="button">{refreshing ? "Refreshing…" : "Refresh"}</button> : null}
             <FavoriteButton stock={{ symbol: data.symbol, name: data.name, exchange: data.exchange, price: data.latestPrice, changePercent: data.changePercent }} />
           </div>
-          <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
-            data.insight.trend === "bullish" ? "border-success/25 bg-success/10 text-success" :
-            data.insight.trend === "bearish" ? "border-danger/25 bg-danger/10 text-danger" :
-            "border-white/[0.08] bg-white/[0.04] text-slate-400"
-          }`}>
-            {data.insight.trend}
-          </span>
+          <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${data.insight.trend === "bullish" ? "border-success/25 bg-success/10 text-success" : data.insight.trend === "bearish" ? "border-danger/25 bg-danger/10 text-danger" : "border-white/[0.08] bg-white/[0.04] text-slate-400"}`}>{data.insight.trend}</span>
           <p className="text-xs text-slate-600">Updated {new Date(data.lastUpdated).toLocaleTimeString()}</p>
         </div>
       </div>
 
-      <div className="w-full overflow-hidden rounded-xl border border-white/[0.08] bg-elevated p-2 sm:p-3">
-        <PriceChart data={data} supports={data.supportResistance.supports} resistances={data.supportResistance.resistances} />
-      </div>
-
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">
-        {overviewItems.map((item) => <MetricCard key={item.label} label={item.label} value={item.value} />)}
-      </div>
-
-      <div className="rounded-xl border border-white/[0.08] bg-elevated p-4">
-        <p className="section-kicker">ภาพรวมภาษาไทย</p>
-        <p className="mt-2 text-sm leading-7 text-slate-300">{getThaiOverviewText(data)}</p>
-      </div>
+      <div className="w-full overflow-hidden rounded-xl border border-white/[0.08] bg-elevated p-2 sm:p-3"><PriceChart data={data} supports={data.supportResistance.supports} resistances={data.supportResistance.resistances} /></div>
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">{overviewItems.map((item) => <MetricCard key={item.label} label={item.label} value={item.value} />)}</div>
+      <div className="rounded-xl border border-white/[0.08] bg-elevated p-4"><p className="section-kicker">ภาพรวมภาษาไทย</p><p className="mt-2 text-sm leading-7 text-slate-300">{getThaiOverviewText(data)}</p></div>
     </SectionCard>
   );
 }
@@ -163,11 +135,7 @@ function OverviewPreview({ data, onRefresh, refreshing = false }: OverviewPrevie
 function SignalsPanel({ data }: StockDetailPreviewTabsProps) {
   return (
     <SectionCard className="w-full space-y-5">
-      <div>
-        <p className="section-kicker">Technical Signals</p>
-        <h2 className="mt-1.5 text-xl font-bold text-white">Momentum & Indicators</h2>
-        <p className="mt-1.5 text-sm text-slate-500">RSI, MACD, normalized momentum, trend, and annualized return volatility.</p>
-      </div>
+      <div><p className="section-kicker">Technical Signals</p><h2 className="mt-1.5 text-xl font-bold text-white">Momentum & Indicators</h2><p className="mt-1.5 text-sm text-slate-500">RSI, MACD, normalized momentum, trend, and annualized return volatility.</p></div>
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
         <InsightCard label="Trend" value={data.insight.trend.toUpperCase()} tone={getTrendTone(data)} />
         <InsightCard label="Momentum" value={data.insight.momentum.toUpperCase()} tone="neutral" />
@@ -183,21 +151,10 @@ function SignalsPanel({ data }: StockDetailPreviewTabsProps) {
 export function StockDetailPreviewTabs({ data, onRefresh, refreshing = false }: StockDetailPreviewTabsProps) {
   const [activeTab, setActiveTab] = useState<StockDetailTab>("overview");
   const activeIndex = tabs.findIndex((tab) => tab.id === activeTab);
-
-  const selectRelativeTab = (direction: -1 | 1) => {
-    const nextIndex = (activeIndex + direction + tabs.length) % tabs.length;
-    setActiveTab(tabs[nextIndex].id);
-  };
-
+  const selectRelativeTab = (direction: -1 | 1) => setActiveTab(tabs[(activeIndex + direction + tabs.length) % tabs.length].id);
   const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      selectRelativeTab(-1);
-    }
-    if (event.key === "ArrowRight") {
-      event.preventDefault();
-      selectRelativeTab(1);
-    }
+    if (event.key === "ArrowLeft") { event.preventDefault(); selectRelativeTab(-1); }
+    if (event.key === "ArrowRight") { event.preventDefault(); selectRelativeTab(1); }
   };
 
   return (
@@ -208,21 +165,7 @@ export function StockDetailPreviewTabs({ data, onRefresh, refreshing = false }: 
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
-              return (
-                <TabButton
-                  active={isActive}
-                  aria-selected={isActive}
-                  eyebrow={tab.eyebrow}
-                  icon={<Icon size={15} />}
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  onKeyDown={handleKeyDown}
-                  role="tab"
-                  type="button"
-                >
-                  {tab.label}
-                </TabButton>
-              );
+              return <TabButton active={isActive} aria-selected={isActive} eyebrow={tab.eyebrow} icon={<Icon size={15} />} key={tab.id} onClick={() => setActiveTab(tab.id)} onKeyDown={handleKeyDown} role="tab" type="button">{tab.label}</TabButton>;
             })}
           </div>
           <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-surface to-transparent sm:hidden" aria-hidden="true" />
@@ -233,37 +176,22 @@ export function StockDetailPreviewTabs({ data, onRefresh, refreshing = false }: 
         {activeTab === "overview" && <OverviewPreview data={data} onRefresh={onRefresh} refreshing={refreshing} />}
         {activeTab === "signals" && <SignalsPanel data={data} />}
         {activeTab === "moving-average" && <MovingAveragePanel movingAverages={data.movingAverages} />}
-        {activeTab === "support-resistance" && (
-          <SupportResistancePanel supports={data.supportResistance.supports} resistances={data.supportResistance.resistances} message={data.supportResistance.message} />
-        )}
-        {activeTab === "fair-value" && (
-          <FairValueCalculator symbol={data.symbol} currentPrice={data.latestPrice} metrics={data.valuationMetrics} currency={data.currency} />
-        )}
-        {activeTab === "thai-summary" && (
-          <ThaiStockSummary
-            symbol={data.symbol}
-            name={data.name}
-            sector={data.sector}
-            industry={data.industry}
-            latestPrice={data.latestPrice}
-            changePercent={data.changePercent}
-            trend={getThaiTrend(data)}
-            momentum={data.insight.momentum}
-            rsiSignal={data.insight.rsiSignal}
-            macdSignal={data.insight.macdSignal}
-            volatility={data.insight.volatility}
-          />
-        )}
+        {activeTab === "support-resistance" && <SupportResistancePanel supports={data.supportResistance.supports} resistances={data.supportResistance.resistances} message={data.supportResistance.message} />}
+        {activeTab === "fair-value" && <FairValueCalculator symbol={data.symbol} currentPrice={data.latestPrice} metrics={data.valuationMetrics} currency={data.currency} />}
+        {activeTab === "backtest" && <BacktestPanel candles={data.candles} currency={data.currency} />}
+        {activeTab === "thai-summary" && <ThaiStockSummary symbol={data.symbol} name={data.name} sector={data.sector} industry={data.industry} latestPrice={data.latestPrice} changePercent={data.changePercent} trend={getThaiTrend(data)} momentum={data.insight.momentum} rsiSignal={data.insight.rsiSignal} macdSignal={data.insight.macdSignal} volatility={data.insight.volatility} />}
         {activeTab === "next-signal" && (
           <NextSignalPanel
             symbol={data.symbol}
             latestPrice={data.latestPrice}
+            currency={data.currency}
             changePercent={data.changePercent}
             trend={getThaiTrend(data)}
             movingAverages={data.movingAverages}
             supportResistance={data.supportResistance}
             rsiSignal={data.insight.rsiSignal}
             macdSignal={data.insight.macdSignal}
+            momentumScore={data.insight.momentumScore}
             volume={getLatestVolume(data)}
             averageVolume={getAverageVolume(data)}
           />
