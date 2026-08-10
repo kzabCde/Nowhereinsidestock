@@ -1,75 +1,68 @@
 import { NextResponse } from "next/server";
-import YahooFinance from "yahoo-finance2";
-import { volatility, rsi, macd, sma } from "@/lib/indicators/technical";
-import type { CompareApiResponse, CompareMetrics, CompareRange, CompareSeries } from "@/lib/types/compare";
+import { fetchCompareStock } from "@/lib/services/compare";
+import type { CompareApiResponse, CompareRange, CompareSeries } from "@/lib/types/compare";
 
-const yahoo = new YahooFinance();
-const ranges: Record<CompareRange, number> = { "1M": 30, "6M": 180, "1Y": 365, "5Y": 1825 };
-export const dynamic = "force-dynamic";
-export const revalidate = 0;
-const fetchChart = async (symbol: string, range: CompareRange) => {
-  const now = new Date();
-  const from = new Date(now);
-  from.setDate(now.getDate() - ranges[range]);
-  return yahoo.chart(symbol, { period1: from, period2: now, interval: "1d" });
-};
+const VALID_RANGES: CompareRange[] = ["1M", "6M", "1Y", "5Y"];
+export const runtime = "nodejs";
+export const revalidate = 300;
+
+function isCompareRange(value: string | null): value is CompareRange {
+  return value != null && VALID_RANGES.includes(value as CompareRange);
+}
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
-  const range = searchParams.get("range") as CompareRange;
+  const rangeParam = searchParams.get("range");
   const raw = searchParams.get("symbols") ?? "";
-  const symbols = raw.split(",").map((s) => s.trim().toUpperCase()).filter(Boolean).filter((s, i, a) => a.indexOf(s) === i);
-  if (!["1M", "6M", "1Y", "5Y"].includes(range)) return NextResponse.json({ error: "Invalid range. Use 1M, 6M, 1Y, 5Y." }, { status: 400 });
+  const symbols = raw
+    .split(",")
+    .map((symbol) => symbol.trim().toUpperCase())
+    .filter(Boolean)
+    .filter((symbol, index, all) => all.indexOf(symbol) === index);
+
+  if (!isCompareRange(rangeParam)) return NextResponse.json({ error: "Invalid range. Use 1M, 6M, 1Y, 5Y." }, { status: 400 });
   if (symbols.length < 2) return NextResponse.json({ error: "Please select at least 2 symbols." }, { status: 400 });
   if (symbols.length > 4) return NextResponse.json({ error: "Maximum 4 symbols allowed." }, { status: 400 });
 
   try {
-    const series = await Promise.all(symbols.map(async (symbol): Promise<CompareSeries> => {
-      const [data, quote] = await Promise.all([fetchChart(symbol, range), yahoo.quote(symbol)]);
-      const quotes = ((data.quotes ?? []) as Array<{ date?: Date; close?: number | null; volume?: number | null }>).filter((q) => q.date && q.close != null);
-      if (quotes.length < 2) throw new Error(`Not enough data for ${symbol}`);
-      const closes = quotes.map((q) => q.close as number);
-      const volumes = quotes.map((q) => q.volume ?? 0);
-      const first = closes[0];
-      const latestChartClose = closes[closes.length - 1];
-      const latest = quote.regularMarketPrice ?? latestChartClose;
-      const macdResult = macd(closes);
-      const rsiLatest = rsi(closes, 14).at(-1) ?? 50;
-      const smaLatest = sma(closes, 20).at(-1) ?? latest;
-      const points = quotes.map((q) => {
-        const close = q.close as number;
-        return { date: (q.date as Date).toISOString().slice(0, 10), close, normalized: (close / first) * 100, percentChange: ((close - first) / first) * 100 };
-      });
-      const metrics: CompareMetrics = {
-        latestPrice: latest,
-        percentChange: quote.regularMarketChangePercent ?? 0,
-        previousClose: quote.regularMarketPreviousClose ?? null,
-        marketTime: quote.regularMarketTime ? new Date(quote.regularMarketTime * 1000).toISOString() : null,
-        lastUpdated: new Date().toISOString(),
-        totalReturn: ((latestChartClose - first) / first) * 100,
-        volatility: volatility(closes),
-        trend: latest > smaLatest ? "uptrend" : latest < smaLatest ? "downtrend" : "sideway",
-        rsiSignal: rsiLatest > 70 ? "overbought" : rsiLatest < 30 ? "oversold" : "neutral",
-        macdSignal: (macdResult.line.at(-1) ?? 0) > (macdResult.signal.at(-1) ?? 0) ? "bullish" : "bearish",
-        averageVolume: volumes.reduce((a, b) => a + b, 0) / volumes.length
-      };
-      return { symbol, name: data.meta?.longName as string | undefined, points, metrics };
+    const results = await Promise.all(symbols.map((symbol) => fetchCompareStock(symbol, rangeParam)));
+    const failed = results.find((result) => result.error);
+    if (failed) throw new Error(`${failed.symbol}: ${failed.error}`);
+
+    const series: CompareSeries[] = results.map((result) => ({
+      symbol: result.symbol,
+      name: result.name,
+      points: result.points.map((point) => ({
+        date: point.date,
+        close: point.close,
+        normalized: point.normalized,
+        percentChange: point.normalized - 100
+      })),
+      metrics: {
+        latestPrice: result.metrics.latestPrice,
+        currency: result.metrics.currency,
+        percentChange: result.metrics.percentChange,
+        totalReturn: result.metrics.totalReturn,
+        volatility: result.metrics.volatility,
+        trend: result.metrics.trendDirection === "bullish" ? "uptrend" : result.metrics.trendDirection === "bearish" ? "downtrend" : "sideway",
+        rsiSignal: result.metrics.rsi.toFixed(2),
+        macdSignal: result.metrics.macdSignal,
+        averageVolume: result.metrics.averageVolume,
+        momentumScore: result.metrics.momentumScore,
+        maxDrawdown: result.metrics.maxDrawdown,
+        sharpeRatio: result.metrics.sharpeRatio,
+        sortinoRatio: result.metrics.sortinoRatio
+      }
     }));
 
-    return NextResponse.json({ symbols, range, series } satisfies CompareApiResponse, {
-      headers: {
-        "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate"
-      }
+    const response: CompareApiResponse = { symbols, range: rangeParam, series };
+    return NextResponse.json(response, {
+      headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=300" }
     });
-  } catch {
+  } catch (error) {
     return NextResponse.json(
-      { error: "Failed to fetch one or more symbols. Please verify symbols and try again." },
-      {
-        status: 502,
-        headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate, proxy-revalidate"
-        }
-      }
+      { error: error instanceof Error ? error.message : "Failed to fetch one or more symbols." },
+      { status: 502, headers: { "Cache-Control": "no-store" } }
     );
   }
 }

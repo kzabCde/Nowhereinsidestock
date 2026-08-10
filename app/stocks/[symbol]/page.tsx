@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { StockDetailPreviewTabs } from "@/components/stocks/StockDetailPreviewTabs";
+import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
 import { PageShell } from "@/components/ui/PageShell";
 import type { QuoteResponse } from "@/lib/types/market";
@@ -12,23 +13,37 @@ export default function StockDetailPage() {
   const symbol = params.symbol.toUpperCase();
   const [data, setData] = useState<QuoteResponse | null>(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const loadQuote = async () => {
+  const loadQuote = useCallback(async () => {
     setRefreshing(true);
-    const res = await fetch(`/api/quote/${symbol}`, { cache: "no-store" });
-    if (res.ok) setData((await res.json()) as QuoteResponse);
-    setRefreshing(false);
-  };
+    setError(null);
+    try {
+      const res = await fetch(`/api/quote/${encodeURIComponent(symbol)}`);
+      if (!res.ok) {
+        const payload = (await res.json().catch(() => null)) as { message?: string } | null;
+        throw new Error(payload?.message ?? `Unable to load ${symbol}`);
+      }
+      setData((await res.json()) as QuoteResponse);
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "Unable to load stock data");
+    } finally {
+      setRefreshing(false);
+    }
+  }, [symbol]);
 
   useEffect(() => {
     void loadQuote();
     const intervalId = window.setInterval(() => void loadQuote(), 120000);
     return () => window.clearInterval(intervalId);
-  }, [symbol]);
+  }, [loadQuote]);
 
   return (
     <PageShell size="wide" className="space-y-5">
-      {!data ? <LoadingSkeleton label={`Loading ${symbol}`} /> : <StockDetailPreviewTabs data={data} onRefresh={() => void loadQuote()} refreshing={refreshing} />}
+      {!data && !error ? <LoadingSkeleton label={`Loading ${symbol}`} /> : null}
+      {error && !data ? <ErrorState message={error} onRetry={() => void loadQuote()} /> : null}
+      {error && data ? <div className="rounded-xl border border-warning/20 bg-warning/5 px-4 py-3 text-sm text-warning">Refresh failed: {error}. Showing the last successful snapshot.</div> : null}
+      {data ? <StockDetailPreviewTabs data={data} onRefresh={() => void loadQuote()} refreshing={refreshing} /> : null}
     </PageShell>
   );
 }
