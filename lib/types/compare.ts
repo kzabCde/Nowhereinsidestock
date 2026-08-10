@@ -10,6 +10,7 @@ export type ComparePoint = {
 
 export type CompareMetrics = {
   latestPrice: number;
+  currency?: string;
   percentChange?: number;
   previousClose?: number | null;
   marketTime?: string | null;
@@ -20,6 +21,10 @@ export type CompareMetrics = {
   rsiSignal?: string;
   macdSignal?: string;
   averageVolume?: number;
+  momentumScore?: number;
+  maxDrawdown?: number;
+  sharpeRatio?: number;
+  sortinoRatio?: number;
 };
 
 export type CompareSeries = {
@@ -39,6 +44,7 @@ export type CompareMetric = {
   symbol: string;
   name: string;
   latestPrice: number;
+  currency: string;
   percentChange: number;
   totalReturn: number;
   volatility: number;
