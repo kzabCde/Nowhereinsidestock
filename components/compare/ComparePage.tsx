@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import type { CompareSeries, CompareStockResult, CompareTimeframe, WinnerSummary } from "@/lib/types/compare";
-import { NormalizedCompareChart } from "@/components/compare/NormalizedCompareChart";
 import { CompareInput } from "@/components/compare/CompareInput";
-import { SelectedStockChips } from "@/components/compare/SelectedStockChips";
-import { CompareTimeframeTabs } from "@/components/compare/CompareTimeframeTabs";
 import { CompareMetricsTable } from "@/components/compare/CompareMetricsTable";
+import { CompareTimeframeTabs } from "@/components/compare/CompareTimeframeTabs";
 import { CompareWinnerSummary } from "@/components/compare/CompareWinnerSummary";
+import { NormalizedCompareChart } from "@/components/compare/NormalizedCompareChart";
+import { SelectedStockChips } from "@/components/compare/SelectedStockChips";
+import type { CompareSeries, CompareStockResult, CompareTimeframe, WinnerSummary } from "@/lib/types/compare";
 
 const presets = {
   "Magnificent Seven": ["AAPL", "MSFT", "NVDA", "AMZN"],
@@ -17,9 +17,7 @@ const presets = {
 } as const;
 
 type Props = { initialSymbols: string[]; timeframe: CompareTimeframe; results: CompareStockResult[]; summary: WinnerSummary | null };
-
 type SearchItem = { symbol: string; shortname?: string; name?: string; exchDisp?: string; exchange?: string };
-
 type SearchApiResponse = { results?: SearchItem[] };
 
 export function ComparePage({ initialSymbols, timeframe, results, summary }: Props) {
@@ -43,7 +41,6 @@ export function ComparePage({ initialSymbols, timeframe, results, summary }: Pro
           setSearch([]);
           return;
         }
-
         const data = (await response.json()) as SearchApiResponse;
         setSearch(Array.isArray(data.results) ? data.results : []);
       });
@@ -68,24 +65,29 @@ export function ComparePage({ initialSymbols, timeframe, results, summary }: Pro
   const validResults = useMemo<CompareSeries[]>(
     () =>
       results
-        .filter((r) => !r.error)
-        .map((r) => ({
-          symbol: r.symbol,
-          name: r.name,
-          points: r.points.map((point) => ({
+        .filter((result) => !result.error)
+        .map((result) => ({
+          symbol: result.symbol,
+          name: result.name,
+          points: result.points.map((point) => ({
             date: point.date,
             close: point.close,
             normalized: point.normalized,
             percentChange: point.normalized - 100
           })),
           metrics: {
-            latestPrice: r.metrics.latestPrice,
-            totalReturn: r.metrics.totalReturn,
-            volatility: r.metrics.volatility,
-            trend: r.metrics.trendDirection === "bullish" ? "uptrend" : r.metrics.trendDirection === "bearish" ? "downtrend" : "sideway",
-            rsiSignal: r.metrics.rsi.toFixed(2),
-            macdSignal: r.metrics.macdSignal,
-            averageVolume: r.metrics.averageVolume
+            latestPrice: result.metrics.latestPrice,
+            currency: result.metrics.currency,
+            totalReturn: result.metrics.totalReturn,
+            volatility: result.metrics.volatility,
+            trend: result.metrics.trendDirection === "bullish" ? "uptrend" : result.metrics.trendDirection === "bearish" ? "downtrend" : "sideway",
+            rsiSignal: result.metrics.rsi.toFixed(2),
+            macdSignal: result.metrics.macdSignal,
+            averageVolume: result.metrics.averageVolume,
+            momentumScore: result.metrics.momentumScore,
+            maxDrawdown: result.metrics.maxDrawdown,
+            sharpeRatio: result.metrics.sharpeRatio,
+            sortinoRatio: result.metrics.sortinoRatio
           }
         })),
     [results]
@@ -96,18 +98,34 @@ export function ComparePage({ initialSymbols, timeframe, results, summary }: Pro
       <div className="mx-auto w-full max-w-7xl space-y-4">
         <section className="printstream-shell pearl-border w-full max-w-full min-w-0 overflow-hidden rounded-3xl p-4 sm:p-6">
           <h1 className="text-2xl font-bold sm:text-3xl">Compare Stocks</h1>
-          <p className="text-sm text-slate-300 sm:text-base">Add 2-4 stock symbols and compare performance side by side.</p>
+          <p className="text-sm text-slate-300 sm:text-base">Compare normalized returns, annualized risk, momentum, drawdown, Sharpe, and Sortino across 2–4 stocks.</p>
           <SelectedStockChips symbols={symbols} onRemove={removeSymbol} />
           <CompareInput value={symbolInput} onChange={setSymbolInput} onAdd={() => addSymbol(symbolInput)} results={search} onPick={addSymbol} />
-          <div className="mt-3 flex flex-wrap gap-2">{Object.entries(presets).map(([name, list]) => <button key={name} onClick={() => { const next = Array.from(new Set(list)).slice(0, 4); setSymbols(next); window.location.href = `/compare?symbols=${next.join(",")}&timeframe=${timeframe}`; }} className="rounded-xl border border-white/20 px-3 py-1 text-xs">{name}</button>)}</div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {Object.entries(presets).map(([name, list]) => (
+              <button
+                key={name}
+                onClick={() => {
+                  const next = Array.from(new Set(list)).slice(0, 4);
+                  setSymbols(next);
+                  window.location.href = `/compare?symbols=${next.join(",")}&timeframe=${timeframe}`;
+                }}
+                className="rounded-xl border border-white/20 px-3 py-1 text-xs"
+              >
+                {name}
+              </button>
+            ))}
+          </div>
           <CompareTimeframeTabs symbols={symbols} timeframe={timeframe} />
         </section>
 
-        {symbols.length < 2 ? <section className="printstream-shell rounded-2xl p-8 text-center text-slate-300">Select at least 2 stocks to compare.</section> : (
+        {symbols.length < 2 ? (
+          <section className="printstream-shell rounded-2xl p-8 text-center text-slate-300">Select at least 2 stocks to compare.</section>
+        ) : (
           <>
             <section className="printstream-shell pearl-border w-full max-w-full min-w-0 overflow-hidden rounded-3xl p-3 sm:p-4"><NormalizedCompareChart series={validResults} /></section>
             <CompareMetricsTable series={validResults} />
-            {summary && <CompareWinnerSummary summary={summary} />}
+            {summary ? <CompareWinnerSummary summary={summary} /> : null}
           </>
         )}
       </div>
