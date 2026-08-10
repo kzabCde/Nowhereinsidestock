@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { PageShell } from "@/components/ui/PageShell";
 import { formatMarketCurrency } from "@/lib/format/market";
 import type { QuoteResponse } from "@/lib/types/market";
@@ -48,32 +48,37 @@ export default function PortfolioPage() {
   }, [symbols.join(",")]);
 
   const holdings = useMemo(() => {
-    const grouped = new Map<string, { symbol: string; currency: string; quantity: number; cost: number }>();
+    const grouped = new Map<string, { key: string; symbol: string; currency: string; quantity: number; cost: number }>();
     for (const item of transactions) {
-      const current = grouped.get(item.symbol) ?? { symbol: item.symbol, currency: item.currency, quantity: 0, cost: 0 };
+      const key = `${item.symbol}:${item.currency}`;
+      const current = grouped.get(key) ?? { key, symbol: item.symbol, currency: item.currency, quantity: 0, cost: 0 };
       current.quantity += item.quantity;
       current.cost += item.quantity * item.price;
-      grouped.set(item.symbol, current);
+      grouped.set(key, current);
     }
+
     return [...grouped.values()].map((holding) => {
       const quote = quotes[holding.symbol];
       const marketCurrency = quote?.currency ?? holding.currency;
       const marketValue = quote ? quote.latestPrice * holding.quantity : null;
-      const pnl = marketValue == null ? null : marketValue - holding.cost;
+      const sameCurrency = marketCurrency === holding.currency;
+      const pnl = marketValue == null || !sameCurrency ? null : marketValue - holding.cost;
       const pnlPercent = pnl == null || holding.cost === 0 ? null : (pnl / holding.cost) * 100;
-      return { ...holding, marketCurrency, quote, marketValue, pnl, pnlPercent };
+      return { ...holding, marketCurrency, quote, marketValue, sameCurrency, pnl, pnlPercent };
     });
   }, [quotes, transactions]);
 
   const totalsByCurrency = useMemo(() => {
-    const totals = new Map<string, { cost: number; marketValue: number; hasMarketValue: boolean }>();
+    const totals = new Map<string, { cost: number; marketValue: number; hasComparableMarketValue: boolean; excludedPositions: number }>();
     for (const holding of holdings) {
-      const key = holding.marketCurrency;
-      const total = totals.get(key) ?? { cost: 0, marketValue: 0, hasMarketValue: false };
+      const key = holding.currency;
+      const total = totals.get(key) ?? { cost: 0, marketValue: 0, hasComparableMarketValue: false, excludedPositions: 0 };
       total.cost += holding.cost;
-      if (holding.marketValue != null) {
+      if (holding.marketValue != null && holding.sameCurrency) {
         total.marketValue += holding.marketValue;
-        total.hasMarketValue = true;
+        total.hasComparableMarketValue = true;
+      } else if (holding.marketValue != null && !holding.sameCurrency) {
+        total.excludedPositions += 1;
       }
       totals.set(key, total);
     }
@@ -84,8 +89,9 @@ export default function PortfolioPage() {
     event.preventDefault();
     const parsedQuantity = Number(quantity);
     const parsedPrice = Number(price);
-    if (!symbol.trim() || !Number.isFinite(parsedQuantity) || parsedQuantity <= 0 || !Number.isFinite(parsedPrice) || parsedPrice <= 0) return;
-    addTransaction({ symbol, quantity: parsedQuantity, price: parsedPrice, currency, date: new Date(date).toISOString() });
+    const normalizedCurrency = currency.trim().toUpperCase();
+    if (!symbol.trim() || !normalizedCurrency || !Number.isFinite(parsedQuantity) || parsedQuantity <= 0 || !Number.isFinite(parsedPrice) || parsedPrice <= 0) return;
+    addTransaction({ symbol, quantity: parsedQuantity, price: parsedPrice, currency: normalizedCurrency, date: new Date(date).toISOString() });
     setSymbol("");
     setQuantity("");
     setPrice("");
@@ -98,7 +104,7 @@ export default function PortfolioPage() {
           <p className="section-kicker">Portfolio tracker</p>
           <h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">Positions & unrealized P/L</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-            Transactions are stored locally in this browser. Totals stay separated by currency so USD and THB are never added together without an FX conversion.
+            Transactions are stored locally in this browser. Cost and market value are only compared when their currencies match; FX conversion is intentionally not guessed.
           </p>
         </div>
         <button type="button" onClick={() => void refreshQuotes()} disabled={refreshing || symbols.length === 0} className="btn-premium text-xs">
@@ -118,15 +124,14 @@ export default function PortfolioPage() {
       {totalsByCurrency.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {totalsByCurrency.map(([code, total]) => {
-            const pnl = total.hasMarketValue ? total.marketValue - total.cost : null;
+            const pnl = total.hasComparableMarketValue ? total.marketValue - total.cost : null;
             return (
               <div key={code} className="rounded-2xl border border-white/[0.08] bg-surface p-4">
                 <p className="section-kicker">{code} portfolio</p>
-                <p className="mt-2 text-2xl font-bold text-white">{total.hasMarketValue ? formatMarketCurrency(total.marketValue, code) : "—"}</p>
+                <p className="mt-2 text-2xl font-bold text-white">{total.hasComparableMarketValue ? formatMarketCurrency(total.marketValue, code) : "—"}</p>
                 <p className="mt-1 text-xs text-slate-500">Cost {formatMarketCurrency(total.cost, code)}</p>
-                <p className={`mt-3 text-sm font-semibold ${pnl != null && pnl >= 0 ? "text-success" : "text-danger"}`}>
-                  P/L {pnl == null ? "—" : formatMarketCurrency(pnl, code)}
-                </p>
+                <p className={`mt-3 text-sm font-semibold ${pnl != null && pnl >= 0 ? "text-success" : "text-danger"}`}>P/L {pnl == null ? "—" : formatMarketCurrency(pnl, code)}</p>
+                {total.excludedPositions > 0 ? <p className="mt-2 text-xs text-warning">{total.excludedPositions} position(s) excluded from P/L because quote currency differs.</p> : null}
               </div>
             );
           })}
@@ -139,10 +144,10 @@ export default function PortfolioPage() {
         ) : (
           <div className="divide-y divide-white/[0.06]">
             {holdings.map((holding) => (
-              <div key={holding.symbol} className="grid gap-3 px-4 py-4 sm:grid-cols-[1.2fr_repeat(4,1fr)_auto] sm:items-center">
+              <div key={holding.key} className="grid gap-3 px-4 py-4 sm:grid-cols-[1.2fr_repeat(4,1fr)_auto] sm:items-center">
                 <div>
                   <Link href={`/stocks/${holding.symbol}`} className="font-semibold text-white hover:text-accent">{holding.symbol}</Link>
-                  <p className="mt-1 text-xs text-slate-600">{holding.quantity.toLocaleString()} shares</p>
+                  <p className="mt-1 text-xs text-slate-600">{holding.quantity.toLocaleString()} shares · cost in {holding.currency}</p>
                 </div>
                 <div><p className="section-kicker">Avg cost</p><p className="mt-1 text-sm text-slate-300">{formatMarketCurrency(holding.cost / holding.quantity, holding.currency)}</p></div>
                 <div><p className="section-kicker">Cost</p><p className="mt-1 text-sm text-slate-300">{formatMarketCurrency(holding.cost, holding.currency)}</p></div>
@@ -150,8 +155,9 @@ export default function PortfolioPage() {
                 <div>
                   <p className="section-kicker">Unrealized P/L</p>
                   <p className={`mt-1 text-sm font-semibold ${holding.pnl != null && holding.pnl >= 0 ? "text-success" : "text-danger"}`}>
-                    {holding.pnl == null ? "—" : `${formatMarketCurrency(holding.pnl, holding.marketCurrency)} (${holding.pnlPercent?.toFixed(2)}%)`}
+                    {holding.pnl == null ? "—" : `${formatMarketCurrency(holding.pnl, holding.currency)} (${holding.pnlPercent?.toFixed(2)}%)`}
                   </p>
+                  {!holding.sameCurrency && holding.quote ? <p className="mt-1 text-[10px] text-warning">Needs FX conversion ({holding.currency} → {holding.marketCurrency})</p> : null}
                 </div>
                 <Link href={`/compare?symbols=${holding.symbol}`} className="btn-premium justify-center text-xs">Compare</Link>
               </div>
