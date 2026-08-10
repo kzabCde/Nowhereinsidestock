@@ -61,7 +61,7 @@ export function WatchlistGrid() {
       {watchlist.map((item) => {
         const q = quotes[item.symbol];
         const positive = (q?.changePercent ?? item.changePercent ?? 0) >= 0;
-        const trendLabel = q?.insight.trend === "bullish" ? t("stock.trendBullish") : q?.insight.trend === "bearish" ? t("stock.trendBearish") : q?.insight.trend === "sideways" ? t("stock.trendSideways") : "—";
+        const trendLabel = q?.insight.trend === "bullish" ? t("stock.trendBullish") : q?.insight.trend === "bearish" ? t("stock.trendBearish") : q?.insight.trend === "neutral" ? t("stock.trendSideways") : "—";
 
         return (
           <article key={item.symbol} className="flex flex-col rounded-2xl border border-white/[0.08] bg-surface p-5 transition-all hover:border-white/[0.12]" style={{ boxShadow: "0 1px 0 rgba(255,255,255,0.04) inset" }}>
