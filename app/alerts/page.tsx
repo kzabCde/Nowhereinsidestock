@@ -1,7 +1,7 @@
 "use client";
 
-import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { PageShell } from "@/components/ui/PageShell";
 import { formatMarketCurrency } from "@/lib/format/market";
 import type { QuoteResponse } from "@/lib/types/market";
@@ -95,8 +95,15 @@ export default function AlertsPage() {
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!symbol.trim()) return;
-    const parsedThreshold = needsThreshold(type) ? Number(threshold) : undefined;
-    if (needsThreshold(type) && (!Number.isFinite(parsedThreshold) || parsedThreshold == null)) return;
+
+    let parsedThreshold: number | undefined;
+    if (needsThreshold(type)) {
+      if (!threshold.trim()) return;
+      const parsed = Number(threshold);
+      if (!Number.isFinite(parsed)) return;
+      parsedThreshold = parsed;
+    }
+
     addAlert({ symbol, type, threshold: parsedThreshold });
     setSymbol("");
     setThreshold("");
