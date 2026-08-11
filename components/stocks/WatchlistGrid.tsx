@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowUpRight } from "lucide-react";
 import { useWatchlistStore } from "@/store/watchlist-store";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { PremiumButton } from "@/components/ui/PremiumButton";
@@ -79,7 +78,7 @@ export function WatchlistGrid() {
             <div className="relative z-[1] mt-auto flex items-center gap-2 border-t border-white/[0.055] pt-4">
               <button onClick={() => removeStock(item.symbol)} className="btn-premium border-danger/15 px-2.5 text-xs text-danger/70 hover:border-danger/30 hover:text-danger">{t("common.remove")}</button>
               <Link href={`/stocks/${item.symbol}`} className="btn-primary flex-1 text-center text-xs">{locale === "th" ? "เปิดข้อมูล" : "Open detail"}</Link>
-              <Link href={`/compare?symbols=${item.symbol}`} aria-label={t("nav.compare")} className="btn-premium w-10 px-0 text-xs"><ArrowUpRight size={14} /></Link>
+              <Link href={`/compare?symbols=${item.symbol}`} aria-label={t("nav.compare")} className="btn-premium w-10 px-0 text-xs"><span aria-hidden="true">↗</span></Link>
             </div>
           </article>
         );
