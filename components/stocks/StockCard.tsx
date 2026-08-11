@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
 import type { QuoteResponse } from "@/lib/types/market";
 import { FavoriteButton } from "@/components/stocks/FavoriteButton";
 import { Sparkline } from "@/components/stocks/Sparkline";
@@ -28,7 +27,7 @@ export function StockCard({ stock }: { stock: QuoteResponse }) {
       <div className="relative z-[1] mt-4 flex gap-2 border-t border-white/[0.055] pt-4">
         <FavoriteButton stock={{ symbol: stock.symbol, name: stock.name, exchange: stock.exchange, price: stock.latestPrice, changePercent: stock.changePercent }} compact />
         <Link href={`/stocks/${stock.symbol}`} className="btn-primary flex-1 text-center text-xs">{locale === "th" ? "เปิดข้อมูล" : "Open detail"}</Link>
-        <Link href={`/compare?symbols=${stock.symbol}`} className="btn-premium w-10 px-0" aria-label={t("nav.compare")}><ArrowUpRight size={14} /></Link>
+        <Link href={`/compare?symbols=${stock.symbol}`} className="btn-premium w-10 px-0" aria-label={t("nav.compare")}><span aria-hidden="true">↗</span></Link>
       </div>
     </article>
   );
