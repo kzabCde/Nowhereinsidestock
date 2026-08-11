@@ -20,13 +20,12 @@ export function SectionCard<T extends ElementType = "section">({
     variant === "danger"
       ? "border-danger/20 bg-danger/5"
       : variant === "quiet"
-        ? "border-white/[0.06] bg-white/[0.02]"
-        : "border-white/[0.08] bg-surface";
+        ? "border-white/[0.06] bg-white/[0.018]"
+        : "data-panel";
 
   return (
     <Component
       className={`overflow-hidden rounded-2xl border p-5 sm:p-6 ${variantClass} ${className}`}
-      style={{ boxShadow: "0 1px 0 rgba(255,255,255,0.04) inset" }}
       {...props}
     >
       {children}
