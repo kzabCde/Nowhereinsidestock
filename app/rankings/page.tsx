@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PageShell } from "@/components/ui/PageShell";
 import { getServerI18n } from "@/lib/i18n/server";
@@ -39,7 +38,7 @@ export default async function RankingsPage() {
               </div>
               <h2 className="relative z-[1] mt-5 text-lg font-semibold tracking-[-0.02em] text-white">{copy[0]}</h2>
               <p className="relative z-[1] mt-2 flex-1 text-sm leading-6 text-slate-500">{copy[1]}</p>
-              <span className="relative z-[1] mt-5 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors group-hover:text-accent">{locale === "th" ? "ดู Top 10" : "View Top 10"}<ArrowUpRight size={13} /></span>
+              <span className="relative z-[1] mt-5 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors group-hover:text-accent">{locale === "th" ? "ดู Top 10" : "View Top 10"}<span aria-hidden="true">↗</span></span>
             </Link>
           );
         })}
