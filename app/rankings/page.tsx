@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { PageShell } from "@/components/ui/PageShell";
 import { getServerI18n } from "@/lib/i18n/server";
 
@@ -18,22 +19,26 @@ const rankingCards = [
 export default async function RankingsPage() {
   const { locale, t } = await getServerI18n();
   return (
-    <PageShell size="wide" className="space-y-8">
-      <div>
-        <p className="section-kicker">{locale === "th" ? "ข้อมูลราคา · Yahoo Finance" : "Quote data · Yahoo Finance"}</p>
-        <h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">{t("rankings.title")}</h1>
-        <p className="mt-1.5 max-w-2xl text-sm text-slate-500">{t("rankings.description")}</p>
-      </div>
+    <PageShell size="wide" className="space-y-7">
+      <PageHeader
+        eyebrow={locale === "th" ? "ข้อมูลราคา · Yahoo Finance" : "Quote data · Yahoo Finance"}
+        title={t("rankings.title")}
+        description={t("rankings.description")}
+        meta={<span className="badge-neutral">10 {locale === "th" ? "มุมมอง" : "views"}</span>}
+      />
 
       <section className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
-        {rankingCards.map((card) => {
+        {rankingCards.map((card, index) => {
           const copy = locale === "th" ? card.th : card.en;
           return (
-            <Link key={card.slug} href={`/rankings/${card.slug}`} className="group flex flex-col rounded-2xl border border-white/[0.08] bg-surface p-5 transition-all hover:border-white/[0.14] hover:bg-elevated">
-              <div className="flex items-start justify-between gap-3"><p className="section-kicker">{copy[2]}</p></div>
-              <h2 className="mt-2 text-base font-semibold text-white">{copy[0]}</h2>
-              <p className="mt-1 flex-1 text-sm leading-6 text-slate-500">{copy[1]}</p>
-              <span className="mt-4 inline-flex items-center text-sm font-medium text-accent opacity-0 transition-opacity group-hover:opacity-100">{locale === "th" ? "ดู Top 10" : "View Top 10"} →</span>
+            <Link key={card.slug} href={`/rankings/${card.slug}`} className="interactive-card group flex min-h-48 flex-col p-5 sm:p-6">
+              <div className="relative z-[1] flex items-start justify-between gap-3">
+                <span className="badge-neutral">{copy[2]}</span>
+                <span className="text-[10px] font-semibold tracking-[0.16em] text-slate-700">{String(index + 1).padStart(2, "0")}</span>
+              </div>
+              <h2 className="relative z-[1] mt-5 text-lg font-semibold tracking-[-0.02em] text-white">{copy[0]}</h2>
+              <p className="relative z-[1] mt-2 flex-1 text-sm leading-6 text-slate-500">{copy[1]}</p>
+              <span className="relative z-[1] mt-5 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors group-hover:text-accent">{locale === "th" ? "ดู Top 10" : "View Top 10"}<span aria-hidden="true">↗</span></span>
             </Link>
           );
         })}

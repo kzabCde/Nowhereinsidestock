@@ -82,22 +82,22 @@ function OverviewPreview({ data, onRefresh, refreshing = false }: StockDetailPre
   ];
 
   return (
-    <SectionCard className="w-full space-y-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+    <SectionCard className="w-full space-y-5 sm:p-7">
+      <div className="relative z-[1] grid gap-5 border-b border-white/[0.055] pb-5 lg:grid-cols-[1fr_auto] lg:items-start">
         <div className="min-w-0">
-          <p className="section-kicker">{data.symbol} · {data.exchange ?? "—"}</p>
-          <h1 className="mt-1.5 truncate text-2xl font-bold text-white sm:text-3xl">{data.name ?? data.symbol}</h1>
-          <div className="mt-3 flex items-baseline gap-3"><p className="text-3xl font-bold tabular-nums text-white sm:text-4xl">{formatMarketCurrency(data.latestPrice, currency)}</p><p className={`text-base font-semibold tabular-nums ${positive ? "text-success" : "text-danger"}`}>{formatPercent(data.changePercent)}</p></div>
+          <div className="flex flex-wrap items-center gap-2"><span className="badge-neutral">{data.symbol}</span><span className="section-kicker">{data.exchange ?? "—"}</span></div>
+          <h1 className="mt-3 truncate text-2xl font-semibold tracking-[-0.035em] text-white sm:text-3xl">{data.name ?? data.symbol}</h1>
+          <div className="mt-4 flex flex-wrap items-end gap-x-4 gap-y-2"><p className="text-4xl font-semibold tabular-nums tracking-[-0.055em] text-white sm:text-5xl">{formatMarketCurrency(data.latestPrice, currency)}</p><p className={`mb-1 text-base font-semibold tabular-nums ${positive ? "text-success" : "text-danger"}`}>{formatPercent(data.changePercent)}</p></div>
+          <p className="mt-3 text-xs text-slate-600">{t("common.updated", { time: new Date(data.lastUpdated).toLocaleTimeString(locale === "th" ? "th-TH" : "en-US") })}</p>
         </div>
-        <div className="flex flex-wrap items-center gap-2 sm:flex-col sm:items-end sm:gap-2">
+        <div className="flex flex-wrap items-center gap-2 lg:flex-col lg:items-end">
+          <span className={data.insight.trend === "bullish" ? "badge-positive" : data.insight.trend === "bearish" ? "badge-negative" : "badge-neutral"}>{trendLabel(locale, data.insight.trend)}</span>
           <div className="flex gap-2">{onRefresh ? <button onClick={onRefresh} className="btn-premium text-xs" disabled={refreshing} type="button">{refreshing ? t("common.refreshing") : t("common.refresh")}</button> : null}<FavoriteButton stock={{ symbol: data.symbol, name: data.name, exchange: data.exchange, price: data.latestPrice, changePercent: data.changePercent }} /></div>
-          <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${data.insight.trend === "bullish" ? "border-success/25 bg-success/10 text-success" : data.insight.trend === "bearish" ? "border-danger/25 bg-danger/10 text-danger" : "border-white/[0.08] bg-white/[0.04] text-slate-400"}`}>{trendLabel(locale, data.insight.trend)}</span>
-          <p className="text-xs text-slate-600">{t("common.updated", { time: new Date(data.lastUpdated).toLocaleTimeString(locale === "th" ? "th-TH" : "en-US") })}</p>
         </div>
       </div>
-      <div className="w-full overflow-hidden rounded-xl border border-white/[0.08] bg-elevated p-2 sm:p-3"><PriceChart data={data} supports={data.supportResistance.supports} resistances={data.supportResistance.resistances} /></div>
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">{overviewItems.map((item) => <MetricCard key={item.label} label={item.label} value={item.value} />)}</div>
-      <div className="rounded-xl border border-white/[0.08] bg-elevated p-4"><p className="section-kicker">{t("stock.technicalOverview")}</p><p className="mt-2 text-sm leading-7 text-slate-300">{t("stock.technicalOverviewText", { symbol: data.symbol, direction: t(directionKey), change: formatPercent(data.changePercent), trend: t(trendKey) })}</p></div>
+      <div className="relative z-[1] w-full overflow-hidden rounded-2xl border border-white/[0.065] bg-[#080e1b]/75 p-2 sm:p-3"><PriceChart data={data} supports={data.supportResistance.supports} resistances={data.supportResistance.resistances} /></div>
+      <div className="relative z-[1] grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">{overviewItems.map((item) => <MetricCard key={item.label} label={item.label} value={item.value} />)}</div>
+      <div className="relative z-[1] rounded-2xl border border-white/[0.06] bg-white/[0.018] p-4 sm:p-5"><div className="flex items-center gap-2"><span className="signal-dot" aria-hidden="true" /><p className="section-kicker">{t("stock.technicalOverview")}</p></div><p className="mt-3 text-sm leading-7 text-slate-400">{t("stock.technicalOverviewText", { symbol: data.symbol, direction: t(directionKey), change: formatPercent(data.changePercent), trend: t(trendKey) })}</p></div>
     </SectionCard>
   );
 }
@@ -105,9 +105,9 @@ function OverviewPreview({ data, onRefresh, refreshing = false }: StockDetailPre
 function SignalsPanel({ data }: StockDetailPreviewTabsProps) {
   const { locale, t } = useI18n();
   return (
-    <SectionCard className="w-full space-y-5">
-      <div><p className="section-kicker">{t("stock.signals")}</p><h2 className="mt-1.5 text-xl font-bold text-white">{t("stock.indicatorsTitle")}</h2><p className="mt-1.5 text-sm text-slate-500">{t("stock.indicatorsDesc")}</p></div>
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+    <SectionCard className="w-full space-y-5 sm:p-7">
+      <div className="relative z-[1] border-b border-white/[0.055] pb-4"><p className="section-kicker">{t("stock.signals")}</p><h2 className="mt-2 text-xl font-semibold tracking-[-0.02em] text-white">{t("stock.indicatorsTitle")}</h2><p className="mt-2 text-sm leading-6 text-slate-500">{t("stock.indicatorsDesc")}</p></div>
+      <div className="relative z-[1] grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
         <InsightCard label={t("common.trend")} value={trendLabel(locale, data.insight.trend)} tone={getTrendTone(data)} />
         <InsightCard label={t("stock.momentum")} value={momentumLabel(locale, data.insight.momentum)} tone="neutral" />
         <InsightCard label={t("stock.momentumScore")} value={`${data.insight.momentumScore.toFixed(2)}%`} tone="neutral" />
@@ -129,13 +129,13 @@ export function StockDetailPreviewTabs({ data, onRefresh, refreshing = false }: 
     if (event.key === "ArrowRight") { event.preventDefault(); selectRelativeTab(1); }
   };
   return (
-    <section className="w-full max-w-full min-w-0 space-y-3">
-      <div className="rounded-xl border border-white/[0.08] bg-surface p-1.5">
+    <section className="w-full max-w-full min-w-0 space-y-4">
+      <div className="rounded-2xl border border-white/[0.07] bg-[#09101f]/90 p-1.5 shadow-card backdrop-blur-xl md:sticky md:top-[76px] md:z-20">
         <div className="relative">
           <div aria-label={t("stock.overview")} className="flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap" role="tablist">
             {tabs.map((tab) => { const Icon = tab.icon; const isActive = activeTab === tab.id; return <TabButton active={isActive} aria-selected={isActive} eyebrow={t(tab.eyebrow)} icon={<Icon size={15} />} key={tab.id} onClick={() => setActiveTab(tab.id)} onKeyDown={handleKeyDown} role="tab" type="button">{t(tab.label)}</TabButton>; })}
           </div>
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-surface to-transparent sm:hidden" aria-hidden="true" />
+          <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-[#09101f] to-transparent sm:hidden" aria-hidden="true" />
         </div>
       </div>
       <div className="w-full max-w-full min-w-0" role="tabpanel">

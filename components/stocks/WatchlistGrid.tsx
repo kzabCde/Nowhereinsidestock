@@ -12,9 +12,9 @@ import type { QuoteResponse } from "@/lib/types/market";
 const mag7 = ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA"];
 
 function trendClass(trend: string | undefined) {
-  if (trend === "bullish") return "border-success/25 bg-success/10 text-success";
-  if (trend === "bearish") return "border-danger/25 bg-danger/10 text-danger";
-  return "border-white/[0.08] bg-white/[0.04] text-slate-500";
+  if (trend === "bullish") return "badge-positive";
+  if (trend === "bearish") return "badge-negative";
+  return "badge-neutral";
 }
 
 export function WatchlistGrid() {
@@ -57,28 +57,28 @@ export function WatchlistGrid() {
   }
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {watchlist.map((item) => {
         const q = quotes[item.symbol];
         const positive = (q?.changePercent ?? item.changePercent ?? 0) >= 0;
         const trendLabel = q?.insight.trend === "bullish" ? t("stock.trendBullish") : q?.insight.trend === "bearish" ? t("stock.trendBearish") : q?.insight.trend === "neutral" ? t("stock.trendSideways") : "—";
 
         return (
-          <article key={item.symbol} className="flex flex-col rounded-2xl border border-white/[0.08] bg-surface p-5 transition-all hover:border-white/[0.12]" style={{ boxShadow: "0 1px 0 rgba(255,255,255,0.04) inset" }}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0"><p className="section-kicker">{item.symbol}</p><h3 className="mt-1 truncate text-base font-semibold text-white">{q?.name ?? item.name ?? item.symbol}</h3></div>
-              <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${trendClass(q?.insight.trend)}`}>{trendLabel}</span>
+          <article key={item.symbol} className="interactive-card group flex min-h-64 flex-col p-5">
+            <div className="relative z-[1] flex items-start justify-between gap-3">
+              <div className="min-w-0"><p className="section-kicker">{item.symbol}</p><h3 className="mt-1.5 truncate text-base font-semibold text-white">{q?.name ?? item.name ?? item.symbol}</h3></div>
+              <span className={`shrink-0 ${trendClass(q?.insight.trend)}`}>{trendLabel}</span>
             </div>
 
-            <div className="mt-4 flex items-end justify-between gap-3 border-t border-white/[0.06] pt-4">
-              <div><p className="section-kicker">{t("common.price")}</p><p className="mt-1 text-2xl font-bold tabular-nums text-white">{q ? formatMarketCurrency(q.latestPrice, q.currency ?? "USD") : "—"}</p></div>
-              <div className="text-right"><p className="section-kicker">{t("common.change")}</p><p className={`mt-1 text-xl font-bold tabular-nums ${positive ? "text-success" : "text-danger"}`}>{q ? `${positive ? "+" : ""}${q.changePercent.toFixed(2)}%` : "—"}</p></div>
+            <div className="relative z-[1] mt-6 grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-white/[0.055] bg-white/[0.018] p-3"><p className="section-kicker">{t("common.price")}</p><p className="mt-2 text-2xl font-semibold tabular-nums tracking-[-0.03em] text-white">{q ? formatMarketCurrency(q.latestPrice, q.currency ?? "USD") : "—"}</p></div>
+              <div className="rounded-xl border border-white/[0.055] bg-white/[0.018] p-3 text-right"><p className="section-kicker">{t("common.change")}</p><p className={`mt-2 text-xl font-semibold tabular-nums ${positive ? "text-success" : "text-danger"}`}>{q ? `${positive ? "+" : ""}${q.changePercent.toFixed(2)}%` : "—"}</p></div>
             </div>
 
-            <div className="mt-4 flex gap-2">
-              <button onClick={() => removeStock(item.symbol)} className="btn-premium border-danger/20 px-2.5 text-xs text-danger/70 hover:border-danger/35 hover:text-danger">{t("common.remove")}</button>
-              <Link href={`/stocks/${item.symbol}`} className="btn-premium flex-1 text-center text-xs">{locale === "th" ? "ดูรายละเอียด" : "View Detail"}</Link>
-              <Link href={`/compare?symbols=${item.symbol}`} className="btn-premium text-xs">{t("nav.compare")}</Link>
+            <div className="relative z-[1] mt-auto flex items-center gap-2 border-t border-white/[0.055] pt-4">
+              <button onClick={() => removeStock(item.symbol)} className="btn-premium border-danger/15 px-2.5 text-xs text-danger/70 hover:border-danger/30 hover:text-danger">{t("common.remove")}</button>
+              <Link href={`/stocks/${item.symbol}`} className="btn-primary flex-1 text-center text-xs">{locale === "th" ? "เปิดข้อมูล" : "Open detail"}</Link>
+              <Link href={`/compare?symbols=${item.symbol}`} aria-label={t("nav.compare")} className="btn-premium w-10 px-0 text-xs"><span aria-hidden="true">↗</span></Link>
             </div>
           </article>
         );
