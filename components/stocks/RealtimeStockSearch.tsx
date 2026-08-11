@@ -96,19 +96,19 @@ export function RealtimeStockSearch({ placeholder, onSelect, mode = "navigate", 
   };
 
   const resultList = showDropdown ? (
-    <div id={listboxId} role="listbox" className={layout === "inline" ? "mt-1 w-full min-w-0 text-left" : "absolute left-0 right-0 z-30 mt-2 w-full min-w-0 overflow-x-hidden rounded-3xl border border-white/15 bg-zinc-950/95 p-2 text-left shadow-2xl shadow-black/40 backdrop-blur-xl"}>
-      {isLoading && <div className="px-3 py-3 text-sm text-slate-300">{locale === "th" ? "กำลังค้นหา…" : "Loading suggestions…"}</div>}
-      {!isLoading && error && <div className="px-3 py-3 text-sm text-rose-300">{error}</div>}
-      {!isLoading && !error && results.length === 0 && debouncedQuery.length >= MIN_QUERY_LENGTH && <div className="px-3 py-3 text-sm text-slate-400">{t("search.noResults")}</div>}
+    <div id={listboxId} role="listbox" className={layout === "inline" ? "mt-2 w-full min-w-0 text-left" : "absolute left-0 right-0 z-30 mt-2 w-full min-w-0 overflow-x-hidden rounded-2xl border border-white/[0.09] bg-[#09101f]/98 p-2 text-left shadow-elevated backdrop-blur-xl"}>
+      {isLoading && <div className="px-3 py-3 text-sm text-slate-400">{locale === "th" ? "กำลังค้นหา…" : "Loading suggestions…"}</div>}
+      {!isLoading && error && <div className="px-3 py-3 text-sm text-danger">{error}</div>}
+      {!isLoading && !error && results.length === 0 && debouncedQuery.length >= MIN_QUERY_LENGTH && <div className="px-3 py-3 text-sm text-slate-500">{t("search.noResults")}</div>}
       {!error && results.length > 0 && (
-        <div ref={resultListRef} className={`min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain scroll-smooth pr-1 [scrollbar-color:rgba(148,163,184,0.45)_transparent] [scrollbar-width:thin] ${layout === "inline" ? "max-h-[420px]" : "max-h-[160px]"}`}>
+        <div ref={resultListRef} className={`min-w-0 overflow-y-auto overflow-x-hidden overscroll-contain scroll-smooth pr-1 [scrollbar-color:rgba(148,163,184,0.35)_transparent] [scrollbar-width:thin] ${layout === "inline" ? "max-h-[420px]" : "max-h-[220px]"}`}>
           {results.map((item, index) => {
             const isHighlighted = index === highlightedIndex;
             const label = item.name ?? (locale === "th" ? "ไม่ทราบชื่อบริษัท" : "Unknown company");
             return (
-              <button key={item.symbol} ref={(element) => { optionRefs.current[index] = element; }} id={`${listboxId}-${index}`} type="button" role="option" aria-selected={isHighlighted} onMouseEnter={() => setHighlightedIndex(index)} onMouseDown={(event) => event.preventDefault()} onClick={() => selectSymbol(item.symbol)} className={`flex w-full min-w-0 items-center justify-between gap-3 rounded-xl px-3 py-3 text-left transition ${isHighlighted ? "bg-cyan-300/15 text-white" : "text-slate-100 hover:bg-white/10"}`}>
-                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold tracking-wide text-white sm:text-base">{item.symbol}</span><span className="block truncate text-xs text-slate-400 sm:text-sm">{label}</span></span>
-                <span className="flex max-w-[42%] shrink-0 flex-col items-end gap-1 text-[0.65rem] uppercase tracking-wide text-slate-400 sm:flex-row sm:items-center sm:text-xs">{item.exchange && <span className="max-w-full truncate rounded-full border border-white/10 px-2 py-1">{item.exchange}</span>}{item.type && <span className="max-w-full truncate rounded-full border border-white/10 px-2 py-1">{item.type}</span>}</span>
+              <button key={item.symbol} ref={(element) => { optionRefs.current[index] = element; }} id={`${listboxId}-${index}`} type="button" role="option" aria-selected={isHighlighted} onMouseEnter={() => setHighlightedIndex(index)} onMouseDown={(event) => event.preventDefault()} onClick={() => selectSymbol(item.symbol)} className={`flex w-full min-w-0 items-center justify-between gap-3 rounded-xl border px-3 py-3 text-left transition-all ${isHighlighted ? "border-accent/15 bg-accent/[0.07] text-white" : "border-transparent text-slate-200 hover:border-white/[0.055] hover:bg-white/[0.025]"}`}>
+                <span className="min-w-0 flex-1"><span className="block truncate text-sm font-semibold tracking-wide text-white">{item.symbol}</span><span className="mt-0.5 block truncate text-xs text-slate-500">{label}</span></span>
+                <span className="flex max-w-[42%] shrink-0 flex-col items-end gap-1 text-[9px] uppercase tracking-[0.12em] text-slate-500 sm:flex-row sm:items-center">{item.exchange && <span className="max-w-full truncate rounded-full border border-white/[0.07] bg-white/[0.02] px-2 py-1">{item.exchange}</span>}{item.type && <span className="max-w-full truncate rounded-full border border-white/[0.07] bg-white/[0.02] px-2 py-1">{item.type}</span>}</span>
               </button>
             );
           })}
@@ -119,7 +119,7 @@ export function RealtimeStockSearch({ placeholder, onSelect, mode = "navigate", 
 
   return (
     <div ref={rootRef} className="relative w-full min-w-0">
-      <input ref={inputRef} value={query} onChange={(event) => { setQuery(event.target.value.toUpperCase()); setIsOpen(true); }} onFocus={() => setIsOpen(true)} onKeyDown={handleKeyDown} role="combobox" aria-autocomplete="list" aria-expanded={showDropdown} aria-controls={listboxId} aria-activedescendant={highlightedIndex >= 0 ? `${listboxId}-${highlightedIndex}` : undefined} className="h-14 w-full min-w-0 rounded-3xl border border-white/15 bg-black/35 px-4 text-base uppercase text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-200/60 focus:bg-black/45 focus:ring-2 focus:ring-cyan-200/15 sm:px-5 sm:text-lg" placeholder={placeholder ?? t("search.placeholder")} autoComplete="off" spellCheck={false} />
+      <input ref={inputRef} value={query} onChange={(event) => { setQuery(event.target.value.toUpperCase()); setIsOpen(true); }} onFocus={() => setIsOpen(true)} onKeyDown={handleKeyDown} role="combobox" aria-autocomplete="list" aria-expanded={showDropdown} aria-controls={listboxId} aria-activedescendant={highlightedIndex >= 0 ? `${listboxId}-${highlightedIndex}` : undefined} className="h-12 w-full min-w-0 rounded-xl border border-white/[0.09] bg-[#080e1b]/85 px-4 text-sm font-medium uppercase text-white outline-none transition-all placeholder:font-normal placeholder:normal-case placeholder:text-slate-600 focus:border-accent/35 focus:bg-[#0b1425] sm:px-4 sm:text-base" placeholder={placeholder ?? t("search.placeholder")} autoComplete="off" spellCheck={false} />
       {layout === "inline" ? resultList : showDropdown ? resultList : null}
     </div>
   );
