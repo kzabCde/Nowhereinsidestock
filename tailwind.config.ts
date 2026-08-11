@@ -6,27 +6,23 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: "#060914",
-        surface: "#0B1020",
-        elevated: "#10192B",
-        panel: "#0C1424",
-        line: "#24324B",
-        accent: "#72A7FF",
-        success: "#55D6A0",
-        danger: "#FF7283",
-        warning: "#F4C86A"
+        bg: "#0A0907",
+        surface: "#11100D",
+        elevated: "#181611",
+        panel: "#15120E",
+        line: "#2A2418",
+        accent: "#D6B36A",
+        success: "#5EC99A",
+        danger: "#E47777",
+        warning: "#E7B85F"
       },
       fontFamily: {
-        sans: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"]
+        sans: ["Inter", "ui-sans-serif", "system-ui", "sans-serif"]
       },
       boxShadow: {
-        card: "0 1px 0 rgba(255,255,255,0.055) inset, 0 18px 55px rgba(0,0,0,0.24)",
-        elevated: "0 1px 0 rgba(255,255,255,0.07) inset, 0 24px 80px rgba(0,0,0,0.42)",
-        glass: "0 20px 70px rgba(2,6,23,.38)",
-        focus: "0 0 0 3px rgba(114,167,255,.16)"
-      },
-      borderRadius: {
-        "3xl": "1.5rem"
+        card: "0 1px 0 rgba(255,255,255,0.035) inset, 0 14px 38px rgba(0,0,0,0.28)",
+        elevated: "0 1px 0 rgba(255,255,255,0.05) inset, 0 24px 70px rgba(0,0,0,0.48)",
+        glass: "0 18px 56px rgba(0,0,0,.38)"
       }
     }
   },
