@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ArrowUpRight } from "lucide-react";
 import type { QuoteResponse } from "@/lib/types/market";
 import { FavoriteButton } from "@/components/stocks/FavoriteButton";
 import { Sparkline } from "@/components/stocks/Sparkline";
@@ -14,19 +15,20 @@ export function StockCard({ stock }: { stock: QuoteResponse }) {
   const trendLabel = stock.insight.trend === "bullish" ? t("stock.trendBullish") : stock.insight.trend === "bearish" ? t("stock.trendBearish") : t("stock.trendSideways");
 
   return (
-    <article className="flex flex-col rounded-2xl border border-white/[0.08] bg-surface p-4 transition-all hover:border-white/[0.14] hover:bg-elevated sm:p-5">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0"><p className="section-kicker">{stock.symbol}</p><h3 className="mt-1 truncate text-sm font-semibold text-white">{stock.name ?? stock.symbol}</h3></div>
-        <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${stock.insight.trend === "bullish" ? "border-success/25 bg-success/10 text-success" : stock.insight.trend === "bearish" ? "border-danger/25 bg-danger/10 text-danger" : "border-white/[0.08] bg-white/[0.04] text-slate-500"}`}>{trendLabel}</span>
+    <article className="interactive-card group flex flex-col p-4 sm:p-5">
+      <div className="relative z-[1] flex items-start justify-between gap-3">
+        <div className="min-w-0"><p className="section-kicker">{stock.symbol}</p><h3 className="mt-1.5 truncate text-sm font-semibold text-white">{stock.name ?? stock.symbol}</h3></div>
+        <span className={stock.insight.trend === "bullish" ? "badge-positive" : stock.insight.trend === "bearish" ? "badge-negative" : "badge-neutral"}>{trendLabel}</span>
       </div>
-      <div className="my-3"><Sparkline data={sparkData} positive={positive} /></div>
-      <div className="flex items-end justify-between gap-2">
-        <p className="text-2xl font-bold tabular-nums tracking-tight text-white">{formatMarketCurrency(stock.latestPrice, stock.currency ?? "USD")}</p>
+      <div className="relative z-[1] my-4 rounded-xl border border-white/[0.045] bg-black/10 px-2 py-1"><Sparkline data={sparkData} positive={positive} /></div>
+      <div className="relative z-[1] flex items-end justify-between gap-2">
+        <div><p className="section-kicker">{t("common.price")}</p><p className="mt-1.5 text-2xl font-semibold tabular-nums tracking-[-0.035em] text-white">{formatMarketCurrency(stock.latestPrice, stock.currency ?? "USD")}</p></div>
         <p className={`mb-0.5 text-sm font-semibold tabular-nums ${positive ? "text-success" : "text-danger"}`}>{positive ? "+" : ""}{stock.changePercent.toFixed(2)}%</p>
       </div>
-      <div className="mt-4 flex gap-2">
+      <div className="relative z-[1] mt-4 flex gap-2 border-t border-white/[0.055] pt-4">
         <FavoriteButton stock={{ symbol: stock.symbol, name: stock.name, exchange: stock.exchange, price: stock.latestPrice, changePercent: stock.changePercent }} compact />
-        <Link href={`/stocks/${stock.symbol}`} className="btn-primary flex-1 text-center">{locale === "th" ? "ดูรายละเอียด" : "View Details"}</Link>
+        <Link href={`/stocks/${stock.symbol}`} className="btn-primary flex-1 text-center text-xs">{locale === "th" ? "เปิดข้อมูล" : "Open detail"}</Link>
+        <Link href={`/compare?symbols=${stock.symbol}`} className="btn-premium w-10 px-0" aria-label={t("nav.compare")}><ArrowUpRight size={14} /></Link>
       </div>
     </article>
   );
