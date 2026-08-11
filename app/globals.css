@@ -10,6 +10,11 @@
   box-sizing: border-box;
 }
 
+html {
+  background: #0a0907;
+  scroll-behavior: smooth;
+}
+
 html,
 body {
   max-width: 100%;
@@ -18,7 +23,29 @@ body {
 
 body {
   @apply bg-bg text-slate-100 antialiased;
-  background: #07090F;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at 12% -8%, rgba(214, 179, 106, 0.10), transparent 28rem),
+    radial-gradient(circle at 90% 10%, rgba(126, 102, 55, 0.06), transparent 25rem),
+    linear-gradient(180deg, #0c0b08 0%, #0a0907 42%, #080704 100%);
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(rgba(235, 218, 179, 0.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(235, 218, 179, 0.018) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: linear-gradient(to bottom, black, transparent 78%);
+}
+
+::selection {
+  background: rgba(214, 179, 106, 0.28);
+  color: #fff8e7;
 }
 
 button,
@@ -29,25 +56,69 @@ textarea {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Subtle geometric grid — barely visible */
+input,
+select,
+textarea {
+  color-scheme: dark;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: rgba(214, 179, 106, 0.48) !important;
+  box-shadow: 0 0 0 3px rgba(214, 179, 106, 0.09);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background: rgba(214, 179, 106, 0.18);
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(214, 179, 106, 0.30);
+  background-clip: padding-box;
+}
+
 .grid-overlay {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.013) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.013) 1px, transparent 1px);
-  background-size: 64px 64px;
+  position: relative;
+  isolation: isolate;
+}
+
+.grid-overlay::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 22% 2%, rgba(214, 179, 106, 0.045), transparent 23rem),
+    linear-gradient(rgba(255, 247, 225, 0.01) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 247, 225, 0.01) 1px, transparent 1px);
+  background-size: auto, 64px 64px, 64px 64px;
 }
 
 @layer components {
-  /* ─── Core surface card ─── */
   .premium-card,
   .printstream-shell {
-    @apply relative max-w-full min-w-0 overflow-hidden rounded-2xl border border-white/[0.08] bg-surface;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+    @apply relative max-w-full min-w-0 overflow-hidden rounded-2xl border bg-surface;
+    border-color: rgba(214, 179, 106, 0.10);
+    background-image: linear-gradient(145deg, rgba(255, 247, 225, 0.025), transparent 46%);
+    box-shadow: 0 1px 0 rgba(255, 247, 225, 0.035) inset, 0 16px 42px rgba(0, 0, 0, 0.22);
   }
 
-  /* Pearl border — simplified to a brighter border, no complex gradient mask */
   .pearl-border {
-    @apply border-white/[0.12];
+    border-color: rgba(214, 179, 106, 0.18);
   }
 
   .pearl-border::before {
@@ -55,25 +126,53 @@ textarea {
   }
 
   .glow-soft {
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset, 0 4px 20px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 1px 0 rgba(255, 247, 225, 0.04) inset, 0 16px 42px rgba(0, 0, 0, 0.28);
   }
 
-  /* ─── Buttons ─── */
   .btn-premium {
-    @apply inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-xl border border-white/[0.1] bg-white/[0.04] px-3.5 py-1.5 text-sm font-medium text-slate-200 transition-all hover:border-white/[0.18] hover:bg-white/[0.08] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/15 disabled:cursor-not-allowed disabled:opacity-40;
+    @apply inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-xl border px-3.5 py-1.5 text-sm font-medium transition-all duration-200 focus:outline-none disabled:cursor-not-allowed disabled:opacity-40;
+    border-color: rgba(214, 179, 106, 0.13);
+    background: rgba(255, 247, 225, 0.025);
+    color: #d9d2c3;
+  }
+
+  .btn-premium:hover {
+    transform: translateY(-1px);
+    border-color: rgba(214, 179, 106, 0.30);
+    background: rgba(214, 179, 106, 0.07);
+    color: #fff8e7;
+  }
+
+  .btn-premium:focus-visible {
+    box-shadow: 0 0 0 3px rgba(214, 179, 106, 0.12);
   }
 
   .btn-primary {
-    @apply inline-flex min-h-[34px] items-center justify-center gap-1.5 rounded-xl border border-accent/60 bg-accent px-3.5 py-1.5 text-sm font-medium text-white transition-all hover:bg-[#63b6ff] focus:outline-none focus:ring-2 focus:ring-accent/30 disabled:cursor-not-allowed disabled:opacity-40;
+    @apply inline-flex min-h-[36px] items-center justify-center gap-1.5 rounded-xl border border-accent/60 px-3.5 py-1.5 text-sm font-semibold transition-all duration-200 focus:outline-none disabled:cursor-not-allowed disabled:opacity-40;
+    color: #17130b;
+    background: linear-gradient(135deg, #caa45b 0%, #e0c27d 52%, #b98b42 100%);
+    box-shadow: 0 1px 0 rgba(255,255,255,.24) inset, 0 10px 24px rgba(150, 107, 40, 0.16);
   }
 
-  /* ─── Labels & badges ─── */
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    filter: brightness(1.06);
+  }
+
+  .btn-primary:focus-visible {
+    box-shadow: 0 0 0 3px rgba(214, 179, 106, 0.16), 0 10px 24px rgba(150, 107, 40, 0.16);
+  }
+
   .section-kicker {
-    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500;
+    @apply text-[11px] font-semibold uppercase tracking-[0.18em];
+    color: #9f8a60;
   }
 
   .badge {
-    @apply inline-flex items-center rounded-full border border-white/[0.08] bg-white/[0.04] px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-400;
+    @apply inline-flex items-center rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider;
+    border-color: rgba(214, 179, 106, 0.13);
+    background: rgba(214, 179, 106, 0.045);
+    color: #b9aa8c;
   }
 
   .badge-positive {
@@ -88,9 +187,8 @@ textarea {
     @apply badge;
   }
 
-  /* ─── Depth layers (legacy — kept for backward compat) ─── */
   .depth-hero {
-    @apply bg-white/[0.02];
+    background: rgba(214, 179, 106, 0.025);
   }
 
   .depth-card {
@@ -98,6 +196,15 @@ textarea {
   }
 
   .depth-panel {
-    @apply bg-white/[0.06];
+    background: rgba(255, 247, 225, 0.045);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
   }
 }

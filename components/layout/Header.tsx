@@ -34,7 +34,7 @@ export default function Header() {
   const isActive = (href: string) => href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b border-white/[0.06] bg-bg/90 backdrop-blur-xl">
+    <header className="sticky top-0 z-40 w-full border-b border-[#d6b36a]/10 bg-[#0a0907]/90 backdrop-blur-2xl supports-[backdrop-filter]:bg-[#0a0907]/82">
       <div className="mx-auto flex h-14 w-full max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
         <NowhereInsideStockLogo compact className="mr-1 max-w-[56vw] shrink-0" />
 
@@ -46,9 +46,10 @@ export default function Header() {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${active ? "bg-accent/10 text-accent" : "text-slate-400 hover:bg-white/[0.05] hover:text-slate-200"}`}
+                className={`relative rounded-lg px-2.5 py-1.5 text-xs font-medium transition-all ${active ? "bg-accent/[0.08] text-[#f1ddad]" : "text-slate-500 hover:bg-[#fff8e7]/[0.035] hover:text-slate-200"}`}
               >
                 {t(item.label)}
+                {active ? <span className="absolute inset-x-3 -bottom-[7px] h-px bg-gradient-to-r from-transparent via-accent/80 to-transparent" aria-hidden="true" /> : null}
               </Link>
             );
           })}
@@ -60,14 +61,14 @@ export default function Header() {
             type="button"
             onClick={openSearch}
             aria-label={t("nav.searchStocks")}
-            className="hidden h-8 items-center gap-2 rounded-xl border border-white/[0.1] bg-white/[0.04] px-3 text-sm text-slate-500 transition-all hover:border-white/[0.16] hover:text-slate-300 lg:flex"
+            className="hidden h-8 items-center gap-2 rounded-xl border border-[#d6b36a]/15 bg-[#fff8e7]/[0.025] px-3 text-sm text-slate-500 transition-all hover:border-accent/35 hover:bg-accent/[0.06] hover:text-[#f3e1b8] lg:flex"
           >
             <Search size={14} />
             <span>{t("nav.search")}</span>
-            <kbd className="ml-1 rounded border border-white/[0.1] bg-white/[0.04] px-1.5 py-0.5 text-[10px] text-slate-600">⌘K</kbd>
+            <kbd className="ml-1 rounded border border-[#d6b36a]/10 bg-black/20 px-1.5 py-0.5 text-[10px] text-[#8f7b55]">⌘K</kbd>
           </button>
 
-          <button type="button" onClick={openSearch} aria-label={t("nav.searchStocks")} className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/[0.1] bg-white/[0.04] text-slate-400 transition hover:text-slate-200 lg:hidden">
+          <button type="button" onClick={openSearch} aria-label={t("nav.searchStocks")} className="flex h-8 w-8 items-center justify-center rounded-xl border border-[#d6b36a]/15 bg-[#fff8e7]/[0.025] text-slate-500 transition hover:border-accent/35 hover:text-accent lg:hidden">
             <Search size={15} />
           </button>
 
@@ -77,7 +78,7 @@ export default function Header() {
             aria-controls="mobile-nav"
             aria-label={t("nav.toggleMenu")}
             onClick={() => setOpen((value) => !value)}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-white/[0.1] bg-white/[0.04] text-slate-400 transition hover:text-slate-200 lg:hidden"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[#d6b36a]/15 bg-[#fff8e7]/[0.025] text-slate-500 transition hover:border-accent/35 hover:text-accent lg:hidden"
           >
             <span className="relative h-3.5 w-4">
               <span className={`absolute left-0 top-0 h-px w-4 bg-current transition-all ${open ? "translate-y-1.5 rotate-45" : ""}`} />
@@ -89,7 +90,7 @@ export default function Header() {
       </div>
 
       {open ? (
-        <div id="mobile-nav" className="border-t border-white/[0.06] bg-bg/95 lg:hidden">
+        <div id="mobile-nav" className="border-t border-[#d6b36a]/10 bg-[#0c0b08]/97 shadow-elevated lg:hidden">
           <nav aria-label={t("nav.mobileMenu")} className="mx-auto max-w-7xl px-4 pb-4 pt-3 sm:px-6">
             <div className="grid gap-0.5 sm:grid-cols-2">
               {mobileMenuLinks.map((item) => {
@@ -100,9 +101,10 @@ export default function Header() {
                     href={item.href}
                     onClick={() => setOpen(false)}
                     aria-current={active ? "page" : undefined}
-                    className={`flex rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${active ? "bg-accent/10 text-accent" : "text-slate-400 hover:bg-white/[0.05] hover:text-slate-200"}`}
+                    className={`flex items-center justify-between rounded-xl px-4 py-2.5 text-sm font-medium transition-colors ${active ? "bg-accent/[0.08] text-[#f1ddad]" : "text-slate-500 hover:bg-[#fff8e7]/[0.035] hover:text-slate-200"}`}
                   >
                     {t(item.label)}
+                    <span className={active ? "text-accent" : "text-[#65583f]"}>→</span>
                   </Link>
                 );
               })}

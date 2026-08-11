@@ -23,20 +23,20 @@ export default function NowhereInsideStockLogo({
     >
       <span
         className={`relative z-10 block break-words text-center font-extrabold uppercase leading-tight tracking-[0.08em] text-transparent sm:whitespace-nowrap ${textSize}
-          [-webkit-text-stroke:1.25px_rgba(226,232,240,0.9)] [text-stroke:1.25px_rgba(226,232,240,0.9)]
-          transition-[color,text-shadow,-webkit-text-stroke-color,filter] duration-[3500ms] ease-out
+          [-webkit-text-stroke:1.2px_rgba(232,221,195,0.88)] [text-stroke:1.2px_rgba(232,221,195,0.88)]
+          transition-[color,text-shadow,-webkit-text-stroke-color,filter] duration-700 ease-out
           group-hover:[-webkit-text-stroke-color:transparent] group-hover:[text-stroke-color:transparent]
-          group-hover:bg-gradient-to-r group-hover:from-white group-hover:via-cyan-100 group-hover:to-violet-300 group-hover:bg-clip-text
+          group-hover:bg-gradient-to-r group-hover:from-[#fff8e7] group-hover:via-[#e2c47f] group-hover:to-[#b9853d] group-hover:bg-clip-text
           group-active:[-webkit-text-stroke-color:transparent] group-active:[text-stroke-color:transparent]
-          group-active:bg-gradient-to-r group-active:from-white group-active:via-cyan-100 group-active:to-violet-300 group-active:bg-clip-text
-          group-hover:drop-shadow-[0_0_18px_rgba(125,211,252,0.35)] group-active:drop-shadow-[0_0_18px_rgba(125,211,252,0.35)]`}
+          group-active:bg-gradient-to-r group-active:from-[#fff8e7] group-active:via-[#e2c47f] group-active:to-[#b9853d] group-active:bg-clip-text
+          group-hover:drop-shadow-[0_0_16px_rgba(214,179,106,0.24)]`}
       >
         NowhereInsideStock
       </span>
 
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute inset-x-1 bottom-0 h-[2px] origin-left scale-x-0 bg-gradient-to-r from-white/75 via-cyan-300/75 to-violet-400/80 shadow-[0_0_12px_rgba(139,92,246,0.45)] transition-transform duration-[2500ms] ease-out group-hover:scale-x-100 group-active:scale-x-100"
+        className="pointer-events-none absolute inset-x-1 bottom-0 h-px origin-left scale-x-0 bg-gradient-to-r from-transparent via-[#d6b36a] to-transparent shadow-[0_0_10px_rgba(214,179,106,0.34)] transition-transform duration-500 ease-out group-hover:scale-x-100 group-active:scale-x-100"
       />
     </Link>
   );

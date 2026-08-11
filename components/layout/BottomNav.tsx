@@ -22,10 +22,10 @@ export function BottomNav() {
   return (
     <nav
       aria-label={t("nav.mobileBottom")}
-      className="fixed bottom-0 left-0 right-0 z-30 border-t border-white/[0.06] bg-bg/95 backdrop-blur-xl md:hidden"
+      className="fixed inset-x-3 bottom-3 z-30 overflow-hidden rounded-2xl border border-[#d6b36a]/12 bg-[#100e0a]/94 shadow-elevated backdrop-blur-2xl md:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="flex items-stretch">
+      <div className="flex items-stretch p-1">
         {navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || (href !== "/" && pathname.startsWith(href));
           return (
@@ -33,10 +33,10 @@ export function BottomNav() {
               key={href}
               href={href}
               aria-current={active ? "page" : undefined}
-              className={`relative flex flex-1 flex-col items-center gap-1 px-2 py-3 text-[10px] font-medium uppercase tracking-widest transition-colors ${active ? "text-accent" : "text-slate-600 hover:text-slate-400"}`}
+              className={`relative flex flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[9px] font-semibold uppercase tracking-[0.1em] transition-all ${active ? "bg-accent/[0.08] text-[#f4e3bd]" : "text-slate-600 hover:bg-[#fff8e7]/[0.025] hover:text-slate-400"}`}
             >
-              {active && <span className="absolute inset-x-3 top-0 h-px rounded-b bg-accent" aria-hidden="true" />}
-              <Icon size={18} strokeWidth={active ? 2.5 : 2} />
+              {active ? <span className="absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-accent to-transparent" aria-hidden="true" /> : null}
+              <Icon size={17} strokeWidth={active ? 2.3 : 1.9} className={active ? "text-accent" : undefined} />
               {t(label)}
             </Link>
           );
@@ -46,9 +46,9 @@ export function BottomNav() {
           type="button"
           onClick={openSearch}
           aria-label={t("nav.search")}
-          className="flex flex-1 flex-col items-center gap-1 px-2 py-3 text-[10px] font-medium uppercase tracking-widest text-slate-600 transition-colors hover:text-slate-400"
+          className="flex flex-1 flex-col items-center gap-1 rounded-xl px-1 py-2.5 text-[9px] font-semibold uppercase tracking-[0.1em] text-slate-600 transition-all hover:bg-[#fff8e7]/[0.025] hover:text-slate-400"
         >
-          <Search size={18} strokeWidth={2} />
+          <Search size={17} strokeWidth={1.9} />
           {t("nav.search")}
         </button>
       </div>
