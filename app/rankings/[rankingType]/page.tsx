@@ -6,16 +6,15 @@ import { useEffect, useState } from "react";
 import { FavoriteButton } from "@/components/stocks/FavoriteButton";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
-import { PageHeader } from "@/components/ui/PageHeader";
 import { PageShell } from "@/components/ui/PageShell";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { formatCompactNumber, formatMarketCurrency } from "@/lib/format/market";
 import type { RankingResponse } from "@/lib/types/market";
 
 function trendClasses(trend: string) {
-  if (trend === "uptrend") return "badge-positive";
-  if (trend === "downtrend") return "badge-negative";
-  return "badge-neutral";
+  if (trend === "uptrend") return "border-success/25 bg-success/10 text-success";
+  if (trend === "downtrend") return "border-danger/25 bg-danger/10 text-danger";
+  return "border-white/[0.08] bg-white/[0.04] text-slate-500";
 }
 
 const localizedTitles: Record<string, { en: string; th: string }> = {
@@ -65,37 +64,50 @@ export default function RankingDetailPage() {
 
       {!loading && !error && data && (
         <>
-          <PageHeader
-            eyebrow={`Top 10 · ${data.source}`}
-            title={title}
-            description={data.scope === "curated-universe" ? (locale === "th" ? "อันดับนี้คำนวณภายในชุดหลักทรัพย์ที่คัดเลือกไว้ และระบุขอบเขตอย่างชัดเจนเพื่อไม่ให้เข้าใจว่าเป็นหุ้นทั้งตลาด" : "This ranking is calculated inside a curated symbol universe with scope shown explicitly rather than presented as full-market coverage.") : (locale === "th" ? "อันดับจาก market screener ของผู้ให้บริการ พร้อมเวลาอัปเดตและขอบเขตแหล่งข้อมูล" : "Provider market-screener ranking with source scope and fetch time shown transparently.")}
-            meta={<span className={data.scope === "market-screener" ? "badge-positive" : "badge border-warning/25 bg-warning/10 text-warning"}>{data.scope === "market-screener" ? (locale === "th" ? "Market screener" : data.scopeLabel) : (locale === "th" ? "Curated universe" : data.scopeLabel)}</span>}
-            actions={<span className="text-xs text-slate-600">{locale === "th" ? "ดึงข้อมูล" : "Fetched"} {new Date(data.fetchedAt).toLocaleString(locale === "th" ? "th-TH" : "en-US")}</span>}
-          />
+          <div>
+            <p className="section-kicker">Top 10 · {data.source}</p>
+            <h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">{title}</h1>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-slate-500">
+              <span className={`rounded-full border px-2.5 py-1 ${data.scope === "market-screener" ? "border-success/25 bg-success/10 text-success" : "border-warning/25 bg-warning/10 text-warning"}`}>
+                {data.scope === "market-screener" ? (locale === "th" ? "Yahoo market screener" : data.scopeLabel) : (locale === "th" ? "ชุดหุ้นคัดเลือก · ไม่ใช่ทั้งตลาด" : data.scopeLabel)}
+              </span>
+              <span>{locale === "th" ? "ดึงข้อมูล" : "Fetched"} {new Date(data.fetchedAt).toLocaleString(locale === "th" ? "th-TH" : "en-US")}</span>
+            </div>
+            {data.scope === "curated-universe" ? (
+              <p className="mt-2 max-w-2xl text-xs leading-5 text-slate-600">
+                {locale === "th" ? "หมวดนี้จัดอันดับภายในชุดสัญลักษณ์หุ้นที่คัดเลือกไว้ ไม่ใช่หุ้นทั้งตลาด โดยแสดงขอบเขตข้อมูลอย่างชัดเจนเพื่อป้องกันความเข้าใจผิด" : "This category is ranked within a curated symbol universe rather than the entire market. The scope is shown explicitly to avoid overstating coverage."}
+              </p>
+            ) : null}
+          </div>
 
           {data.stocks.length === 0 ? (
             <ErrorState message={locale === "th" ? "ไม่มีข้อมูลอันดับหุ้น" : "No ranking data available."} />
           ) : (
-            <section className="table-shell">
-              <div className="hidden grid-cols-[42px_1.4fr_0.8fr_0.8fr_0.8fr_auto] gap-3 border-b border-white/[0.055] bg-white/[0.018] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600 sm:grid sm:px-5">
-                <span>#</span><span>{locale === "th" ? "หลักทรัพย์" : "Security"}</span><span>{locale === "th" ? "แนวโน้ม" : "Trend"}</span><span>{locale === "th" ? "ปริมาณ" : "Volume"}</span><span>{t("common.price")}</span><span>{locale === "th" ? "การทำงาน" : "Actions"}</span>
-              </div>
-              <div className="divide-y divide-white/[0.055]">
+            <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-surface">
+              <div className="divide-y divide-white/[0.06]">
                 {data.stocks.map((stock) => {
                   const positive = stock.changePercent != null && stock.changePercent >= 0;
                   return (
-                    <div key={stock.symbol} className="table-row grid gap-3 px-4 py-4 sm:grid-cols-[42px_1.4fr_0.8fr_0.8fr_0.8fr_auto] sm:items-center sm:px-5">
-                      <span className="hidden text-center text-xs font-semibold tabular-nums text-slate-700 sm:block">{String(stock.rank).padStart(2, "0")}</span>
-                      <div className="min-w-0"><div className="flex items-center gap-2 sm:hidden"><span className="text-[10px] font-semibold text-slate-700">#{stock.rank}</span><span className={trendClasses(stock.trend)}>{trendLabel(stock.trend)}</span></div><Link href={`/stocks/${stock.symbol}`} className="mt-1 block text-sm font-semibold text-white transition-colors hover:text-accent sm:mt-0">{stock.symbol}</Link><p className="mt-0.5 truncate text-xs text-slate-600">{stock.name}</p>{stock.momentumScore != null ? <p className="mt-1 text-[10px] text-slate-500">{t("stock.momentum")} {stock.momentumScore.toFixed(2)}%</p> : stock.volatility != null ? <p className="mt-1 text-[10px] text-slate-500">{locale === "th" ? "ความผันผวน annualized" : "Annualized volatility"} {stock.volatility.toFixed(2)}%</p> : null}</div>
-                      <span className={`hidden w-fit sm:inline-flex ${trendClasses(stock.trend)}`}>{trendLabel(stock.trend)}</span>
-                      <div className="hidden sm:block"><p className="text-xs font-medium tabular-nums text-slate-400">{formatCompactNumber(stock.volume)}</p></div>
-                      <div><p className="section-kicker sm:hidden">{t("common.price")}</p><p className="mt-1 text-sm font-semibold tabular-nums text-white sm:mt-0">{formatMarketCurrency(stock.latestPrice, stock.currency ?? "USD")}</p><p className={`mt-0.5 text-xs font-semibold tabular-nums ${positive ? "text-success" : "text-danger"}`}>{stock.changePercent != null ? `${positive ? "+" : ""}${stock.changePercent.toFixed(2)}%` : "—"}</p></div>
-                      <div className="flex items-center gap-1.5"><FavoriteButton stock={{ symbol: stock.symbol, name: stock.name, price: stock.latestPrice ?? undefined, changePercent: stock.changePercent ?? undefined }} compact /><Link href={`/stocks/${stock.symbol}`} className="btn-premium px-2.5 text-xs">{locale === "th" ? "รายละเอียด" : "Detail"}</Link><Link href={`/compare?symbols=${stock.symbol}`} className="btn-premium hidden px-2.5 text-xs lg:inline-flex">{t("nav.compare")}</Link></div>
+                    <div key={stock.symbol} className="flex items-center gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.025] sm:gap-4 sm:px-5">
+                      <span className="w-6 shrink-0 text-center text-xs font-bold tabular-nums text-slate-600">{stock.rank}</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-white">{stock.symbol}</p>
+                        <p className="mt-0.5 truncate text-xs text-slate-600">{stock.name}</p>
+                        {stock.momentumScore != null ? <p className="mt-1 text-[10px] text-slate-500">{t("stock.momentum")} {stock.momentumScore.toFixed(2)}%</p> : stock.volatility != null ? <p className="mt-1 text-[10px] text-slate-500">{locale === "th" ? "ความผันผวน annualized" : "Annualized volatility"} {stock.volatility.toFixed(2)}%</p> : null}
+                      </div>
+                      <span className={`hidden shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider sm:inline-flex ${trendClasses(stock.trend)}`}>{trendLabel(stock.trend)}</span>
+                      <div className="hidden shrink-0 text-right md:block"><p className="section-kicker">{locale === "th" ? "ปริมาณ" : "Vol"}</p><p className="mt-0.5 text-xs font-medium tabular-nums text-slate-400">{formatCompactNumber(stock.volume)}</p></div>
+                      <div className="shrink-0 text-right"><p className="text-sm font-semibold tabular-nums text-white">{formatMarketCurrency(stock.latestPrice, stock.currency ?? "USD")}</p><p className={`mt-0.5 text-xs font-semibold tabular-nums ${positive ? "text-success" : "text-danger"}`}>{stock.changePercent != null ? `${positive ? "+" : ""}${stock.changePercent.toFixed(2)}%` : "—"}</p></div>
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <FavoriteButton stock={{ symbol: stock.symbol, name: stock.name, price: stock.latestPrice ?? undefined, changePercent: stock.changePercent ?? undefined }} compact />
+                        <Link href={`/stocks/${stock.symbol}`} className="btn-premium px-2.5 py-1.5 text-xs">{locale === "th" ? "รายละเอียด" : "Detail"}</Link>
+                        <Link href={`/compare?symbols=${stock.symbol}`} className="btn-premium hidden px-2.5 py-1.5 text-xs sm:inline-flex">{t("nav.compare")}</Link>
+                      </div>
                     </div>
                   );
                 })}
               </div>
-            </section>
+            </div>
           )}
         </>
       )}

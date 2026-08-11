@@ -11,7 +11,6 @@ import { CompareMetricsTable } from "@/components/compare/CompareMetricsTable";
 import { CompareSummaryCards } from "@/components/compare/CompareSummaryCards";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { LoadingSkeleton } from "@/components/ui/LoadingSkeleton";
-import { PageHeader } from "@/components/ui/PageHeader";
 import { PageShell } from "@/components/ui/PageShell";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { useI18n } from "@/components/i18n/I18nProvider";
@@ -126,41 +125,31 @@ export function CompareBuilder() {
 
   return (
     <PageShell size="wide" className="space-y-6">
-      <PageHeader
-        eyebrow={t("compare.eyebrow")}
-        title={t("compare.title")}
-        description={t("compare.description")}
-        meta={<span className="badge-neutral">2–4 {locale === "th" ? "หลักทรัพย์" : "securities"}</span>}
-      />
-
-      <SectionCard className="space-y-5">
-        <div className="relative z-[1] flex flex-col gap-2 border-b border-white/[0.055] pb-4 sm:flex-row sm:items-end sm:justify-between">
-          <div><p className="section-kicker">{locale === "th" ? "ชุดเปรียบเทียบ" : "Comparison set"}</p><h2 className="mt-1.5 text-lg font-semibold text-white">{locale === "th" ? "เลือกหุ้นและช่วงเวลาที่ต้องการวิเคราะห์" : "Select securities and the analysis horizon"}</h2></div>
-          <span className="text-xs text-slate-600">{selected.length}/4 {locale === "th" ? "รายการที่เลือก" : "selected"}</span>
-        </div>
+      <SectionCard>
+        <p className="section-kicker">{t("compare.eyebrow")}</p>
+        <h1 className="mt-2 text-3xl font-semibold text-white sm:text-4xl">{t("compare.title")}</h1>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">{t("compare.description")}</p>
         <CompareSearchBar query={query} onChange={setQuery} loading={searchLoading} />
         <CompareSearchResults results={searchResults} loading={searchLoading} query={query} onAdd={addSymbol} />
         <CompareDropZone selected={selected} onRemove={removeSymbol} onDropSymbol={addSymbol} onClearAll={() => { setSelected([]); setResult(null); }} />
-        <div className="flex flex-col gap-3 border-t border-white/[0.055] pt-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex flex-wrap gap-1.5 rounded-xl border border-white/[0.06] bg-black/10 p-1">
-            {RANGES.map((item) => (
-              <button key={item} onClick={() => { setRange(item); if (result) void fetchResult(item); }} className={`rounded-lg px-3.5 py-2 text-xs font-semibold transition-all ${range === item ? "bg-accent/[0.12] text-accent shadow-[0_1px_0_rgba(255,255,255,.04)_inset]" : "text-slate-500 hover:bg-white/[0.035] hover:text-slate-300"}`}>{item}</button>
-            ))}
-          </div>
-          <button disabled={selected.length < 2 || loadingResult} onClick={() => void fetchResult()} className="btn-primary w-full sm:w-auto">{t("compare.showResult")}</button>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {RANGES.map((item) => (
+            <button key={item} onClick={() => { setRange(item); if (result) void fetchResult(item); }} className={`rounded-2xl border px-4 py-2 text-sm font-semibold transition ${range === item ? "border-cyan-200/50 bg-cyan-200/10 text-cyan-50" : "border-white/15 bg-white/[0.035] text-slate-300 hover:bg-white/[0.06]"}`}>{item}</button>
+          ))}
         </div>
+        <button disabled={selected.length < 2 || loadingResult} onClick={() => void fetchResult()} className="btn-premium mt-5 w-full sm:w-auto">{t("compare.showResult")}</button>
       </SectionCard>
 
-      {selected.length < 2 && <SectionCard variant="quiet" className="text-center text-sm text-slate-500">{t("compare.selectAtLeast")}</SectionCard>}
+      {selected.length < 2 && <SectionCard variant="quiet" className="text-center text-slate-300">{t("compare.selectAtLeast")}</SectionCard>}
       {loadingResult && <LoadingSkeleton label={t("compare.loading")} />}
       {resultError && <ErrorState message={resultError} />}
       {result && !loadingResult && (
-        <div className="space-y-6">
-          <CompareSummaryCards summary={summary} />
+        <>
           <CompareResultChart series={result.series} />
           <CompareMetricsTable series={result.series} />
           <CompareCorrelationMatrix series={result.series} />
-        </div>
+          <CompareSummaryCards summary={summary} />
+        </>
       )}
     </PageShell>
   );
