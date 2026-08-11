@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { PageShell } from "@/components/ui/PageShell";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { formatMarketCurrency } from "@/lib/format/market";
@@ -113,69 +114,56 @@ export default function AlertsPage() {
 
   return (
     <PageShell size="wide" className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="section-kicker">{t("alerts.eyebrow")}</p>
-          <h1 className="mt-2 text-2xl font-bold text-white sm:text-3xl">{t("alerts.title")}</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">{t("alerts.description")}</p>
-        </div>
-        <button type="button" onClick={() => void refresh()} disabled={refreshing || symbols.length === 0} className="btn-premium text-xs">
-          {refreshing ? (locale === "th" ? "กำลังตรวจ…" : "Checking…") : t("alerts.refresh")}
-        </button>
-      </div>
+      <PageHeader
+        eyebrow={t("alerts.eyebrow")}
+        title={t("alerts.title")}
+        description={t("alerts.description")}
+        meta={<span className="badge-neutral">{locale === "th" ? "ประเมินเมื่อเปิดหน้า" : "On-demand evaluation"}</span>}
+        actions={<button type="button" onClick={() => void refresh()} disabled={refreshing || symbols.length === 0} className="btn-premium text-xs">{refreshing ? (locale === "th" ? "กำลังตรวจ…" : "Checking…") : t("alerts.refresh")}</button>}
+      />
 
-      <form onSubmit={submit} className="grid gap-3 rounded-2xl border border-white/[0.08] bg-surface p-4 sm:grid-cols-2 lg:grid-cols-4">
-        <input value={symbol} onChange={(event) => setSymbol(event.target.value)} placeholder={locale === "th" ? "สัญลักษณ์ เช่น NVDA" : "Symbol e.g. NVDA"} className="rounded-xl border border-white/10 bg-elevated px-3 py-2 text-sm text-white outline-none" />
-        <select value={type} onChange={(event) => setType(event.target.value as AlertType)} className="rounded-xl border border-white/10 bg-elevated px-3 py-2 text-sm text-white outline-none">
+      <form onSubmit={submit} className="control-panel grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <input value={symbol} onChange={(event) => setSymbol(event.target.value)} placeholder={locale === "th" ? "สัญลักษณ์ เช่น NVDA" : "Symbol e.g. NVDA"} className="rounded-xl border border-white/10 bg-elevated px-3 py-2.5 text-sm text-white outline-none" />
+        <select value={type} onChange={(event) => setType(event.target.value as AlertType)} className="rounded-xl border border-white/10 bg-elevated px-3 py-2.5 text-sm text-white outline-none">
           {Object.entries(alertLabels).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </select>
         {needsThreshold(type) ? (
-          <input value={threshold} onChange={(event) => setThreshold(event.target.value)} type="number" step="any" placeholder={t("alerts.target")} className="rounded-xl border border-white/10 bg-elevated px-3 py-2 text-sm text-white outline-none" />
+          <input value={threshold} onChange={(event) => setThreshold(event.target.value)} type="number" step="any" placeholder={t("alerts.target")} className="rounded-xl border border-white/10 bg-elevated px-3 py-2.5 text-sm text-white outline-none" />
         ) : (
-          <div className="flex items-center rounded-xl border border-white/10 bg-elevated px-3 py-2 text-xs text-slate-500">{locale === "th" ? "เงื่อนไขนี้ไม่ต้องกำหนดตัวเลข" : "No numeric threshold required"}</div>
+          <div className="flex items-center rounded-xl border border-white/[0.07] bg-white/[0.018] px-3 py-2.5 text-xs text-slate-500">{locale === "th" ? "เงื่อนไขนี้ไม่ต้องกำหนดตัวเลข" : "No numeric threshold required"}</div>
         )}
         <button type="submit" className="btn-primary justify-center">{t("alerts.add")}</button>
       </form>
 
       {alerts.length === 0 ? (
-        <div className="rounded-2xl border border-white/[0.08] bg-surface p-8 text-center text-sm text-slate-500">{t("alerts.empty")}</div>
+        <div className="data-panel p-10 text-center text-sm text-slate-500">{t("alerts.empty")}</div>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-white/[0.08] bg-surface">
-          <div className="divide-y divide-white/[0.06]">
+        <section className="table-shell">
+          <div className="hidden grid-cols-[1fr_1fr_1fr_auto] gap-3 border-b border-white/[0.055] bg-white/[0.018] px-4 py-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-600 sm:grid">
+            <span>{locale === "th" ? "เงื่อนไข" : "Rule"}</span><span>{locale === "th" ? "ค่าปัจจุบัน" : "Current"}</span><span>{locale === "th" ? "สถานะ" : "Status"}</span><span>{locale === "th" ? "การทำงาน" : "Actions"}</span>
+          </div>
+          <div className="divide-y divide-white/[0.055]">
             {alerts.map((alert) => {
               const quote = quotes[alert.symbol];
               const triggered = isTriggered(alert, quote);
-              const status = !alert.enabled
-                ? (locale === "th" ? "หยุดชั่วคราว" : "Paused")
-                : triggered === true
-                  ? t("alerts.triggered")
-                  : triggered === false
-                    ? (locale === "th" ? "รอเข้าเงื่อนไข" : "Waiting")
-                    : (locale === "th" ? "ไม่มีข้อมูล" : "Unavailable");
+              const status = !alert.enabled ? (locale === "th" ? "หยุดชั่วคราว" : "Paused") : triggered === true ? t("alerts.triggered") : triggered === false ? (locale === "th" ? "รอเข้าเงื่อนไข" : "Waiting") : (locale === "th" ? "ไม่มีข้อมูล" : "Unavailable");
               return (
-                <div key={alert.id} className="grid gap-3 px-4 py-4 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-center">
-                  <div>
-                    <Link href={`/stocks/${alert.symbol}`} className="font-semibold text-white hover:text-accent">{alert.symbol}</Link>
-                    <p className="mt-1 text-xs text-slate-600">{alertLabels[alert.type]}{alert.threshold != null ? ` ${alert.threshold}` : ""}</p>
-                  </div>
-                  <div><p className="section-kicker">{locale === "th" ? "ค่าปัจจุบัน" : "Current"}</p><p className="mt-1 text-sm text-slate-300">{currentValue(alert, quote)}</p></div>
-                  <div>
-                    <p className="section-kicker">{locale === "th" ? "สถานะ" : "Status"}</p>
-                    <p className={`mt-1 text-sm font-semibold ${!alert.enabled ? "text-slate-500" : triggered === true ? "text-success" : triggered === false ? "text-warning" : "text-slate-500"}`}>{status}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button type="button" onClick={() => toggleAlert(alert.id)} className="btn-premium text-xs">{alert.enabled ? (locale === "th" ? "หยุด" : "Pause") : (locale === "th" ? "เปิดใช้" : "Enable")}</button>
-                    <button type="button" onClick={() => removeAlert(alert.id)} className="btn-premium text-xs">{t("common.remove")}</button>
-                  </div>
+                <div key={alert.id} className="table-row grid gap-3 px-4 py-4 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-center">
+                  <div><Link href={`/stocks/${alert.symbol}`} className="font-semibold text-white transition-colors hover:text-accent">{alert.symbol}</Link><p className="mt-1 text-xs text-slate-600">{alertLabels[alert.type]}{alert.threshold != null ? ` ${alert.threshold}` : ""}</p></div>
+                  <div><p className="section-kicker sm:hidden">{locale === "th" ? "ค่าปัจจุบัน" : "Current"}</p><p className="mt-1 text-sm text-slate-300 sm:mt-0">{currentValue(alert, quote)}</p></div>
+                  <div><p className="section-kicker sm:hidden">{locale === "th" ? "สถานะ" : "Status"}</p><span className={!alert.enabled ? "badge-neutral" : triggered === true ? "badge-positive" : triggered === false ? "badge border-warning/25 bg-warning/10 text-warning" : "badge-neutral"}>{status}</span></div>
+                  <div className="flex gap-2"><button type="button" onClick={() => toggleAlert(alert.id)} className="btn-premium text-xs">{alert.enabled ? (locale === "th" ? "หยุด" : "Pause") : (locale === "th" ? "เปิดใช้" : "Enable")}</button><button type="button" onClick={() => removeAlert(alert.id)} className="btn-premium border-danger/15 text-xs text-danger/70 hover:text-danger">{t("common.remove")}</button></div>
                 </div>
               );
             })}
           </div>
-        </div>
+        </section>
       )}
 
-      {alerts.length > 0 ? <button type="button" onClick={clearAlerts} className="text-xs text-danger">{locale === "th" ? "ล้างการแจ้งเตือนทั้งหมด" : "Clear all alerts"}</button> : null}
-      <p className="text-xs text-slate-600">{t("alerts.note")}</p>
+      <div className="flex flex-col gap-3 border-t border-white/[0.055] pt-4 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+        <p>{t("alerts.note")}</p>
+        {alerts.length > 0 ? <button type="button" onClick={clearAlerts} className="text-danger/75 transition-colors hover:text-danger">{locale === "th" ? "ล้างการแจ้งเตือนทั้งหมด" : "Clear all alerts"}</button> : null}
+      </div>
     </PageShell>
   );
 }
