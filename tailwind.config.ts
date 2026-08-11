@@ -6,23 +6,27 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        bg: "#07090F",
-        surface: "#0D1117",
-        elevated: "#131C2A",
-        panel: "#0B1320",
-        line: "#1C2536",
-        accent: "#47A8FF",
-        success: "#43E67B",
-        danger: "#F87171",
-        warning: "#FBBF24"
+        bg: "#060914",
+        surface: "#0B1020",
+        elevated: "#10192B",
+        panel: "#0C1424",
+        line: "#24324B",
+        accent: "#72A7FF",
+        success: "#55D6A0",
+        danger: "#FF7283",
+        warning: "#F4C86A"
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"]
+        sans: ["Inter", "ui-sans-serif", "system-ui", "-apple-system", "BlinkMacSystemFont", "Segoe UI", "sans-serif"]
       },
       boxShadow: {
-        card: "0 1px 0 rgba(255,255,255,0.04) inset, 0 4px 24px rgba(0,0,0,0.32)",
-        elevated: "0 1px 0 rgba(255,255,255,0.06) inset, 0 8px 40px rgba(0,0,0,0.45)",
-        glass: "0 12px 40px rgba(11,19,32,.4)"
+        card: "0 1px 0 rgba(255,255,255,0.055) inset, 0 18px 55px rgba(0,0,0,0.24)",
+        elevated: "0 1px 0 rgba(255,255,255,0.07) inset, 0 24px 80px rgba(0,0,0,0.42)",
+        glass: "0 20px 70px rgba(2,6,23,.38)",
+        focus: "0 0 0 3px rgba(114,167,255,.16)"
+      },
+      borderRadius: {
+        "3xl": "1.5rem"
       }
     }
   },
