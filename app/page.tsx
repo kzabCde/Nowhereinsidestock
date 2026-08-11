@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, ArrowUpRight, BarChart2, GitCompare, LayoutDashboard, Radar, ShieldCheck, Star } from "lucide-react";
+import { Activity, BarChart2, GitCompare, LayoutDashboard, Radar, Star } from "lucide-react";
 import { MagnificentSeven } from "@/components/stocks/MagnificentSeven";
 import { PageShell } from "@/components/ui/PageShell";
 import { SearchTriggerButton } from "@/components/ui/SearchTriggerButton";
@@ -45,7 +45,7 @@ export default async function HomePage() {
             <div className="flex flex-wrap items-center gap-2">
               <span className="badge-neutral"><span className="signal-dot" aria-hidden="true" />{t("home.eyebrow")}</span>
               <span className="badge-neutral">TH / EN</span>
-              <span className="badge-neutral"><ShieldCheck size={11} />{locale === "th" ? "อธิบายที่มาของสัญญาณ" : "Explainable by design"}</span>
+              <span className="badge-neutral"><Activity size={11} />{locale === "th" ? "อธิบายที่มาของสัญญาณ" : "Explainable by design"}</span>
             </div>
             <h1 className="mt-6 max-w-4xl text-4xl font-semibold leading-[1.04] tracking-[-0.055em] text-white sm:text-5xl lg:text-6xl">
               {t("home.title")}
@@ -94,7 +94,7 @@ export default async function HomePage() {
               </div>
               <h3 className="relative z-[1] mt-5 text-lg font-semibold tracking-[-0.02em] text-white">{t(title)}</h3>
               <p className="relative z-[1] mt-2 flex-1 text-sm leading-6 text-slate-500">{t(description)}</p>
-              <span className="relative z-[1] mt-5 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors group-hover:text-accent">{openLabel}<ArrowUpRight size={13} /></span>
+              <span className="relative z-[1] mt-5 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors group-hover:text-accent">{openLabel}<span aria-hidden="true">↗</span></span>
             </Link>
           ))}
         </div>
@@ -115,7 +115,7 @@ export default async function HomePage() {
             <Link key={item.href} href={item.href} className="interactive-card group p-5">
               <p className="section-kicker">{item.label}</p>
               <h3 className="mt-3 text-base font-semibold text-white">{item.title}</h3>
-              <p className="mt-5 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors group-hover:text-accent">{locale === "th" ? "เปิดอันดับ" : "Open ranking"}<ArrowUpRight size={13} /></p>
+              <p className="mt-5 inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors group-hover:text-accent">{locale === "th" ? "เปิดอันดับ" : "Open ranking"}<span aria-hidden="true">↗</span></p>
             </Link>
           ))}
         </div>
