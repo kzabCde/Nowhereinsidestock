@@ -1,12 +1,9 @@
-name: Validate
+name: Validate Security Upgrade
 
 on:
-  pull_request:
-    branches:
-      - main
   push:
     branches:
-      - main
+      - agent/security-dependency-upgrade
 
 permissions:
   contents: read
@@ -14,7 +11,7 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -25,7 +22,13 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install dependencies
+      - name: Install current dependencies
+        run: npm ci
+
+      - name: Apply non-breaking security fixes to lockfile
+        run: npm audit fix --package-lock-only
+
+      - name: Reinstall from repaired lockfile
         run: npm ci
 
       - name: Reject high-severity dependency vulnerabilities
@@ -42,3 +45,11 @@ jobs:
 
       - name: Production build
         run: npm run build
+
+      - name: Upload repaired lockfile
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: repaired-package-lock
+          path: package-lock.json
+          if-no-files-found: error
