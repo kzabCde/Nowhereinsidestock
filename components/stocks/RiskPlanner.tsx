@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ShieldCheck } from "lucide-react";
+import { Calculator } from "lucide-react";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { calculatePositionSize } from "@/lib/finance/position-sizing";
 import { formatMarketCurrency } from "@/lib/format/market";
@@ -66,15 +66,15 @@ export function RiskPlanner({
   const formatMoney = (value: number | null | undefined) => formatMarketCurrency(value, currency, dateLocale);
 
   return (
-    <div className={`rounded-2xl border border-[#d6b36a]/12 bg-[#0d0c09] ${compact ? "p-4" : "p-5 sm:p-6"}`}>
+    <div className={`rounded-2xl border border-[#d6b36a]/10 bg-[#0d0c09] ${compact ? "p-4" : "p-5 sm:p-6"}`}>
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2 text-accent">
-            <ShieldCheck size={16} />
+            <Calculator size={16} />
             <p className="section-kicker">{locale === "th" ? "วางแผนความเสี่ยงก่อนเปิดสถานะ" : "Pre-trade risk planning"}</p>
           </div>
           <h2 className="mt-2 text-xl font-bold text-white">
-            {locale === "th" ? "Risk / Position Size Planner" : "Risk / Position Size Planner"}
+            Risk / Position Size Planner
             {symbol ? <span className="ml-2 text-slate-500">· {symbol}</span> : null}
           </h2>
           <p className="mt-1.5 max-w-2xl text-sm leading-6 text-slate-500">
