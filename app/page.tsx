@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, BarChart2, GitCompare, LayoutDashboard, Radar, ShieldCheck, Star } from "lucide-react";
+import { Activity, BarChart2, Calculator, GitCompare, LayoutDashboard, Radar, Star } from "lucide-react";
 import { MagnificentSeven } from "@/components/stocks/MagnificentSeven";
 import { PageShell } from "@/components/ui/PageShell";
 import { SearchTriggerButton } from "@/components/ui/SearchTriggerButton";
@@ -49,8 +49,8 @@ export default async function HomePage() {
               <span className="mt-4 inline-flex items-center text-sm font-medium text-accent opacity-0 transition-opacity group-hover:opacity-100">{openLabel} →</span>
             </Link>
           ))}
-          <Link href="/tools/risk-planner" className="group flex flex-col rounded-2xl border border-[#d6b36a]/12 bg-surface p-5 transition-all hover:border-accent/25 hover:bg-elevated">
-            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl border border-accent/15 bg-accent/[0.05]"><ShieldCheck size={17} className="text-accent" /></div>
+          <Link href="/tools/risk-planner" className="group flex flex-col rounded-2xl border border-[#d6b36a]/10 bg-surface p-5 transition-all hover:border-accent/25 hover:bg-elevated">
+            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-xl border border-accent/15 bg-accent/[0.05]"><Calculator size={17} className="text-accent" /></div>
             <h2 className="text-base font-semibold text-white">Risk / Position Size Planner</h2>
             <p className="mt-1 flex-1 text-sm leading-6 text-slate-500">
               {locale === "th" ? "คำนวณจำนวนหุ้นจากขนาดพอร์ต ความเสี่ยงต่อแผน Entry, Stop และ Target ก่อนเปิดสถานะ" : "Size a position from account risk, Entry, Stop, and Target before opening a position."}
