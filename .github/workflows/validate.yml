@@ -1,22 +1,23 @@
-name: Validate Security Upgrade
+name: Validate
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
-      - agent/security-dependency-upgrade
+      - main
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   validate:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -24,16 +25,7 @@ jobs:
           node-version: 22
           cache: npm
 
-      - name: Install current dependencies
-        run: npm ci
-
-      - name: Raise Next.js security floor
-        run: npm install next@^16.3.5 --save --package-lock-only
-
-      - name: Apply non-breaking security fixes to lockfile
-        run: npm audit fix --package-lock-only
-
-      - name: Reinstall from repaired lockfile
+      - name: Install dependencies
         run: npm ci
 
       - name: Reject high-severity dependency vulnerabilities
@@ -50,14 +42,3 @@ jobs:
 
       - name: Production build
         run: npm run build
-
-      - name: Restore normal CI workflow and commit validated upgrades
-        run: |
-          git fetch origin main --depth=1
-          git show origin/main:.github/workflows/validate.yml > .github/workflows/validate.yml
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json package-lock.json .github/workflows/validate.yml
-          git diff --cached --quiet && exit 0
-          git commit -m "chore: update vulnerable dependencies [skip ci]"
-          git push origin HEAD:agent/security-dependency-upgrade
