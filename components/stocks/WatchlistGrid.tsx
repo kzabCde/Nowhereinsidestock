@@ -10,7 +10,7 @@ import { formatMarketCurrency } from "@/lib/format/market";
 
 const mag7 = ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA"];
 
-function trendClass(trend: string | undefined) {
+function trendClass(trend: string | null | undefined) {
   if (trend === "bullish") return "border-success/25 bg-success/10 text-success";
   if (trend === "bearish") return "border-danger/25 bg-danger/10 text-danger";
   return "border-white/[0.08] bg-white/[0.04] text-slate-500";

@@ -160,7 +160,7 @@ function buildSummary(series: CompareSeries[]) {
   return {
     bestPerformer: by((s) => s.metrics.totalReturn, "max").symbol,
     lowestVolatility: by((s) => s.metrics.volatility, "min").symbol,
-    strongestMomentum: by((s) => s.metrics.momentumScore ?? 0, "max").symbol,
+    strongestMomentum: by((s) => s.metrics.momentumScore ?? -Infinity, "max").symbol,
     mostStable: by((s) => s.metrics.maxDrawdown ?? Math.abs(s.metrics.totalReturn), "min").symbol
   };
 }

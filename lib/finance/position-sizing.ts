@@ -10,6 +10,7 @@ export type PositionSizingInput = {
 
 export type PositionSizingResult = {
   direction: TradeDirection;
+  hypothetical: boolean;
   riskBudget: number;
   riskPerShare: number;
   riskBasedShares: number;
@@ -26,7 +27,7 @@ export type PositionSizingResult = {
 };
 
 function requirePositiveFinite(value: number, label: string): void {
-  if (!Number.isFinite(value) || value <= 0) {
+  if (!Number.isFinite(value) || value <= 0 || value > 1e15) {
     throw new Error(`${label} must be a positive number`);
   }
 }
@@ -45,9 +46,10 @@ export function calculatePositionSize(input: PositionSizingInput): PositionSizin
   const riskPerShare = Math.abs(input.entryPrice - input.stopPrice);
   const riskBasedShares = Math.floor(riskBudget / riskPerShare);
 
-  // This planner intentionally assumes cash-only sizing and does not model leverage or margin.
+  // A cash cap for longs and an illustrative notional cap for hypothetical shorts.
   const capitalBasedShares = Math.floor(input.accountSize / input.entryPrice);
   const shares = Math.max(0, Math.min(riskBasedShares, capitalBasedShares));
+  if (!Number.isSafeInteger(shares)) throw new Error("Share count exceeds supported precision");
   const positionValue = shares * input.entryPrice;
   const positionPercent = (positionValue / input.accountSize) * 100;
   const maxLoss = shares * riskPerShare;
@@ -64,6 +66,7 @@ export function calculatePositionSize(input: PositionSizingInput): PositionSizin
 
   return {
     direction,
+    hypothetical: direction === "short",
     riskBudget,
     riskPerShare,
     riskBasedShares,

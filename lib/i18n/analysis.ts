@@ -74,7 +74,8 @@ export function translateEvidence(locale: Locale, evidence: SignalEvidence): str
   return (locale === "th" ? th : en)[evidence.code];
 }
 
-export function translateTrendContext(locale: Locale, trend: "uptrend" | "downtrend" | "sideway"): string {
+export function translateTrendContext(locale: Locale, trend: "uptrend" | "downtrend" | "sideway" | undefined): string {
+  if (!trend) return locale === "th" ? "ข้อมูลแนวโน้มไม่เพียงพอ" : "Trend unavailable.";
   const text = {
     en: { uptrend: "The primary technical trend remains constructive.", downtrend: "The primary technical trend remains under pressure.", sideway: "Price is moving sideways without a dominant directional trend." },
     th: { uptrend: "แนวโน้มทางเทคนิคหลักยังอยู่ในภาพเชิงบวก", downtrend: "แนวโน้มทางเทคนิคหลักยังอยู่ภายใต้แรงกดดัน", sideway: "ราคาเคลื่อนไหวในกรอบและยังไม่มีทิศทางเด่นชัด" }

@@ -33,7 +33,8 @@ const tabs: TabConfig[] = [
   { id: "next-signal", label: "stock.nextSignal", eyebrow: "stock.watchNext", icon: Radar }
 ];
 
-function getTechnicalTrend(data: QuoteResponse): "uptrend" | "downtrend" | "sideway" {
+function getTechnicalTrend(data: QuoteResponse) {
+  if (!data.insight.trend) return undefined;
   if (data.insight.trend === "bullish") return "uptrend";
   if (data.insight.trend === "bearish") return "downtrend";
   return "sideway";
@@ -53,7 +54,7 @@ function getLatestVolume(data: QuoteResponse): number | null {
   return latestCandle && Number.isFinite(latestCandle.volume) ? latestCandle.volume : null;
 }
 function getAverageVolume(data: QuoteResponse): number | null {
-  const volumes = data.analytics.candles.slice(-20).map((candle) => candle.volume).filter((volume): volume is number => volume != null && Number.isFinite(volume));
+  const volumes = data.analytics.candles.slice(-21, -1).map((candle) => candle.volume).filter((volume): volume is number => volume != null && Number.isFinite(volume));
   return volumes.length === 0 ? null : volumes.reduce((sum, volume) => sum + volume, 0) / volumes.length;
 }
 
@@ -78,7 +79,7 @@ function OverviewPreview({ data, onRefresh, refreshing = false }: StockDetailPre
     { label: t("stock.latestVolume"), value: formatNumber(latestVolume, locale) },
     { label: t("stock.avgVolume"), value: formatNumber(averageVolume, locale) },
     { label: t("common.trend"), value: trendLabel(locale, data.insight.trend) },
-    { label: t("common.volatility"), value: `${data.insight.volatility}% annualized` }
+    { label: t("common.volatility"), value: data.insight.volatility == null ? "—" : `${data.insight.volatility}%` }
   ];
 
   return (
@@ -105,7 +106,7 @@ function OverviewPreview({ data, onRefresh, refreshing = false }: StockDetailPre
       {data.freshness.marketState && <p className="text-xs text-slate-500">{locale === "th" ? "สถานะตลาดจากผู้ให้ข้อมูล" : "Provider market session"} · {data.freshness.marketState} · {locale === "th" ? "อายุแคชขณะเรียกข้อมูล" : "Cache age at retrieval"} {data.freshness.ageSeconds}s</p>}
       <div className="w-full overflow-hidden rounded-xl border border-white/[0.08] bg-elevated p-2 sm:p-3"><PriceChart data={data} supports={data.supportResistance.supports} resistances={data.supportResistance.resistances} /></div>
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">{overviewItems.map((item) => <MetricCard key={item.label} label={item.label} value={item.value} />)}</div>
-      {data.changePercent != null && <div className="rounded-xl border border-white/[0.08] bg-elevated p-4"><p className="section-kicker">{t("stock.technicalOverview")}</p><p className="mt-2 text-sm leading-7 text-slate-300">{t("stock.technicalOverviewText", { symbol: data.symbol, direction: t(directionKey), change: formatPercent(data.changePercent), trend: t(trendKey) })}</p></div>}
+      {data.changePercent != null && data.insight.trend != null && <div className="rounded-xl border border-white/[0.08] bg-elevated p-4"><p className="section-kicker">{t("stock.technicalOverview")}</p><p className="mt-2 text-sm leading-7 text-slate-300">{t("stock.technicalOverviewText", { symbol: data.symbol, direction: t(directionKey), change: formatPercent(data.changePercent), trend: t(trendKey) })}</p></div>}
     </SectionCard>
   );
 }
@@ -115,13 +116,14 @@ function SignalsPanel({ data }: StockDetailPreviewTabsProps) {
   return (
     <SectionCard className="w-full space-y-5">
       <div><p className="section-kicker">{t("stock.signals")}</p><h2 className="mt-1.5 text-xl font-bold text-white">{t("stock.indicatorsTitle")}</h2><p className="mt-1.5 text-sm text-slate-500">{t("stock.indicatorsDesc")}</p></div>
+      <p className="text-xs text-slate-400">{locale === "th" ? "จากรอบซื้อขายรายวันที่ปิดแล้ว" : "Completed daily sessions"} · {data.analytics.asOf ?? "—"}</p>
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
         <InsightCard label={t("common.trend")} value={trendLabel(locale, data.insight.trend)} tone={getTrendTone(data)} />
         <InsightCard label={t("stock.momentum")} value={momentumLabel(locale, data.insight.momentum)} tone="neutral" />
-        <InsightCard label={t("stock.momentumScore")} value={`${data.insight.momentumScore.toFixed(2)}%`} tone="neutral" />
+        <InsightCard label={t("stock.momentumScore")} value={formatPercent(data.insight.momentumScore)} tone="neutral" />
         <InsightCard label={t("stock.rsi")} value={rsiLabel(locale, data.insight.rsiSignal)} tone="neutral" />
         <InsightCard label={t("stock.macd")} value={macdLabel(locale, data.insight.macdSignal)} tone="neutral" />
-        <InsightCard label={t("common.volatility")} value={`${data.insight.volatility}%`} tone="neutral" />
+        <InsightCard label={t("common.volatility")} value={formatPercent(data.insight.volatility)} tone="neutral" />
       </div>
     </SectionCard>
   );
@@ -151,7 +153,7 @@ export function StockDetailPreviewTabs({ data, onRefresh, refreshing = false }: 
         {activeTab === "signals" && <SignalsPanel data={data} />}
         {activeTab === "moving-average" && <MovingAveragePanel movingAverages={data.movingAverages} />}
         {activeTab === "support-resistance" && <SupportResistancePanel supports={data.supportResistance.supports} resistances={data.supportResistance.resistances} />}
-        {activeTab === "fair-value" && <FairValueCalculator symbol={data.symbol} currentPrice={data.latestPrice} metrics={data.valuationMetrics} currency={data.currency} />}
+        {activeTab === "fair-value" && <FairValueCalculator symbol={data.symbol} currentPrice={data.latestPrice} metrics={data.valuationMetrics} currency={data.currency ?? ""} marketTime={data.marketTime} dataRetrievedAt={data.fundamentalsRetrievedAt ?? data.lastUpdated} />}
         {activeTab === "backtest" && <BacktestPanel candles={data.analytics.candles} currency={data.currency} />}
         {activeTab === "next-signal" && <NextSignalPanel symbol={data.symbol} latestPrice={data.latestPrice} currency={data.currency} changePercent={data.changePercent} trend={getTechnicalTrend(data)} movingAverages={data.movingAverages} supportResistance={data.supportResistance} rsiSignal={data.insight.rsiSignal} macdSignal={data.insight.macdSignal} momentumScore={data.insight.momentumScore} volume={getLatestVolume(data)} averageVolume={getAverageVolume(data)} />}
       </div>

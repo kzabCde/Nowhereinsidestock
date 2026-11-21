@@ -13,6 +13,7 @@ type RiskPlannerProps = {
   support?: number | null;
   resistance?: number | null;
   compact?: boolean;
+  marketTime?: string;
 };
 
 function numberInput(value: number): string {
@@ -21,18 +22,20 @@ function numberInput(value: number): string {
 
 export function RiskPlanner({
   symbol,
-  currentPrice = 100,
+  currentPrice,
   currency = "USD",
   support,
   resistance,
-  compact = false
+  compact = false,
+  marketTime
 }: RiskPlannerProps) {
   const { locale } = useI18n();
   const dateLocale = locale === "th" ? "th-TH" : "en-US";
-  const initialEntry = currentPrice > 0 ? currentPrice : 100;
-  const initialStop = support != null && support > 0 && support < initialEntry ? support : initialEntry * 0.95;
-  const initialTarget = resistance != null && resistance > initialEntry ? resistance : initialEntry * 1.1;
+  const initialEntry = currentPrice != null && currentPrice > 0 ? currentPrice : NaN;
+  const initialStop = support != null && support > 0 && support < initialEntry ? support : NaN;
+  const initialTarget = resistance != null && resistance > initialEntry ? resistance : NaN;
 
+  const [showHypothetical, setShowHypothetical] = useState(false);
   const [accountSize, setAccountSize] = useState("10000");
   const [riskPercent, setRiskPercent] = useState("1");
   const [entryPrice, setEntryPrice] = useState(() => numberInput(initialEntry));
@@ -57,9 +60,10 @@ export function RiskPlanner({
     }
   }, [accountSize, entryPrice, riskPercent, stopPrice, targetPrice]);
 
-  const result = calculation.result;
+  const short = calculation.result?.hypothetical === true;
+  const result = short && !showHypothetical ? null : calculation.result;
   const directionLabel = result?.direction === "short"
-    ? locale === "th" ? "ฝั่ง Short" : "Short setup"
+    ? locale === "th" ? "Short แบบสมมติ" : "Hypothetical short"
     : locale === "th" ? "ฝั่ง Long" : "Long setup";
 
   const inputClass = "mt-1.5 w-full rounded-xl border border-white/10 bg-elevated px-3 py-2.5 text-sm tabular-nums text-white outline-none transition focus:border-accent/45";
@@ -90,6 +94,7 @@ export function RiskPlanner({
         ) : null}
       </div>
 
+      {marketTime && <p className="mt-2 text-xs text-slate-400">{locale === "th" ? "เวลาราคาตั้งต้น" : "Starting quote time"} · {new Date(marketTime).toLocaleString(dateLocale)}</p>}
       <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <label className="text-xs font-medium text-slate-500">
           {locale === "th" ? `ขนาดพอร์ต (${currency})` : `Account size (${currency})`}
@@ -129,8 +134,13 @@ export function RiskPlanner({
         </div>
       ) : null}
 
+      {short && <label className="mt-4 flex items-center gap-2 text-sm text-warning">
+        <input type="checkbox" checked={showHypothetical} onChange={(event) => setShowHypothetical(event.target.checked)} />
+        {locale === "th" ? "แสดงคณิตศาสตร์ Short แบบสมมติ" : "Show hypothetical short-side math"}
+      </label>}
       {result ? (
         <>
+          {result.hypothetical && <p className="mt-2 text-sm text-warning">{locale === "th" ? "เพดานมูลค่าเพื่อการคำนวณเท่านั้น ไม่ได้จำลองการยืมหุ้น หลักประกัน หรือมาร์จิน" : "The account balance is an illustrative notional cap. Borrow availability, margin, and borrowing costs are outside this calculation."}</p>}
           <div className="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
             <div className="rounded-xl border border-white/[0.07] bg-elevated p-3">
               <p className="text-[11px] uppercase tracking-wider text-slate-600">{locale === "th" ? "จำนวนหุ้น" : "Shares"}</p>
@@ -160,11 +170,11 @@ export function RiskPlanner({
             </div>
           </div>
 
-          {result.limitedByCapital ? (
+          {result.limitedByCapital && !result.hypothetical ? (
             <p className="mt-3 rounded-xl border border-warning/15 bg-warning/5 px-3 py-2 text-xs leading-5 text-warning">
               {locale === "th"
                 ? "จำนวนหุ้นถูกจำกัดด้วยเงินสดที่มี ไม่ใช่งบความเสี่ยง เครื่องมือนี้ไม่สมมติ Margin หรือ Leverage"
-                : "Share count is capped by available cash rather than the risk budget. This planner does not assume margin or leverage."}
+                : "The cash balance limits share count. The calculation assumes a fully funded long position."}
             </p>
           ) : null}
         </>

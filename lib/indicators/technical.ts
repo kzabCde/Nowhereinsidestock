@@ -103,7 +103,11 @@ export const volatility = (prices: number[], periodsPerYear = 252): number => {
   return round(Math.sqrt(variance) * Math.sqrt(periodsPerYear) * 100);
 };
 
-export const normalizedMomentum = (macdValue: number | null, signalValue: number | null, price: number): number => {
-  if (macdValue == null || signalValue == null || !Number.isFinite(price) || price <= 0) return 0;
-  return round((Math.abs(macdValue - signalValue) / price) * 100);
-};
+// MACD histogram measured as a percentage of price. Sign carries direction.
+export function directionalMomentum(macdValue: number | null, signalValue: number | null, price: number): number | null {
+  if (macdValue == null || signalValue == null || ![macdValue, signalValue, price].every(Number.isFinite) || price <= 0) return null;
+  return round((macdValue - signalValue) / price * 100);
+}
+
+export const normalizedMomentum = (macdValue: number | null, signalValue: number | null, price: number): number =>
+  Math.abs(directionalMomentum(macdValue, signalValue, price) ?? 0);

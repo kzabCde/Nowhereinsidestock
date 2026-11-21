@@ -6,7 +6,7 @@ import { formatMarketCurrency } from "@/lib/format/market";
 import { macdLabel, rsiLabel, trendLabel } from "@/lib/i18n/market-labels";
 import type { CompareSeries } from "@/lib/types/compare";
 
-function metric(value: number | undefined, suffix = ""): string {
+function metric(value: number | null | undefined, suffix = ""): string {
   return typeof value === "number" && Number.isFinite(value) ? `${value.toFixed(2)}${suffix}` : "—";
 }
 

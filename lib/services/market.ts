@@ -4,7 +4,7 @@ import { providerBatchQuotes, providerCandles, providerFundamentals, providerQuo
 import { MarketDataError, normalizeSymbol } from "./market-errors";
 import { loadQuoteParts } from "./quote-parts";
 import { normalizeMarketTimeIso } from "@/lib/format/market-time";
-import { ema, macd, normalizedMomentum, sma, volatility } from "@/lib/indicators/technical";
+import { ema, macd, directionalMomentum, sma, volatility } from "@/lib/indicators/technical";
 import { ANALYTICS_DAYS, CHART_RANGES, buildDailySeries } from "@/lib/indicators/daily-series";
 import type {
   Candle,
@@ -69,7 +69,7 @@ function asNumber(value: unknown): number | undefined {
 }
 
 const getTrend = (sma20Value: number | null, ema20Value: number | null, close: number) => {
-  if (sma20Value == null || ema20Value == null) return "neutral" as const;
+  if (sma20Value == null || ema20Value == null) return null;
   if (close > sma20Value && close > ema20Value) return "bullish" as const;
   if (close < sma20Value && close < ema20Value) return "bearish" as const;
   return "neutral" as const;
@@ -132,7 +132,7 @@ const buildZones = (points: SwingPoint[], latestPrice: number, candlesLength: nu
   });
 
   return zones
-    .filter((zone) => (type === "support" ? zone.level <= latestPrice * 1.02 : zone.level >= latestPrice * 0.98))
+    .filter((zone) => (type === "support" ? zone.level <= latestPrice : zone.level >= latestPrice))
     .sort((a, b) => b.score - a.score)
     .slice(0, 3)
     .map(({ score: _score, ...zone }) => zone);
@@ -197,7 +197,7 @@ export async function fetchQuoteWithIndicators(symbol: string, range: ChartRange
   const latestRsi = calculation.rsi14.at(-1) ?? null;
   const latestMacd = calculation.macd.at(-1) ?? null;
   const latestSignal = calculation.signal.at(-1) ?? null;
-  const momentumScore = normalizedMomentum(latestMacd, latestSignal, latestClose);
+  const momentumScore = directionalMomentum(latestMacd, latestSignal, latestClose);
 
   const supportResistance = calculationCandles.length < 30
     ? { supports: [] as PriceZone[], resistances: [] as PriceZone[], message: "ข้อมูลรายวันน้อยกว่า 30 แท่ง จึงยังประเมินโซนที่ควรจับตาไม่ได้" }
@@ -219,14 +219,15 @@ export async function fetchQuoteWithIndicators(symbol: string, range: ChartRange
     indicators,
     insight: {
       trend: getTrend(calculation.sma20.at(-1) ?? null, calculation.ema20.at(-1) ?? null, latestClose),
-      momentum: momentumScore >= 0.75 ? "strong" : momentumScore >= 0.25 ? "moderate" : "weak",
+      momentum: momentumScore == null ? null : Math.abs(momentumScore) >= 0.75 ? "strong" : Math.abs(momentumScore) >= 0.25 ? "moderate" : "weak",
       momentumScore,
-      rsiSignal: latestRsi != null && latestRsi > 70 ? "overbought" : latestRsi != null && latestRsi < 30 ? "oversold" : "neutral",
-      macdSignal: latestMacd == null || latestSignal == null ? "neutral" : latestMacd > latestSignal ? "buy" : latestMacd < latestSignal ? "sell" : "neutral",
-      volatility: volatility(closes)
+      rsiSignal: latestRsi == null ? undefined : latestRsi > 70 ? "overbought" : latestRsi < 30 ? "oversold" : "neutral",
+      macdSignal: latestMacd == null || latestSignal == null ? undefined : latestMacd > latestSignal ? "buy" : latestMacd < latestSignal ? "sell" : "neutral",
+      volatility: closes.length >= 3 ? volatility(closes) : null
     },
     movingAverages,
     supportResistance,
+    fundamentalsRetrievedAt: parts.profile?.retrievedAt,
     valuationMetrics: {
       trailingEps: asNumber(quoteFields.trailingEps) ?? asNumber(defaultKeyStatistics?.trailingEps),
       forwardEps: asNumber(quoteFields.forwardEps) ?? asNumber(defaultKeyStatistics?.forwardEps),
@@ -345,8 +346,8 @@ async function enrichRankingAnalytics(items: RankingStock[]): Promise<RankingSto
       const latestIndex = closes.length - 1;
       return {
         ...item,
-        volatility: volatility(closes),
-        momentumScore: normalizedMomentum(macdResult.line[latestIndex] ?? null, macdResult.signal[latestIndex] ?? null, closes[latestIndex] ?? item.latestPrice ?? 0)
+        volatility: closes.length >= 3 ? volatility(closes) : null,
+        momentumScore: directionalMomentum(macdResult.line[latestIndex] ?? null, macdResult.signal[latestIndex] ?? null, closes[latestIndex] ?? item.latestPrice ?? 0)
       };
     } catch {
       return { ...item, volatility: null, momentumScore: null };

@@ -10,12 +10,12 @@ export type Candle = {
 export type ChartRange = "1M" | "3M" | "6M" | "1Y" | "3Y" | "5Y";
 
 export type MarketInsight = {
-  trend: "bullish" | "bearish" | "neutral";
-  momentum: "strong" | "moderate" | "weak";
-  momentumScore: number;
-  rsiSignal: "overbought" | "oversold" | "neutral";
-  macdSignal: "buy" | "sell" | "neutral";
-  volatility: number;
+  trend: "bullish" | "bearish" | "neutral" | null;
+  momentum: "strong" | "moderate" | "weak" | null;
+  momentumScore: number | null;
+  rsiSignal?: "overbought" | "oversold" | "neutral";
+  macdSignal?: "buy" | "sell" | "neutral";
+  volatility: number | null;
 };
 
 export type PriceZone = {
@@ -94,6 +94,7 @@ export type QuoteResponse = QuoteSnapshot & {
     message?: string;
   };
   valuationMetrics: ValuationMetrics;
+  fundamentalsRetrievedAt?: string;
 };
 
 export type SearchItem = {

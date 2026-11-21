@@ -19,7 +19,7 @@ export type NextSignal = {
 
 export type NextSignalInput = {
   latestPrice: number;
-  trend: "uptrend" | "downtrend" | "sideway";
+  trend?: "uptrend" | "downtrend" | "sideway";
   movingAverages?: MovingAverages;
   supportResistance?: { supports: PriceZone[]; resistances: PriceZone[] };
   rsiSignal?: string;
@@ -33,10 +33,8 @@ const isFinitePrice = (value: number): boolean => Number.isFinite(value) && valu
 
 export function getNearestSupport(latestPrice: number, supports: PriceZone[]): PriceZone | null {
   if (!isFinitePrice(latestPrice) || supports.length === 0) return null;
-  const validSupports = supports.filter((zone) => Number.isFinite(zone.level));
-  const supportsBelowPrice = validSupports.filter((zone) => zone.level <= latestPrice);
-  const candidates = supportsBelowPrice.length > 0 ? supportsBelowPrice : validSupports;
-  return candidates.reduce<PriceZone | null>((nearest, zone) => {
+  const validSupports = supports.filter((zone) => isFinitePrice(zone.level) && zone.level <= latestPrice);
+  return validSupports.reduce<PriceZone | null>((nearest, zone) => {
     if (!nearest) return zone;
     return Math.abs(latestPrice - zone.level) < Math.abs(latestPrice - nearest.level) ? zone : nearest;
   }, null);
@@ -44,10 +42,8 @@ export function getNearestSupport(latestPrice: number, supports: PriceZone[]): P
 
 export function getNearestResistance(latestPrice: number, resistances: PriceZone[]): PriceZone | null {
   if (!isFinitePrice(latestPrice) || resistances.length === 0) return null;
-  const validResistances = resistances.filter((zone) => Number.isFinite(zone.level));
-  const resistancesAbovePrice = validResistances.filter((zone) => zone.level >= latestPrice);
-  const candidates = resistancesAbovePrice.length > 0 ? resistancesAbovePrice : validResistances;
-  return candidates.reduce<PriceZone | null>((nearest, zone) => {
+  const validResistances = resistances.filter((zone) => isFinitePrice(zone.level) && zone.level >= latestPrice);
+  return validResistances.reduce<PriceZone | null>((nearest, zone) => {
     if (!nearest) return zone;
     return Math.abs(latestPrice - zone.level) < Math.abs(latestPrice - nearest.level) ? zone : nearest;
   }, null);
@@ -65,7 +61,7 @@ export function buildNextSignals(data: NextSignalInput): NextSignal[] {
   const movingAverages = data.movingAverages;
   const rsiSignal = normalizeSignal(data.rsiSignal);
   const macdSignal = normalizeSignal(data.macdSignal);
-  const hasAboveAverageVolume = typeof data.volume === "number" && typeof data.averageVolume === "number" && data.averageVolume > 0 && data.volume > data.averageVolume;
+  const hasAboveAverageVolume = typeof data.volume === "number" && typeof data.averageVolume === "number" && Number.isFinite(data.volume) && Number.isFinite(data.averageVolume) && data.averageVolume > 0 && data.volume > data.averageVolume;
 
   if (nearestResistance && isNearLevel(data.latestPrice, nearestResistance.level)) signals.push({ code: "nearResistance", tone: "warning" });
   if (nearestSupport && isNearLevel(data.latestPrice, nearestSupport.level)) signals.push({ code: "nearSupport", tone: "neutral" });

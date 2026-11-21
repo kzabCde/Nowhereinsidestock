@@ -2,7 +2,7 @@ import { providerCandles } from "./yahoo";
 import { MarketDataError } from "./market-errors";
 import { ANALYTICS_DAYS } from "@/lib/indicators/daily-series";
 import { maxDrawdown, sharpeRatio, sortinoRatio } from "@/lib/finance/risk";
-import { ema, macd, normalizedMomentum, rsi, sma, volatility } from "@/lib/indicators/technical";
+import { ema, macd, directionalMomentum, rsi, sma, volatility } from "@/lib/indicators/technical";
 import { priceByDate, tradingDateFormatter } from "@/lib/finance/trading-dates";
 import type { CompareMetric, CompareStockResult, CompareTimeframe, WinnerSummary } from "@/lib/types/compare";
 
@@ -59,7 +59,7 @@ export async function fetchCompareStock(symbol: string, timeframe: CompareTimefr
     rsi: latestRsi,
     macdSignal: latestMacd == null || latestSignal == null ? "neutral" : latestMacd > latestSignal ? "buy" : latestMacd < latestSignal ? "sell" : "neutral",
     trendDirection: getTrend(latestClose, sma20[sma20.length - 1], ema20[ema20.length - 1]),
-    momentumScore: normalizedMomentum(latestMacd, latestSignal, latestClose),
+    momentumScore: directionalMomentum(latestMacd, latestSignal, latestClose),
     maxDrawdown: maxDrawdown(closes),
     sharpeRatio: sharpeRatio(closes),
     sortinoRatio: sortinoRatio(closes)
@@ -78,7 +78,7 @@ export function buildWinnerSummary(metrics: CompareMetric[]): WinnerSummary {
   return {
     bestPerformer: by((m) => m.totalReturn, "max").symbol,
     lowestVolatility: by((m) => m.volatility, "min").symbol,
-    strongestMomentum: by((m) => m.momentumScore, "max").symbol,
+    strongestMomentum: by((m) => m.momentumScore ?? -Infinity, "max").symbol,
     mostStable: by((m) => Math.abs(m.percentChange), "min").symbol,
     highestVolume: by((m) => m.averageVolume ?? -Infinity, "max").symbol
   };

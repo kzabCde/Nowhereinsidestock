@@ -39,7 +39,8 @@ export default function StockDetailPage() {
           <RiskPlanner
             symbol={data.symbol}
             currentPrice={data.latestPrice}
-            currency={data.currency}
+            currency={data.currency ?? ""}
+            marketTime={data.marketTime}
             support={nearestSupport}
             resistance={nearestResistance}
           />

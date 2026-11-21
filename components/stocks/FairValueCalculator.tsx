@@ -9,7 +9,7 @@ import type { ValuationMetrics } from "@/lib/types/market";
 type ValuationMethod = "pe" | "graham" | "ddm";
 type FieldKey = "eps" | "targetPE" | "bookValuePerShare" | "dividendPerShare" | "requiredReturn" | "growthRate";
 type ErrorCode = "required" | "positive" | "nonNegative" | "returnAboveGrowth" | "growthBelowReturn";
-type Props = { symbol?: string; currentPrice?: number; metrics?: ValuationMetrics; currency?: string };
+type Props = { symbol?: string; currentPrice?: number; metrics?: ValuationMetrics; currency?: string; marketTime?: string; dataRetrievedAt?: string };
 
 const METHOD_FIELDS: Record<ValuationMethod, FieldKey[]> = {
   pe: ["eps", "targetPE"],
@@ -30,7 +30,7 @@ function getInitialValues(metrics?: ValuationMetrics): Record<FieldKey, string> 
     eps: toInputValue(metrics?.trailingEps ?? metrics?.forwardEps),
     targetPE: toInputValue(metrics?.forwardPE ?? metrics?.trailingPE),
     bookValuePerShare: toInputValue(metrics?.bookValue),
-    dividendPerShare: toInputValue(metrics?.dividendRate),
+    dividendPerShare: "",
     requiredReturn: "",
     growthRate: ""
   };
@@ -56,27 +56,39 @@ function calculate(method: ValuationMethod, values: Record<FieldKey, string>): {
   return fairValue == null ? { errors } : { fairValue, errors };
 }
 
-export function FairValueCalculator({ symbol, currentPrice, metrics, currency = "USD" }: Props) {
+export function FairValueCalculator({ symbol, currentPrice, metrics, currency = "USD", marketTime, dataRetrievedAt }: Props) {
   const [method, setMethod] = useState<ValuationMethod>("pe");
   const [values, setValues] = useState<Record<FieldKey, string>>(() => getInitialValues(metrics));
   const { locale, t } = useI18n();
   const th = locale === "th";
   const result = useMemo(() => calculate(method, values), [method, values]);
-  const differencePercent = typeof result.fairValue === "number" && typeof currentPrice === "number" && currentPrice > 0 ? ((result.fairValue - currentPrice) / currentPrice) * 100 : undefined;
+  const differencePercent = currency && typeof result.fairValue === "number" && typeof currentPrice === "number" && currentPrice > 0 ? ((result.fairValue - currentPrice) / currentPrice) * 100 : undefined;
+
+  const sensitivity = useMemo(() => {
+    if (result.fairValue == null) return [];
+    if (method === "ddm") {
+      const rate = Number(values.requiredReturn);
+      return [rate + 1, rate - 1].map((adjusted) => dividendDiscountValue(Number(values.dividendPerShare), adjusted, Number(values.growthRate)));
+    }
+    return method === "pe"
+      ? [0.9, 1.1].map((scale) => peFairValue(Number(values.eps), Number(values.targetPE) * scale))
+      : [0.9, 1.1].map((scale) => grahamNumber(Number(values.eps) * scale, Number(values.bookValuePerShare)));
+  }, [method, result.fairValue, values]);
+  const date = (value: string) => new Date(value).toLocaleString(th ? "th-TH" : "en-US");
 
   const methods: Record<ValuationMethod, { label: string; formula: string; explanation: string }> = {
     pe: { label: t("fairValue.peMethod"), formula: "Fair Value = EPS × Target P/E", explanation: th ? "ใช้กำไรต่อหุ้นคูณกับ P/E เป้าหมายเพื่อสร้างกรอบประเมินมูลค่าจากความสามารถในการทำกำไร" : "Uses earnings per share multiplied by a target P/E to frame value from earnings power." },
     graham: { label: t("fairValue.graham"), formula: "Graham Number = √(22.5 × EPS × Book Value Per Share)", explanation: th ? "สูตรเชิงอนุรักษ์นิยมที่ผสม EPS กับมูลค่าทางบัญชีต่อหุ้น" : "A conservative formula combining EPS with book value per share." },
-    ddm: { label: t("fairValue.ddm"), formula: "DDM Value = Dividend per Share ÷ (Required Return − Growth Rate)", explanation: th ? "ประเมินมูลค่าจากเงินปันผล โดยผลตอบแทนที่ต้องการต้องสูงกว่าอัตราการเติบโต" : "Values expected dividends where required return must exceed long-term growth." }
+    ddm: { label: t("fairValue.ddm"), formula: "DDM Value = Next-Year Dividend per Share ÷ (Required Return − Growth Rate)", explanation: th ? "ประเมินมูลค่าจากเงินปันผล โดยผลตอบแทนที่ต้องการต้องสูงกว่าอัตราการเติบโต" : "Values expected dividends where required return must exceed long-term growth." }
   };
   const labels: Record<FieldKey, string> = {
-    eps: t("fairValue.eps"), targetPE: t("fairValue.targetPe"), bookValuePerShare: t("fairValue.bookValue"), dividendPerShare: t("fairValue.dividend"), requiredReturn: t("fairValue.requiredReturn"), growthRate: t("fairValue.growth")
+    eps: t("fairValue.eps"), targetPE: t("fairValue.targetPe"), bookValuePerShare: t("fairValue.bookValue"), dividendPerShare: th ? "เงินปันผลต่อหุ้นปีถัดไป" : "Next-year dividend per share", requiredReturn: t("fairValue.requiredReturn"), growthRate: t("fairValue.growth")
   };
   const helpers: Record<FieldKey, string> = {
     eps: th ? "ต้องมากกว่า 0 หากไม่มีข้อมูลให้กรอกสมมติฐานเอง" : "Must be above 0; enter your own assumption if provider data is unavailable.",
     targetPE: th ? "ใช้ trailing/forward P/E เป็นจุดเริ่มต้นแล้วปรับตามสมมติฐาน" : "Use trailing/forward P/E as a starting point and adjust to your assumptions.",
     bookValuePerShare: th ? "ต้องมากกว่า 0" : "Must be above 0.",
-    dividendPerShare: th ? "เงินปันผลต่อหุ้นรายปี" : "Annual dividend per share.",
+    dividendPerShare: th ? "กรอกเงินปันผลที่คาดในปีถัดไป" : "Enter your expected next annual dividend (D1).",
     requiredReturn: th ? "กรอกเป็นเปอร์เซ็นต์ เช่น 10 หมายถึง 10%" : "Enter a percentage, e.g. 10 means 10%.",
     growthRate: th ? "กรอกเป็นเปอร์เซ็นต์ เช่น 3 หมายถึง 3%" : "Enter a percentage, e.g. 3 means 3%."
   };
@@ -96,24 +108,29 @@ export function FairValueCalculator({ symbol, currentPrice, metrics, currency = 
         : (th ? "ราคาตลาดใกล้ค่าประเมินตามสมมติฐานนี้" : "Market price is near this assumption-based estimate.");
 
   return (
-    <section id="valuation" className="printstream-shell pearl-border w-full max-w-full min-w-0 overflow-hidden rounded-3xl p-4 sm:p-6">
+    <section id="valuation" className="border border-white/[0.08] bg-surface w-full max-w-full min-w-0 overflow-hidden rounded-3xl p-4 sm:p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div><p className="section-kicker">{t("fairValue.eyebrow")}</p><h2 className="mt-1 text-2xl font-bold text-white">{t("fairValue.title")}{symbol ? `: ${symbol}` : ""}</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">{t("fairValue.description")} ({currency})</p></div>
         <span className="rounded-full border border-amber-300/30 bg-amber-400/10 px-3 py-1 text-xs font-medium text-amber-100">{th ? "เพื่อการศึกษา ไม่ใช่คำแนะนำลงทุน" : "Educational, not investment advice"}</span>
       </div>
 
+      <p className="mt-3 text-xs text-slate-400">{th ? "ใช้สกุลเงินเดียวกันสำหรับราคา กำไร มูลค่าทางบัญชี และเงินปันผล" : "Use the same currency for price, earnings, book value, and dividends."}
+        {dataRetrievedAt && <> · {th ? "ข้อมูลตั้งต้นจาก Yahoo ณ เวลาดึง" : "Yahoo starting inputs retrieved"} {date(dataRetrievedAt)}</>}
+        {marketTime && <> · {th ? "เวลาราคาตลาด" : "Market quote time"} {date(marketTime)}</>}
+      </p>
+      {method === "ddm" && metrics?.dividendRate != null && <p className="mt-2 text-xs text-slate-400">{th ? "อัตราปันผลรายปีที่ผู้ให้ข้อมูลรายงาน" : "Provider-reported annual dividend amount"} {formatMarketCurrency(metrics.dividendRate, currency)}</p>}
       <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
           <label className="block text-sm font-medium text-slate-200" htmlFor="valuation-method">{th ? "เลือกสูตร" : "Formula selector"}</label>
-          <select id="valuation-method" value={method} onChange={(event) => setMethod(event.target.value as ValuationMethod)} className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-300/70">
+          <select id="valuation-method" value={method} onChange={(event) => setMethod(event.target.value as ValuationMethod)} className="w-full rounded-xl border border-white/10 bg-slate-950/80 px-3 py-2 text-sm text-white outline-none transition focus:border-accent/70">
             {(Object.keys(methods) as ValuationMethod[]).map((key) => <option key={key} value={key}>{methods[key].label}</option>)}
           </select>
-          <div className="rounded-xl border border-cyan-300/20 bg-cyan-300/10 p-3"><p className="text-sm font-semibold text-cyan-100">{methods[method].formula}</p><p className="mt-1 text-sm leading-6 text-slate-300">{methods[method].explanation}</p></div>
+          <div className="rounded-xl border border-accent/20 bg-accent/10 p-3"><p className="text-sm font-semibold text-accent">{methods[method].formula}</p><p className="mt-1 text-sm leading-6 text-slate-300">{methods[method].explanation}</p></div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {METHOD_FIELDS[method].map((field) => (
               <div key={field} className="space-y-1.5">
                 <label className="block text-sm font-medium text-slate-200" htmlFor={`valuation-${field}`}>{labels[field]}</label>
-                <input id={`valuation-${field}`} inputMode="decimal" type="number" step="any" value={values[field]} onChange={(event) => setValues((current) => ({ ...current, [field]: event.target.value }))} className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none transition focus:border-cyan-300/70" placeholder={th ? "กรอกตัวเลข" : "Enter a number"} />
+                <input id={`valuation-${field}`} inputMode="decimal" type="number" step="any" value={values[field]} onChange={(event) => setValues((current) => ({ ...current, [field]: event.target.value }))} className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-white outline-none transition focus:border-accent/70" placeholder={th ? "กรอกตัวเลข" : "Enter a number"} />
                 {result.errors[field] ? <p className="text-xs text-rose-200">{errorText(result.errors[field]!)}</p> : <p className="text-xs text-slate-400">{helpers[field]}</p>}
               </div>
             ))}
@@ -124,6 +141,10 @@ export function FairValueCalculator({ symbol, currentPrice, metrics, currency = 
           <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4"><p className="text-sm text-slate-400">{t("fairValue.estimate")}</p><p className="mt-1 text-3xl font-extrabold text-white">{formatMarketCurrency(result.fairValue, currency)}</p></div>
           <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4"><p className="text-sm text-slate-400">{t("fairValue.currentPrice")}</p><p className="mt-1 text-3xl font-extrabold text-white">{formatMarketCurrency(currentPrice, currency)}</p></div>
           <div className="rounded-xl border border-white/10 bg-white/[0.04] p-4"><p className="text-sm text-slate-400">{t("fairValue.upside")}</p><p className={`mt-1 text-3xl font-extrabold ${differencePercent != null && differencePercent >= 0 ? "text-emerald-200" : "text-rose-200"}`}>{differencePercent == null ? "—" : `${differencePercent >= 0 ? "+" : ""}${differencePercent.toFixed(2)}%`}</p><p className="mt-2 text-sm leading-6 text-slate-300">{marketComparison}</p></div>
+          {sensitivity.length > 0 && <p className="text-sm text-slate-300">
+            {method === "ddm" ? th ? "ผลตอบแทนที่ต้องการ ±1 จุดเปอร์เซ็นต์" : "Required return ±1 percentage point"
+              : method === "pe" ? th ? "P/E เป้าหมาย ±10%" : "Target P/E ±10%" : "EPS ±10%"} · {sensitivity.map((value) => formatMarketCurrency(value, currency)).join(" / ")}
+          </p>}
           <div className="rounded-xl border border-amber-300/20 bg-amber-300/10 p-3 text-sm leading-6 text-amber-50">{th ? "ผลลัพธ์ขึ้นอยู่กับสมมติฐาน ควรพิจารณางบการเงิน ความเสี่ยง สภาพคล่อง และบริบทธุรกิจร่วมด้วย" : "Results depend on your assumptions. Consider financial statements, risk, liquidity, and business context as well."}</div>
         </div>
       </div>

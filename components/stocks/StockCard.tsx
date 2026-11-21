@@ -11,7 +11,7 @@ export function StockCard({ stock }: { stock: QuoteResponse }) {
   const positive = stock.changePercent != null && stock.changePercent >= 0;
   const sparkData = stock.candles.slice(-20).map((c) => c.close);
   const { locale, t } = useI18n();
-  const trendLabel = stock.insight.trend === "bullish" ? t("stock.trendBullish") : stock.insight.trend === "bearish" ? t("stock.trendBearish") : t("stock.trendSideways");
+  const trendLabel = stock.insight.trend === "bullish" ? t("stock.trendBullish") : stock.insight.trend === "bearish" ? t("stock.trendBearish") : stock.insight.trend === "neutral" ? t("stock.trendSideways") : "—";
 
   return (
     <article className="flex flex-col rounded-2xl border border-white/[0.08] bg-surface p-4 transition-all hover:border-white/[0.14] hover:bg-elevated sm:p-5">

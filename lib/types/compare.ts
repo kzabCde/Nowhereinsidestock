@@ -21,7 +21,7 @@ export type CompareMetrics = {
   rsiSignal?: string;
   macdSignal?: string;
   averageVolume?: number | null;
-  momentumScore?: number;
+  momentumScore?: number | null;
   maxDrawdown?: number;
   sharpeRatio?: number;
   sortinoRatio?: number;
@@ -55,7 +55,7 @@ export type CompareMetric = {
   rsi: number | null;
   macdSignal: "buy" | "sell" | "neutral";
   trendDirection: "bullish" | "bearish" | "neutral";
-  momentumScore: number;
+  momentumScore: number | null;
   maxDrawdown: number;
   sharpeRatio: number;
   sortinoRatio: number;
