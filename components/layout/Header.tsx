@@ -35,8 +35,8 @@ export default function Header() {
 
   return (
     <header className="sticky top-0 z-40 w-full border-b border-[#d6b36a]/10 bg-[#0a0907]/90 backdrop-blur-2xl supports-[backdrop-filter]:bg-[#0a0907]/82">
-      <div className="mx-auto flex h-14 w-full max-w-7xl items-center gap-3 px-4 sm:px-6 lg:px-8">
-        <NowhereInsideStockLogo compact className="mr-1 max-w-[56vw] shrink-0" />
+      <div className="mx-auto flex h-14 w-full max-w-7xl items-center gap-2 px-3 sm:gap-3 sm:px-6 lg:px-8">
+        <NowhereInsideStockLogo compact className="mr-1 max-w-[52vw] shrink lg:shrink-0" />
 
         <nav aria-label={t("nav.primary")} className="hidden items-center gap-0.5 lg:flex">
           {navLinks.map((item) => {
@@ -68,7 +68,7 @@ export default function Header() {
             <kbd className="ml-1 rounded border border-[#d6b36a]/10 bg-black/20 px-1.5 py-0.5 text-[10px] text-[#8f7b55]">⌘K</kbd>
           </button>
 
-          <button type="button" onClick={openSearch} aria-label={t("nav.searchStocks")} className="flex h-8 w-8 items-center justify-center rounded-xl border border-[#d6b36a]/15 bg-[#fff8e7]/[0.025] text-slate-500 transition hover:border-accent/35 hover:text-accent lg:hidden">
+          <button type="button" onClick={openSearch} aria-label={t("nav.searchStocks")} className="hidden size-10 shrink-0 items-center justify-center rounded-xl border border-[#d6b36a]/15 bg-[#fff8e7]/[0.025] text-slate-400 transition hover:border-accent/35 hover:text-accent min-[360px]:flex lg:hidden">
             <Search size={15} />
           </button>
 
@@ -78,7 +78,7 @@ export default function Header() {
             aria-controls="mobile-nav"
             aria-label={t("nav.toggleMenu")}
             onClick={() => setOpen((value) => !value)}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-[#d6b36a]/15 bg-[#fff8e7]/[0.025] text-slate-500 transition hover:border-accent/35 hover:text-accent lg:hidden"
+            className="flex size-10 shrink-0 items-center justify-center rounded-xl border border-[#d6b36a]/15 bg-[#fff8e7]/[0.025] text-slate-500 transition hover:border-accent/35 hover:text-accent lg:hidden"
           >
             <span className="relative h-3.5 w-4">
               <span className={`absolute left-0 top-0 h-px w-4 bg-current transition-all ${open ? "translate-y-1.5 rotate-45" : ""}`} />

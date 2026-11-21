@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
   Area,
   Bar,
@@ -15,11 +15,12 @@ import {
 } from "recharts";
 import { ChartTimeframeSelector } from "@/components/stocks/ChartTimeframeSelector";
 import { useI18n } from "@/components/i18n/I18nProvider";
+import { browserStorage } from "@/lib/client/browser-storage";
 import { toHeikinAshi } from "@/lib/analysis/heikin-ashi";
 import { formatMarketCurrency } from "@/lib/format/market";
-import type { ChartRange, PriceZone, QuoteResponse } from "@/lib/types/market";
+import type { ChartRange, PriceZone, QuoteChart } from "@/lib/types/market";
 
-type PriceChartProps = { data: QuoteResponse; supports?: PriceZone[]; resistances?: PriceZone[] };
+type PriceChartProps = { data: QuoteChart; supports?: PriceZone[]; resistances?: PriceZone[] };
 type MovingAverageKey = "ma20" | "ma50" | "ma200";
 type ChartStyle = "line" | "area" | "bars" | "candlestick" | "heikinAshi";
 type ChartSettings = {
@@ -57,8 +58,8 @@ type PriceTooltipProps = {
   candleMode: boolean;
 };
 
-const DEFAULT_RANGE: ChartRange = "6M";
-const SETTINGS_KEY = "nis-chart-settings-v1";
+const chartSettings = browserStorage("nis-chart-settings-v1");
+const RANGE_TTL_MS = 300_000;
 const DEFAULT_SETTINGS: ChartSettings = {
   style: "line",
   showVolume: true,
@@ -73,10 +74,8 @@ const movingAverageLines: Array<{ key: MovingAverageKey; stroke: string; dash?: 
   { key: "ma200", stroke: "#F472B6", dash: "8 4" }
 ];
 
-function loadSettings(): ChartSettings {
-  if (typeof window === "undefined") return DEFAULT_SETTINGS;
+function parseSettings(raw: string | null): ChartSettings {
   try {
-    const raw = window.localStorage.getItem(SETTINGS_KEY);
     if (!raw) return DEFAULT_SETTINGS;
     const parsed = JSON.parse(raw) as Partial<ChartSettings>;
     const validStyles: ChartStyle[] = ["line", "area", "bars", "candlestick", "heikinAshi"];
@@ -161,39 +160,17 @@ function PriceTooltip({ active, payload, currency, locale, candleMode }: PriceTo
 }
 
 export function PriceChart({ data, supports = [], resistances = [] }: PriceChartProps) {
-  const [selectedRange, setSelectedRange] = useState<ChartRange>(DEFAULT_RANGE);
-  const [chartDataSource, setChartDataSource] = useState<QuoteResponse>(data);
-  const [settings, setSettings] = useState<ChartSettings>(DEFAULT_SETTINGS);
-  const [settingsReady, setSettingsReady] = useState(false);
+  const [rangeData, setRangeData] = useState<QuoteChart | null>(null);
+  const rawSettings = useSyncExternalStore(chartSettings.subscribe, chartSettings.read, () => null);
+  const settings = useMemo(() => parseSettings(rawSettings), [rawSettings]);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [loadingRange, setLoadingRange] = useState<ChartRange | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const activeRequest = useRef<AbortController | null>(null);
-  const previousSymbol = useRef(data.symbol);
+  const ranges = useRef(new Map<ChartRange, { response: QuoteChart; received: number }>());
   const { locale } = useI18n();
-
-  useEffect(() => {
-    setSettings(loadSettings());
-    setSettingsReady(true);
-  }, []);
-
-  useEffect(() => {
-    if (!settingsReady) return;
-    window.localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-  }, [settings, settingsReady]);
-
-  useEffect(() => {
-    if (previousSymbol.current !== data.symbol) {
-      previousSymbol.current = data.symbol;
-      activeRequest.current?.abort();
-      setSelectedRange(DEFAULT_RANGE);
-      setChartDataSource(data);
-      setLoadingRange(null);
-      setErrorMessage(null);
-      return;
-    }
-    if (selectedRange === DEFAULT_RANGE && loadingRange == null) setChartDataSource(data);
-  }, [data, loadingRange, selectedRange]);
+  const chartDataSource = rangeData ?? data;
+  const selectedRange = chartDataSource.chart.range;
 
   useEffect(() => () => activeRequest.current?.abort(), []);
 
@@ -203,7 +180,7 @@ export function PriceChart({ data, supports = [], resistances = [] }: PriceChart
   );
 
   const chartData = useMemo<ChartPoint[]>(() => candleSource.map((candle, i) => ({
-    date: candle.date.slice(5, 10),
+    date: candle.date.slice(0, 10),
     open: candle.open,
     high: candle.high,
     low: candle.low,
@@ -215,44 +192,51 @@ export function PriceChart({ data, supports = [], resistances = [] }: PriceChart
     ma200: chartDataSource.indicators.sma200[i] ?? null
   })), [candleSource, chartDataSource.indicators.sma20, chartDataSource.indicators.sma50, chartDataSource.indicators.sma200]);
 
-  const activeSupports = chartDataSource.supportResistance.supports.length > 0 ? chartDataSource.supportResistance.supports : supports;
-  const activeResistances = chartDataSource.supportResistance.resistances.length > 0 ? chartDataSource.supportResistance.resistances : resistances;
   const currency = chartDataSource.currency ?? "";
+  const sameCurrency = data.currency === chartDataSource.currency;
   const candleMode = settings.style === "candlestick" || settings.style === "heikinAshi";
 
-  const updateSetting = <K extends keyof Omit<ChartSettings, "averages">>(key: K, value: ChartSettings[K]) => {
-    setSettings((current) => ({ ...current, [key]: value }));
-  };
-  const toggleAverage = (key: MovingAverageKey) => setSettings((current) => ({
-    ...current,
-    averages: { ...current.averages, [key]: !current.averages[key] }
+  const updateSetting = <K extends keyof Omit<ChartSettings, "averages">>(key: K, value: ChartSettings[K]) =>
+    chartSettings.write(JSON.stringify({ ...settings, [key]: value }));
+  const toggleAverage = (key: MovingAverageKey) => chartSettings.write(JSON.stringify({
+    ...settings, averages: { ...settings.averages, [key]: !settings.averages[key] }
   }));
-  const resetSettings = () => setSettings(DEFAULT_SETTINGS);
+  const resetSettings = () => chartSettings.write(JSON.stringify(DEFAULT_SETTINGS));
 
-  const handleRangeChange = async (range: ChartRange) => {
-    if (range === selectedRange || loadingRange === range) return;
-    const previousRange = selectedRange;
+  async function handleRangeChange(range: ChartRange) {
+    if (loadingRange === range) return;
     activeRequest.current?.abort();
+    activeRequest.current = null;
+    setLoadingRange(null);
+    setErrorMessage(null);
+    if (range === data.chart.range) {
+      setRangeData(null);
+      return;
+    }
+    const cached = ranges.current.get(range);
+    if (cached && Date.now() - cached.received < RANGE_TTL_MS) {
+      setRangeData(cached.response);
+      return;
+    }
     const controller = new AbortController();
     activeRequest.current = controller;
-    setSelectedRange(range);
     setLoadingRange(range);
-    setErrorMessage(null);
     try {
-      const response = await fetch(`/api/stocks/${encodeURIComponent(data.symbol)}?view=technical&range=${range}`, { cache: "no-store", signal: controller.signal });
-      if (!response.ok) throw new Error(locale === "th" ? `ไม่สามารถโหลดข้อมูลกราฟช่วง ${range} ได้` : `Unable to load ${range} chart data.`);
-      setChartDataSource((await response.json()) as QuoteResponse);
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
-      setSelectedRange(previousRange);
-      setErrorMessage(error instanceof Error ? error.message : (locale === "th" ? "ไม่สามารถโหลดข้อมูลกราฟได้" : "Unable to load chart data."));
+      const response = await fetch(`/api/stocks/${encodeURIComponent(data.symbol)}?view=chart&range=${range}`, { signal: controller.signal });
+      if (!response.ok) throw Error(locale === "th" ? `ไม่สามารถโหลดกราฟช่วง ${range}` : `Unable to load the ${range} chart.`);
+      const chart = (await response.json()) as QuoteChart;
+      if (controller.signal.aborted) return;
+      if (!chart.historyStale) ranges.current.set(range, { response: chart, received: Date.now() });
+      setRangeData(chart);
+    } catch (reason) {
+      if (!controller.signal.aborted) setErrorMessage(reason instanceof Error ? reason.message : "Chart unavailable");
     } finally {
       if (activeRequest.current === controller) {
         activeRequest.current = null;
         setLoadingRange(null);
       }
     }
-  };
+  }
 
   const styleOptions: Array<{ id: ChartStyle; labelTh: string; labelEn: string }> = [
     { id: "line", labelTh: "เส้น", labelEn: "Line" },
@@ -263,12 +247,12 @@ export function PriceChart({ data, supports = [], resistances = [] }: PriceChart
   ];
 
   return (
-    <div className="w-full min-w-0 rounded-2xl border border-white/10 bg-panel/70 p-3 backdrop-blur sm:p-4">
+    <div className="w-full min-w-0 rounded-2xl border border-white/10 bg-elevated p-3 sm:p-4">
       <div className="mb-3 flex flex-col gap-3">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-sm font-semibold text-white">{locale === "th" ? "กราฟราคา" : "Price Chart"}</p>
-            <p className="text-xs text-slate-400">{locale === "th" ? "เลือกรูปแบบ ช่วงเวลา และข้อมูลประกอบที่ต้องการแสดง" : "Choose the chart style, timeframe, and overlays you want to display."}</p>
+            <p className="text-xs text-slate-400">{chartDataSource.chart.interval === "1wk" ? locale === "th" ? "แท่งรายสัปดาห์" : "Weekly bars" : locale === "th" ? "แท่งรายวัน" : "Daily bars"} · {locale === "th" ? "เส้น MA คำนวณจากรอบรายวัน" : "MA overlays use daily sessions"}</p>
           </div>
           <button
             className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${settingsOpen ? "border-accent/35 bg-accent/[0.08] text-accent" : "border-white/10 bg-white/[0.04] text-slate-300 hover:border-white/20 hover:text-white"}`}
@@ -291,6 +275,7 @@ export function PriceChart({ data, supports = [], resistances = [] }: PriceChart
                       key={option.id}
                       type="button"
                       onClick={() => updateSetting("style", option.id)}
+                      aria-pressed={settings.style === option.id}
                       className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${settings.style === option.id ? "border-accent/40 bg-accent/[0.1] text-[#f1dca9]" : "border-white/10 bg-white/[0.03] text-slate-400 hover:text-white"}`}
                     >
                       {locale === "th" ? option.labelTh : option.labelEn}
@@ -338,33 +323,34 @@ export function PriceChart({ data, supports = [], resistances = [] }: PriceChart
         ) : null}
 
         <ChartTimeframeSelector value={selectedRange} onChange={(range) => void handleRangeChange(range)} />
-        {errorMessage ? <p className="text-xs text-rose-300">{errorMessage}</p> : null}
+        {loadingRange && <p role="status" className="text-xs text-slate-400">{locale === "th" ? "กำลังโหลด" : "Loading"} {loadingRange}…</p>}
+        {chartDataSource.historyStale && <p role="status" className="text-xs text-warning">{locale === "th" ? "แสดงกราฟล่าสุดที่มี" : "Showing the last available chart."}</p>}
+        {errorMessage && <p role="alert" className="text-xs text-warning">{errorMessage}</p>}
       </div>
 
-      <div className="relative h-[280px] w-full min-w-0 sm:h-[380px]">
-        {loadingRange ? <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-slate-950/50 text-xs font-semibold uppercase tracking-[0.2em] text-cyan-100 backdrop-blur-sm">{locale === "th" ? "กำลังโหลด" : "Loading"} {loadingRange}</div> : null}
+      {chartData.length ? <div className="relative h-[280px] w-full min-w-0 sm:h-[380px]">
         <ResponsiveContainer width="100%" height="100%">
           <ComposedChart data={chartData} margin={{ left: 0, right: 8, top: 8, bottom: 0 }}>
             {settings.showGrid ? <CartesianGrid stroke="rgba(148,163,184,0.08)" vertical={false} /> : null}
-            <XAxis dataKey="date" tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} minTickGap={24} />
+            <XAxis dataKey="date" tickFormatter={(value: string) => chartDataSource.chart.interval === "1wk" ? value.slice(0, 7) : value.slice(5)} tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} minTickGap={24} />
             <YAxis yAxisId="price" tick={{ fill: "#94A3B8", fontSize: 11 }} axisLine={false} tickLine={false} domain={["auto", "auto"]} width={48} />
             <YAxis yAxisId="volume" orientation="right" hide domain={[0, "dataMax"]} />
             <Tooltip content={<PriceTooltip currency={currency} locale={locale} candleMode={candleMode} />} />
 
             {settings.showVolume ? <Bar yAxisId="volume" dataKey="volume" name="Volume" fill="rgba(148,163,184,0.18)" maxBarSize={8} isAnimationActive={false} /> : null}
 
-            {settings.showZones ? activeSupports.map((zone) => <ReferenceLine yAxisId="price" key={`support-${zone.level.toFixed(4)}`} y={zone.level} stroke="#34D399" strokeDasharray="4 4" strokeOpacity={0.55} />) : null}
-            {settings.showZones ? activeResistances.map((zone) => <ReferenceLine yAxisId="price" key={`resistance-${zone.level.toFixed(4)}`} y={zone.level} stroke="#FB7185" strokeDasharray="4 4" strokeOpacity={0.55} />) : null}
+            {settings.showZones && sameCurrency ? supports.map((zone) => <ReferenceLine yAxisId="price" key={`support-${zone.level.toFixed(4)}`} y={zone.level} stroke="#34D399" strokeDasharray="4 4" strokeOpacity={0.55} />) : null}
+            {settings.showZones && sameCurrency ? resistances.map((zone) => <ReferenceLine yAxisId="price" key={`resistance-${zone.level.toFixed(4)}`} y={zone.level} stroke="#FB7185" strokeDasharray="4 4" strokeOpacity={0.55} />) : null}
 
-            {settings.style === "line" ? <Line yAxisId="price" dataKey="close" name="Close" stroke="#47A8FF" dot={false} strokeWidth={2} isAnimationActive={false} /> : null}
-            {settings.style === "area" ? <Area yAxisId="price" dataKey="close" name="Close" type="monotone" stroke="#47A8FF" fill="rgba(71,168,255,0.16)" strokeWidth={2} dot={false} isAnimationActive={false} /> : null}
-            {settings.style === "bars" ? <Bar yAxisId="price" dataKey="close" name="Close" fill="#47A8FF" maxBarSize={7} radius={[2, 2, 0, 0]} isAnimationActive={false} /> : null}
+            {settings.style === "line" ? <Line yAxisId="price" dataKey="close" name="Close" stroke="#d6b36a" dot={false} strokeWidth={2} isAnimationActive={false} /> : null}
+            {settings.style === "area" ? <Area yAxisId="price" dataKey="close" name="Close" type="monotone" stroke="#d6b36a" fill="rgba(214,179,106,0.16)" strokeWidth={2} dot={false} isAnimationActive={false} /> : null}
+            {settings.style === "bars" ? <Bar yAxisId="price" dataKey="close" name="Close" fill="#d6b36a" maxBarSize={7} radius={[2, 2, 0, 0]} isAnimationActive={false} /> : null}
             {candleMode ? <Bar yAxisId="price" dataKey="candleRange" name={settings.style === "heikinAshi" ? "Heikin-Ashi" : "OHLC"} shape={<CandlestickShape />} maxBarSize={12} isAnimationActive={false} /> : null}
 
             {movingAverageLines.map((line) => settings.averages[line.key] ? <Line yAxisId="price" key={line.key} dataKey={line.key} name={`${line.key.toUpperCase()} (1D)`} stroke={line.stroke} strokeDasharray={line.dash} dot={false} connectNulls={false} strokeWidth={1.6} isAnimationActive={false} /> : null)}
           </ComposedChart>
         </ResponsiveContainer>
-      </div>
+      </div> : <p className="py-6 text-sm text-slate-400">{locale === "th" ? "ไม่มีข้อมูลกราฟสำหรับช่วงนี้" : "No chart observations for this range."}</p>}
     </div>
   );
 }

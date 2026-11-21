@@ -36,7 +36,7 @@ function movingAverages(price: number, series: ReturnType<typeof dailyIndicators
   const ma20 = series.sma20.at(-1) ?? null;
   const ma50 = series.sma50.at(-1) ?? null;
   const ma200 = series.sma200.at(-1) ?? null;
-  const position = (average: number | null) => average == null ? "insufficient" : price > average ? "above" : price < average ? "below" : "neutral";
+  const position = (average: number | null) => average == null || !Number.isFinite(price) || price <= 0 ? "insufficient" : price > average ? "above" : price < average ? "below" : "neutral";
   return { ma20, ma50, ma200, priceVsMA20: position(ma20), priceVsMA50: position(ma50), priceVsMA200: position(ma200), crossSignal: crossSignal(series.sma50, series.sma200) };
 }
 
@@ -54,13 +54,13 @@ export function buildDailySeries(history: Candle[], range: ChartRange, today: st
   const calculationCandles = source.filter((candle) => candle.date >= cutoff(ANALYTICS_DAYS) && candle.date.slice(0, 10) <= completedSession);
   const calculation = dailyIndicators(calculationCandles.map((candle) => candle.close));
   const display = CHART_RANGES[range];
-  const chart = new Map<string, { candle: Candle; index: number }>();
+  const chart = new Map<string, { candle: Candle; index: number | null }>();
   source.forEach((candle, index) => {
     if (candle.date < cutoff(display.days)) return;
     const key = display.interval === "1wk" ? weekStart(candle.date) : candle.date.slice(0, 10);
     const previous = chart.get(key)?.candle;
     chart.set(key, {
-      index,
+      index: candle.date.slice(0, 10) <= completedSession ? index : display.interval === "1wk" ? chart.get(key)?.index ?? null : null,
       candle: previous ? {
         ...candle, open: previous.open, low: Math.min(previous.low, candle.low),
         high: Math.max(previous.high, candle.high), volume: previous.volume == null || candle.volume == null ? null : previous.volume + candle.volume
@@ -69,14 +69,15 @@ export function buildDailySeries(history: Candle[], range: ChartRange, today: st
   });
   const chartRows = [...chart.values()];
   const full = dailyIndicators(source.map((candle) => candle.close));
+  const valueAt = (series: Series, index: number | null) => index == null ? null : series[index] ?? null;
   const indicators = {
-    sma20: chartRows.map(({ index }) => full.sma20[index]),
-    sma50: chartRows.map(({ index }) => full.sma50[index]),
-    sma200: chartRows.map(({ index }) => full.sma200[index]),
-    ema20: chartRows.map(({ index }) => full.ema20[index]),
-    rsi14: chartRows.map(({ index }) => full.rsi14[index]),
-    macd: chartRows.map(({ index }) => full.macd[index]),
-    signal: chartRows.map(({ index }) => full.signal[index])
+    sma20: chartRows.map(({ index }) => valueAt(full.sma20, index)),
+    sma50: chartRows.map(({ index }) => valueAt(full.sma50, index)),
+    sma200: chartRows.map(({ index }) => valueAt(full.sma200, index)),
+    ema20: chartRows.map(({ index }) => valueAt(full.ema20, index)),
+    rsi14: chartRows.map(({ index }) => valueAt(full.rsi14, index)),
+    macd: chartRows.map(({ index }) => valueAt(full.macd, index)),
+    signal: chartRows.map(({ index }) => valueAt(full.signal, index))
   };
   return {
     candles: chartRows.map(({ candle }) => candle), indicators, calculation,

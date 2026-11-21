@@ -7,7 +7,7 @@ import { SectionCard } from "@/components/ui/SectionCard";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { formatMarketCurrency } from "@/lib/format/market";
 
-const COLORS = ["#67e8f9", "#a78bfa", "#fb7185", "#34d399"];
+const COLORS = ["#d6b36a", "#b0a5ce", "#da8d86", "#75b39b"];
 
 export function CompareResultChart({ series }: { series: CompareSeries[] }) {
   const { locale } = useI18n();

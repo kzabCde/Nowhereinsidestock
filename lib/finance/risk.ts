@@ -49,7 +49,7 @@ export function sortinoRatio(prices: number[], targetAnnual = 0, periodsPerYear 
   const meanExcess = excess.reduce((sum, value) => sum + value, 0) / excess.length;
   const downsideSquares = excess.filter((value) => value < 0).map((value) => value ** 2);
   if (downsideSquares.length === 0) return 0;
-  const downsideDeviation = Math.sqrt(downsideSquares.reduce((sum, value) => sum + value, 0) / downsideSquares.length) * Math.sqrt(periodsPerYear);
+  const downsideDeviation = Math.sqrt(downsideSquares.reduce((sum, value) => sum + value, 0) / excess.length) * Math.sqrt(periodsPerYear);
   if (downsideDeviation === 0) return 0;
   return round((meanExcess * periodsPerYear) / downsideDeviation);
 }

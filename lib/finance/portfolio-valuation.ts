@@ -18,7 +18,7 @@ export function valuePortfolio<T extends Holding>(holdings: T[], quotes: Readonl
     const rawValue = quote && quote.latestPrice * holding.quantity;
     let exclusion: Exclusion | null = null;
     if (!quote) exclusion = "missing-quote";
-    else if (!marketCurrency || !Number.isFinite(rawValue) || quote.latestPrice <= 0) exclusion = "invalid-quote";
+    else if (!marketCurrency || !/^[A-Za-z]{3}$/.test(marketCurrency) || !Number.isFinite(rawValue) || quote.latestPrice <= 0) exclusion = "invalid-quote";
     else if (marketCurrency !== holding.currency) exclusion = "currency-mismatch";
 
     const marketValue = exclusion ? null : rawValue ?? null;

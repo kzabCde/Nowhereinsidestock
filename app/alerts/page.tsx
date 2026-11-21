@@ -120,7 +120,7 @@ export default function AlertsPage() {
 
     <p className="text-xs text-slate-400">{th
       ? "การตรวจครั้งแรกกำหนดค่าเริ่มต้น เมื่อราคา/RSI ออกจากเงื่อนไขแล้วกลับเข้าใหม่จึงแจ้งเตือน สัญญาณตัดกันแจ้งหนึ่งครั้งต่อวันซื้อขาย"
-      : "The first price or RSI check sets a baseline. An alert fires when a later observation enters the condition, and re-arms after it leaves. Crosses fire once per trading date."}</p>
+      : "The first check sets a baseline. An alert fires when a later observation enters the condition, and re-arms after it leaves. Crosses fire once per trading date."}</p>
     {!!alerts.length && <button type="button" onClick={() => {
       if (window.confirm(th ? "ล้างการแจ้งเตือนทั้งหมดหรือไม่?" : "Clear all local alerts and notification history?")) clearAlerts();
     }} className="px-2 py-2 text-xs text-danger">{th ? "ล้างการแจ้งเตือนทั้งหมด" : "Clear all alerts"}</button>}

@@ -43,7 +43,7 @@ export function SupportResistancePanel({ supports, resistances }: { supports: Pr
   const th = locale === "th";
 
   return (
-    <section className="printstream-shell pearl-border w-full max-w-full min-w-0 overflow-hidden rounded-3xl p-4 sm:p-5">
+    <section className="border border-white/[0.08] bg-surface w-full max-w-full min-w-0 overflow-hidden rounded-3xl p-4 sm:p-5">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <ZoneList title={th ? "แนวรับสำคัญ" : "Key support"} zones={supports} th={th} />
         <ZoneList title={th ? "แนวต้านสำคัญ" : "Key resistance"} zones={resistances} th={th} />

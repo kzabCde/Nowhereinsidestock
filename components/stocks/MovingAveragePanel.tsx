@@ -56,7 +56,7 @@ export function MovingAveragePanel({ movingAverages }: { movingAverages: MovingA
   };
 
   return (
-    <section className="printstream-shell pearl-border w-full max-w-full min-w-0 overflow-hidden rounded-3xl p-4 sm:p-5">
+    <section className="border border-white/[0.08] bg-surface w-full max-w-full min-w-0 overflow-hidden rounded-3xl p-4 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.2em] text-slate-400">{th ? "การวิเคราะห์ทางเทคนิค" : "Technical Analysis"}</p>

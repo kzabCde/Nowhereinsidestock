@@ -1,14 +1,13 @@
 "use client";
 
-import { useMemo, useState, type ComponentType, type KeyboardEvent, type SVGProps } from "react";
+import { useId, useMemo, useState, type ComponentType, type KeyboardEvent, type SVGProps } from "react";
 import { Activity, Calculator, Layers, LayoutDashboard, Radar, TrendingUp } from "lucide-react";
+import dynamic from "next/dynamic";
+import { getNearestResistance, getNearestSupport } from "@/lib/analysis/next-signal";
 import { InsightCard } from "@/components/dashboard/InsightCard";
 import { PriceChart } from "@/components/dashboard/PriceChart";
-import { BacktestPanel } from "@/components/stocks/BacktestPanel";
-import { FairValueCalculator } from "@/components/stocks/FairValueCalculator";
 import { FavoriteButton } from "@/components/stocks/FavoriteButton";
 import { MovingAveragePanel } from "@/components/stocks/MovingAveragePanel";
-import { NextSignalPanel } from "@/components/stocks/NextSignalPanel";
 import { SupportResistancePanel } from "@/components/stocks/SupportResistancePanel";
 import { MetricCard } from "@/components/ui/MetricCard";
 import { SectionCard } from "@/components/ui/SectionCard";
@@ -19,18 +18,24 @@ import { macdLabel, momentumLabel, rsiLabel, trendLabel } from "@/lib/i18n/marke
 import type { MessageKey } from "@/lib/i18n/messages";
 import type { QuoteResponse } from "@/lib/types/market";
 
-export type StockDetailTab = "overview" | "signals" | "moving-average" | "support-resistance" | "fair-value" | "backtest" | "next-signal";
+const BacktestPanel = dynamic(() => import("@/components/stocks/BacktestPanel").then((module) => module.BacktestPanel));
+const FairValueCalculator = dynamic(() => import("@/components/stocks/FairValueCalculator").then((module) => module.FairValueCalculator));
+const NextSignalPanel = dynamic(() => import("@/components/stocks/NextSignalPanel").then((module) => module.NextSignalPanel));
+const RiskPlanner = dynamic(() => import("@/components/stocks/RiskPlanner").then((module) => module.RiskPlanner));
+
+export type StockDetailTab = "overview" | "signals" | "moving-average" | "support-resistance" | "fair-value" | "backtest" | "next-signal" | "risk";
 type StockDetailPreviewTabsProps = { data: QuoteResponse; onRefresh?: () => void; refreshing?: boolean };
-type TabConfig = { id: StockDetailTab; label: MessageKey; eyebrow: MessageKey; icon: ComponentType<SVGProps<SVGSVGElement> & { size?: number | string }> };
+type TabConfig = { id: StockDetailTab; label: MessageKey; icon: ComponentType<SVGProps<SVGSVGElement> & { size?: number | string }> };
 
 const tabs: TabConfig[] = [
-  { id: "overview", label: "stock.overview", eyebrow: "stock.snapshot", icon: LayoutDashboard },
-  { id: "signals", label: "stock.signals", eyebrow: "stock.momentum", icon: Activity },
-  { id: "moving-average", label: "stock.movingAverage", eyebrow: "stock.trendSystem", icon: TrendingUp },
-  { id: "support-resistance", label: "stock.supportResistance", eyebrow: "stock.keyZones", icon: Layers },
-  { id: "fair-value", label: "stock.fairValue", eyebrow: "stock.valuation", icon: Calculator },
-  { id: "backtest", label: "stock.backtest", eyebrow: "stock.historicalTest", icon: TrendingUp },
-  { id: "next-signal", label: "stock.nextSignal", eyebrow: "stock.watchNext", icon: Radar }
+  { id: "overview", label: "stock.overview", icon: LayoutDashboard },
+  { id: "signals", label: "stock.signals", icon: Activity },
+  { id: "moving-average", label: "stock.movingAverage", icon: TrendingUp },
+  { id: "support-resistance", label: "stock.supportResistance", icon: Layers },
+  { id: "fair-value", label: "stock.fairValue", icon: Calculator },
+  { id: "backtest", label: "stock.backtest", icon: TrendingUp },
+  { id: "next-signal", label: "stock.nextSignal", icon: Radar },
+  { id: "risk", label: "stock.riskPlanner", icon: Calculator }
 ];
 
 function getTechnicalTrend(data: QuoteResponse) {
@@ -58,7 +63,7 @@ function getAverageVolume(data: QuoteResponse): number | null {
   return volumes.length === 0 ? null : volumes.reduce((sum, volume) => sum + volume, 0) / volumes.length;
 }
 
-function OverviewPreview({ data, onRefresh, refreshing = false }: StockDetailPreviewTabsProps) {
+function OverviewPreview({ data }: StockDetailPreviewTabsProps) {
   const { locale, t } = useI18n();
   const range = useMemo(() => {
     const closes = data.candles.map((candle) => candle.close).filter(Number.isFinite);
@@ -67,9 +72,6 @@ function OverviewPreview({ data, onRefresh, refreshing = false }: StockDetailPre
   const latestVolume = useMemo(() => getLatestVolume(data), [data]);
   const averageVolume = useMemo(() => getAverageVolume(data), [data]);
   const currency = data.currency ?? "";
-  const positive = data.changePercent != null && data.changePercent >= 0;
-  const trendKey = data.insight.trend === "bullish" ? "stock.trendBullish" : data.insight.trend === "bearish" ? "stock.trendBearish" : "stock.trendSideways";
-  const directionKey = positive ? "stock.directionPositive" : "stock.directionNegative";
   const overviewItems = [
     { label: t("common.previousClose"), value: formatMarketCurrency(data.previousClose, currency) },
     { label: t("stock.range"), value: range ? `${formatMarketCurrency(range.low, currency)} – ${formatMarketCurrency(range.high, currency)}` : "—" },
@@ -83,17 +85,29 @@ function OverviewPreview({ data, onRefresh, refreshing = false }: StockDetailPre
   ];
 
   return (
-    <SectionCard className="w-full space-y-5">
+    <div className="min-w-0 space-y-3">
+      <PriceChart data={data} supports={data.supportResistance.supports} resistances={data.supportResistance.resistances} />
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">{overviewItems.map((item) => <MetricCard key={item.label} label={item.label} value={item.value} />)}</div>
+    </div>
+  );
+}
+
+function QuoteHeader({ data, onRefresh, refreshing }: StockDetailPreviewTabsProps) {
+  const { locale, t } = useI18n();
+  const currency = data.currency ?? "";
+  const positive = data.changePercent != null && data.changePercent >= 0;
+  return (
+    <SectionCard className="w-full space-y-3">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <p className="section-kicker">{data.symbol} · {data.exchange ?? "—"}</p>
-          <h1 className="mt-1.5 truncate text-2xl font-bold text-white sm:text-3xl">{data.name ?? data.symbol}</h1>
+          <h1 className="mt-1.5 break-words text-2xl font-bold text-white sm:text-3xl">{data.name ?? data.symbol}</h1>
           <div className="mt-3 flex items-baseline gap-3"><p className="text-3xl font-bold tabular-nums text-white sm:text-4xl">{formatMarketCurrency(data.latestPrice, currency)}</p><p className={`text-base font-semibold tabular-nums ${positive ? "text-success" : "text-danger"}`}>{formatPercent(data.changePercent)}</p></div>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:flex-col sm:items-end sm:gap-2">
           <div className="flex gap-2">{onRefresh ? <button onClick={onRefresh} className="btn-premium text-xs" disabled={refreshing} type="button">{refreshing ? t("common.refreshing") : t("common.refresh")}</button> : null}<FavoriteButton stock={{ symbol: data.symbol, name: data.name, exchange: data.exchange, price: data.latestPrice, changePercent: data.changePercent ?? undefined }} /></div>
           <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${data.insight.trend === "bullish" ? "border-success/25 bg-success/10 text-success" : data.insight.trend === "bearish" ? "border-danger/25 bg-danger/10 text-danger" : "border-white/[0.08] bg-white/[0.04] text-slate-400"}`}>{trendLabel(locale, data.insight.trend)}</span>
-          <p className="text-xs text-slate-600">{t("common.updated", { time: new Date(data.lastUpdated).toLocaleTimeString(locale === "th" ? "th-TH" : "en-US") })}</p>
+          <p className="text-xs text-slate-600">{t("common.updated", { time: new Date(data.lastUpdated).toLocaleString(locale === "th" ? "th-TH" : "en-US") })}</p>
         </div>
       </div>
       {(data.freshness.stale || data.historyStale || data.unavailable.length > 0) && <p role="status" className="text-sm text-warning">
@@ -104,9 +118,6 @@ function OverviewPreview({ data, onRefresh, refreshing = false }: StockDetailPre
             : locale === "th" ? "ข้อมูลกราฟหรือข้อมูลพื้นฐานบางส่วนไม่พร้อมใช้งาน" : "Some chart or fundamental data is unavailable."}
       </p>}
       {data.freshness.marketState && <p className="text-xs text-slate-500">{locale === "th" ? "สถานะตลาดจากผู้ให้ข้อมูล" : "Provider market session"} · {data.freshness.marketState} · {locale === "th" ? "อายุแคชขณะเรียกข้อมูล" : "Cache age at retrieval"} {data.freshness.ageSeconds}s</p>}
-      <div className="w-full overflow-hidden rounded-xl border border-white/[0.08] bg-elevated p-2 sm:p-3"><PriceChart data={data} supports={data.supportResistance.supports} resistances={data.supportResistance.resistances} /></div>
-      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">{overviewItems.map((item) => <MetricCard key={item.label} label={item.label} value={item.value} />)}</div>
-      {data.changePercent != null && data.insight.trend != null && <div className="rounded-xl border border-white/[0.08] bg-elevated p-4"><p className="section-kicker">{t("stock.technicalOverview")}</p><p className="mt-2 text-sm leading-7 text-slate-300">{t("stock.technicalOverviewText", { symbol: data.symbol, direction: t(directionKey), change: formatPercent(data.changePercent), trend: t(trendKey) })}</p></div>}
     </SectionCard>
   );
 }
@@ -131,31 +142,46 @@ function SignalsPanel({ data }: StockDetailPreviewTabsProps) {
 
 export function StockDetailPreviewTabs({ data, onRefresh, refreshing = false }: StockDetailPreviewTabsProps) {
   const [activeTab, setActiveTab] = useState<StockDetailTab>("overview");
+  const id = useId();
   const { t } = useI18n();
-  const activeIndex = tabs.findIndex((tab) => tab.id === activeTab);
-  const selectRelativeTab = (direction: -1 | 1) => setActiveTab(tabs[(activeIndex + direction + tabs.length) % tabs.length].id);
-  const handleKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (event.key === "ArrowLeft") { event.preventDefault(); selectRelativeTab(-1); }
-    if (event.key === "ArrowRight") { event.preventDefault(); selectRelativeTab(1); }
-  };
+  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number) {
+    const keys = ["ArrowLeft", "ArrowRight", "Home", "End"];
+    if (!keys.includes(event.key)) return;
+    event.preventDefault();
+    const next = event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1
+      : (index + (event.key === "ArrowLeft" ? -1 : 1) + tabs.length) % tabs.length;
+    const target = tabs[next].id;
+    setActiveTab(target);
+    document.getElementById(`${id}-${target}`)?.focus();
+  }
   return (
     <section className="w-full max-w-full min-w-0 space-y-3">
+      <QuoteHeader data={data} onRefresh={onRefresh} refreshing={refreshing} />
       <div className="rounded-xl border border-white/[0.08] bg-surface p-1.5">
         <div className="relative">
           <div aria-label={t("stock.overview")} className="flex gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:flex-wrap" role="tablist">
-            {tabs.map((tab) => { const Icon = tab.icon; const isActive = activeTab === tab.id; return <TabButton active={isActive} aria-selected={isActive} eyebrow={t(tab.eyebrow)} icon={<Icon size={15} />} key={tab.id} onClick={() => setActiveTab(tab.id)} onKeyDown={handleKeyDown} role="tab" type="button">{t(tab.label)}</TabButton>; })}
+            {tabs.map((tab, index) => {
+              const Icon = tab.icon;
+              const active = activeTab === tab.id;
+              return <TabButton active={active} aria-selected={active} aria-controls={`${id}-panel`} id={`${id}-${tab.id}`}
+                tabIndex={active ? 0 : -1} icon={<Icon size={15} />} key={tab.id} onClick={() => setActiveTab(tab.id)}
+                onKeyDown={(event) => handleKeyDown(event, index)} role="tab" type="button">{t(tab.label)}</TabButton>;
+            })}
           </div>
           <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-gradient-to-l from-surface to-transparent sm:hidden" aria-hidden="true" />
         </div>
       </div>
-      <div className="w-full max-w-full min-w-0" role="tabpanel">
-        {activeTab === "overview" && <OverviewPreview data={data} onRefresh={onRefresh} refreshing={refreshing} />}
+      <div className="w-full max-w-full min-w-0" role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-${activeTab}`} tabIndex={0}>
+        {activeTab === "overview" && <OverviewPreview data={data} />}
         {activeTab === "signals" && <SignalsPanel data={data} />}
         {activeTab === "moving-average" && <MovingAveragePanel movingAverages={data.movingAverages} />}
         {activeTab === "support-resistance" && <SupportResistancePanel supports={data.supportResistance.supports} resistances={data.supportResistance.resistances} />}
         {activeTab === "fair-value" && <FairValueCalculator symbol={data.symbol} currentPrice={data.latestPrice} metrics={data.valuationMetrics} currency={data.currency ?? ""} marketTime={data.marketTime} dataRetrievedAt={data.fundamentalsRetrievedAt ?? data.lastUpdated} />}
-        {activeTab === "backtest" && <BacktestPanel candles={data.analytics.candles} currency={data.currency} />}
+        {activeTab === "backtest" && <BacktestPanel candles={data.analytics.candles} currency={data.currency ?? ""} />}
         {activeTab === "next-signal" && <NextSignalPanel symbol={data.symbol} latestPrice={data.latestPrice} currency={data.currency} changePercent={data.changePercent} trend={getTechnicalTrend(data)} movingAverages={data.movingAverages} supportResistance={data.supportResistance} rsiSignal={data.insight.rsiSignal} macdSignal={data.insight.macdSignal} momentumScore={data.insight.momentumScore} volume={getLatestVolume(data)} averageVolume={getAverageVolume(data)} />}
+        {activeTab === "risk" && <RiskPlanner symbol={data.symbol} currentPrice={data.latestPrice} currency={data.currency ?? ""} marketTime={data.marketTime}
+          support={getNearestSupport(data.latestPrice, data.supportResistance.supports)?.level}
+          resistance={getNearestResistance(data.latestPrice, data.supportResistance.resistances)?.level} />}
       </div>
     </section>
   );

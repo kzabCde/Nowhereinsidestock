@@ -10,6 +10,7 @@ import type {
   ChartRange,
   PriceZone,
   QuoteResponse,
+  QuoteChart,
   QuoteSnapshot,
   SearchItem
 } from "@/lib/types/market";
@@ -87,7 +88,7 @@ const buildZones = (points: SwingPoint[], latestPrice: number, candlesLength: nu
     .filter((zone) => (type === "support" ? zone.level <= latestPrice : zone.level >= latestPrice))
     .sort((a, b) => b.score - a.score)
     .slice(0, 3)
-    .map(({ score: _score, ...zone }) => zone);
+    .map(({ level, lower, upper, touches, strength, type }) => ({ level, lower, upper, touches, strength, type }));
 };
 
 function quoteSnapshot(symbol: string, snapshot: Awaited<ReturnType<typeof providerQuote>>): QuoteSnapshot {
@@ -106,12 +107,27 @@ export async function fetchQuoteSnapshot(symbol: string) {
   return quoteSnapshot(normalized, await providerQuote(normalized));
 }
 
+function historyLookback(range: ChartRange) {
+  const { days } = CHART_RANGES[range];
+  return days > ANALYTICS_DAYS ? days + 345 : ANALYTICS_DAYS;
+}
+
+export async function fetchQuoteChart(symbol: string, range: ChartRange): Promise<QuoteChart> {
+  const normalizedSymbol = normalizeSymbol(symbol);
+  const { value, stale } = await providerCandles(normalizedSymbol, historyLookback(range));
+  const { tradingDate, today, completedSession } = describeDailyHistory(value);
+  const history = normalizeCandles(value.quotes ?? [], tradingDate);
+  const latest = history.at(-1);
+  if (!latest) throw new MarketDataError("insufficient_history");
+  const { candles, chart, indicators } = buildDailySeries(history, range, today, latest.close, completedSession);
+  if (!candles.length) throw new MarketDataError("insufficient_history");
+  return { symbol: normalizedSymbol, currency: value.meta.currency, candles, chart, indicators, historyStale: stale };
+}
+
 export async function fetchQuoteWithIndicators(symbol: string, range: ChartRange = DEFAULT_CHART_RANGE, includeFundamentals = true): Promise<QuoteResponse> {
   const normalizedSymbol = normalizeSymbol(symbol);
   const now = new Date();
-  const { days } = CHART_RANGES[range];
-  const lookback = days > ANALYTICS_DAYS ? days + 345 : ANALYTICS_DAYS;
-  const parts = await loadQuoteParts(providerQuote(normalizedSymbol), providerCandles(normalizedSymbol, lookback), includeFundamentals ? providerFundamentals(normalizedSymbol) : Promise.resolve(undefined));
+  const parts = await loadQuoteParts(providerQuote(normalizedSymbol), providerCandles(normalizedSymbol, historyLookback(range)), includeFundamentals ? providerFundamentals(normalizedSymbol) : Promise.resolve(undefined));
   const result = parts.history?.value;
   const quote = parts.quote?.value;
   const profile = parts.profile?.value;
@@ -138,7 +154,8 @@ export async function fetchQuoteWithIndicators(symbol: string, range: ChartRange
   if (!history.length) unavailable.push("history");
   if (!quote) unavailable.push("quote");
 
-  const { candles, chart, analytics, indicators, calculation, movingAverages } = buildDailySeries(history, range, today, latestPrice, completedSession);
+  const comparablePrice = snapshot.currency != null && snapshot.currency === result?.meta?.currency ? latestPrice : NaN;
+  const { candles, chart, analytics, indicators, calculation, movingAverages } = buildDailySeries(history, range, today, comparablePrice, completedSession);
   const calculationCandles = analytics.candles;
   const closes = calculationCandles.map((candle) => candle.close);
   const latestClose = closes.at(-1) ?? latestPrice;
@@ -147,7 +164,7 @@ export async function fetchQuoteWithIndicators(symbol: string, range: ChartRange
   const latestSignal = calculation.signal.at(-1) ?? null;
   const momentumScore = directionalMomentum(latestMacd, latestSignal, latestClose);
 
-  const supportResistance = calculationCandles.length < 30
+  const supportResistance = calculationCandles.length < 30 || !Number.isFinite(comparablePrice)
     ? { supports: [] as PriceZone[], resistances: [] as PriceZone[], message: "ข้อมูลรายวันน้อยกว่า 30 แท่ง จึงยังประเมินโซนที่ควรจับตาไม่ได้" }
     : {
         supports: buildZones(extractSwings(calculationCandles, "support"), latestPrice, calculationCandles.length, "support"),
@@ -156,7 +173,6 @@ export async function fetchQuoteWithIndicators(symbol: string, range: ChartRange
 
   return {
     ...snapshot,
-    currency: snapshot.currency ?? result?.meta?.currency,
     sector: asString(assetProfile?.sector),
     industry: asString(assetProfile?.industry),
     unavailable,

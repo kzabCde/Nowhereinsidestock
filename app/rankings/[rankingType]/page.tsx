@@ -32,27 +32,29 @@ const localizedTitles: Record<string, { en: string; th: string }> = {
 
 export default function RankingDetailPage() {
   const params = useParams<{ rankingType: string }>();
-  const [data, setData] = useState<RankingResponse | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [result, setResult] = useState<{ ranking: string; data?: RankingResponse; failed?: boolean }>();
+  const [attempt, setAttempt] = useState(0);
   const { locale, t } = useI18n();
+  const ranking = params.rankingType;
+  const current = result?.ranking === ranking ? result : undefined;
+  const data = current?.data;
+  const loading = !current;
 
   useEffect(() => {
     const controller = new AbortController();
-    setLoading(true);
-    setError(null);
-    void fetch(`/api/rankings/${params.rankingType}`, { signal: controller.signal })
-      .then(async (res) => {
-        if (!res.ok) throw new Error(t("rankings.loadError"));
-        return (await res.json()) as RankingResponse;
+    void fetch(`/api/rankings/${encodeURIComponent(ranking)}`, { signal: controller.signal })
+      .then(async (response) => {
+        if (!response.ok) throw Error("Ranking unavailable");
+        const data = (await response.json()) as RankingResponse;
+        if (!controller.signal.aborted) setResult({ ranking, data });
       })
-      .then((json) => setData(json))
-      .catch((err: unknown) => {
-        if (err instanceof Error && err.name !== "AbortError") setError(err.message);
-      })
-      .finally(() => setLoading(false));
+      .catch(() => {
+        if (!controller.signal.aborted) setResult((previous) => ({
+          ranking, data: previous?.ranking === ranking ? previous.data : undefined, failed: true
+        }));
+      });
     return () => controller.abort();
-  }, [params.rankingType, t]);
+  }, [ranking, attempt]);
 
   const title = localizedTitles[params.rankingType]?.[locale] ?? data?.title ?? params.rankingType;
   const trendLabel = (trend: string | null) => trend == null ? "—" : trend === "uptrend" ? (locale === "th" ? "ขาขึ้น" : "Uptrend") : trend === "downtrend" ? (locale === "th" ? "ขาลง" : "Downtrend") : (locale === "th" ? "ไซด์เวย์" : "Sideway");
@@ -60,9 +62,9 @@ export default function RankingDetailPage() {
   return (
     <PageShell size="wide" className="space-y-6">
       {loading && <LoadingSkeleton label={locale === "th" ? "กำลังโหลดอันดับหุ้น" : "Loading ranking"} />}
-      {error && <ErrorState message={error} />}
+      {current?.failed && <ErrorState message={t("rankings.loadError")} onRetry={() => setAttempt((value) => value + 1)} />}
 
-      {!loading && !error && data && (
+      {data && (
         <>
           <div>
             <p className="section-kicker">{data.source}</p>
@@ -78,7 +80,7 @@ export default function RankingDetailPage() {
               : `Showing ${data.stocks.length} of ${data.candidateCount ?? data.stocks.length} candidates`}
               {!!data.missingMetricCount && (locale === "th" ? ` · ขาดข้อมูล ${data.missingMetricCount} รายการ` : ` · ${data.missingMetricCount} missing the ranking metric`)}
             </p>
-            {data.stale && <p className="mt-1 text-sm text-warning">{locale === "th" ? "กำลังแสดงข้อมูลล่าสุดที่มี" : "Showing the last available snapshot."}</p>}
+            {(data.stale || current?.failed) && <p className="mt-1 text-sm text-warning">{locale === "th" ? "กำลังแสดงข้อมูลล่าสุดที่มี" : "Showing the last available snapshot."}</p>}
             {data.curatedFallback && <p className="mt-1 text-sm text-warning">{locale === "th" ? "ชุดคัดกรองผู้ให้ข้อมูลไม่พร้อม" : "Provider screen unavailable."}</p>}
 
           </div>

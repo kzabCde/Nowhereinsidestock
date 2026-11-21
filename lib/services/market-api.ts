@@ -1,10 +1,11 @@
 import { CHART_RANGES } from "../indicators/daily-series.ts";
-import type { ChartRange, QuoteResponse, QuoteSnapshot, SearchItem } from "../types/market.ts";
+import type { ChartRange, QuoteChart, QuoteResponse, QuoteSnapshot, SearchItem } from "../types/market.ts";
 import { marketErrorResponse, MarketDataError, normalizeSymbol } from "./market-errors.ts";
 
 export function createQuoteHandler(
   loadDetail: (symbol: string, range: ChartRange, includeFundamentals?: boolean) => Promise<QuoteResponse>,
-  loadSummary: (symbol: string) => Promise<QuoteSnapshot>
+  loadSummary: (symbol: string) => Promise<QuoteSnapshot>,
+  loadChart?: (symbol: string, range: ChartRange) => Promise<QuoteChart>
 ) {
   return async (request: Request, { params }: { params: Promise<{ symbol: string }> }) => {
     try {
@@ -13,8 +14,10 @@ export function createQuoteHandler(
       const range = query.get("range") ?? "6M";
       const view = query.get("view") ?? "detail";
       if (!Object.hasOwn(CHART_RANGES, range)) throw new MarketDataError("invalid_parameter", "Invalid chart range.");
-      if (view !== "detail" && view !== "summary" && view !== "technical") throw new MarketDataError("invalid_parameter", "Invalid quote view.");
-      const data = await (view === "summary" ? loadSummary(symbol) : loadDetail(symbol, range as ChartRange, view === "detail"));
+      if (view !== "detail" && view !== "summary" && view !== "technical" && !(view === "chart" && loadChart)) throw new MarketDataError("invalid_parameter", "Invalid quote view.");
+      const chartRange = range as ChartRange;
+      const data = await (view === "summary" ? loadSummary(symbol) : view === "chart" && loadChart
+        ? loadChart(symbol, chartRange) : loadDetail(symbol, chartRange, view === "detail"));
       return Response.json(data, { headers: { "Cache-Control": "no-store" } });
     } catch (reason) {
       return marketErrorResponse(reason);

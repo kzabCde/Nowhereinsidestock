@@ -17,11 +17,6 @@ export function MagnificentSeven() {
 
   return (
     <section className="space-y-4">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h2 className="mt-1.5 text-xl font-semibold text-white">Magnificent Seven</h2>
-        </div>
-      </div>
       {failures > 0 && <p className="text-sm text-warning">{locale === "th" ? `รีเฟรชไม่สำเร็จ ${failures} รายการ` : `Refresh failed for ${failures} symbols.`}</p>}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {stocks.map((stock) => <StockCard key={stock.symbol} stock={stock} />)}

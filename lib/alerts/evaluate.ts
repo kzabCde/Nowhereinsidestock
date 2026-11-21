@@ -101,7 +101,7 @@ export function evaluateAlert(alert: AlertDefinition, previous: AlertEvaluation,
   const key = `${alert.type}:${observation}`;
   const newCondition = price || rsi
     ? previous.condition === false
-    : observation >= (alert.armedAt ?? alert.createdAt).slice(0, 10);
+    : previous.observation != null && observation >= (alert.armedAt ?? alert.createdAt).slice(0, 10);
   const triggered = condition && newCondition && previous.eventKey !== key;
   const state = {
     ...previous, condition, observation, value, currency, checkedAt: now, error: undefined,

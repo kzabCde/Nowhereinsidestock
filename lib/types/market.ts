@@ -97,6 +97,8 @@ export type QuoteResponse = QuoteSnapshot & {
   fundamentalsRetrievedAt?: string;
 };
 
+export type QuoteChart = Pick<QuoteResponse, "symbol" | "currency" | "candles" | "chart" | "indicators" | "historyStale">;
+
 export type SearchItem = {
   symbol: string;
   name?: string;
