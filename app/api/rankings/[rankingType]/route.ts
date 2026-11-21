@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { MarketDataError, marketErrorResponse } from "@/lib/services/market-errors";
 import { fetchRanking } from "@/lib/services/market";
 import type { RankingType } from "@/lib/types/market";
 
@@ -14,16 +15,16 @@ function isRankingType(value: string): value is RankingType {
 export async function GET(_: Request, { params }: { params: Promise<{ rankingType: string }> }) {
   const { rankingType } = await params;
   if (!isRankingType(rankingType)) {
-    return NextResponse.json({ message: "Invalid ranking type" }, { status: 400 });
+    return marketErrorResponse(new MarketDataError("invalid_parameter", "Invalid ranking type."));
   }
 
   try {
     const data = await fetchRanking(rankingType);
     return NextResponse.json(data, {
       status: 200,
-      headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=30" }
+      headers: { "Cache-Control": "no-store" }
     });
   } catch (error) {
-    return NextResponse.json({ message: error instanceof Error ? error.message : "Unable to fetch rankings" }, { status: 500 });
+    return marketErrorResponse(error);
   }
 }

@@ -1,23 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { type FormEvent, useEffect, useMemo, useState } from "react";
+import { type FormEvent, useMemo, useState } from "react";
 import { PageShell } from "@/components/ui/PageShell";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { formatMarketCurrency } from "@/lib/format/market";
 import { valuePortfolio } from "@/lib/finance/portfolio-valuation";
-import type { QuoteResponse } from "@/lib/types/market";
+import { useMarketQuotes } from "@/lib/client/use-market-quotes";
 import { usePortfolioStore } from "@/store/portfolio-store";
-
-type QuoteMap = Record<string, QuoteResponse | undefined>;
 
 export default function PortfolioPage() {
   const transactions = usePortfolioStore((state) => state.transactions);
   const addTransaction = usePortfolioStore((state) => state.addTransaction);
   const removeTransaction = usePortfolioStore((state) => state.removeTransaction);
   const clearPortfolio = usePortfolioStore((state) => state.clearPortfolio);
-  const [quotes, setQuotes] = useState<QuoteMap>({});
-  const [refreshing, setRefreshing] = useState(false);
   const [symbol, setSymbol] = useState("");
   const [quantity, setQuantity] = useState("");
   const [price, setPrice] = useState("");
@@ -28,28 +24,7 @@ export default function PortfolioPage() {
 
   const symbols = useMemo(() => [...new Set(transactions.map((item) => item.symbol))], [transactions]);
 
-  const refreshQuotes = async () => {
-    if (symbols.length === 0) return;
-    setRefreshing(true);
-    const entries = await Promise.all(
-      symbols.map(async (item) => {
-        try {
-          const response = await fetch(`/api/quote/${encodeURIComponent(item)}`);
-          if (!response.ok) return [item, undefined] as const;
-          return [item, (await response.json()) as QuoteResponse] as const;
-        } catch {
-          return [item, undefined] as const;
-        }
-      })
-    );
-    setQuotes(Object.fromEntries(entries));
-    setRefreshing(false);
-  };
-
-  useEffect(() => {
-    void refreshQuotes();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [symbols.join(",")]);
+  const { quotes, refreshing, refresh: refreshQuotes } = useMarketQuotes(symbols, "summary");
 
   const { positions: holdings, currencies: totalsByCurrency } = useMemo(() => {
     const grouped = new Map<string, { key: string; symbol: string; currency: string; quantity: number; cost: number }>();
@@ -131,6 +106,7 @@ export default function PortfolioPage() {
                 <div>
                   <p className="section-kicker">{t("portfolio.unrealized")}</p>
                   <p className={`mt-1 text-sm font-semibold ${holding.pnl != null && holding.pnl >= 0 ? "text-success" : "text-danger"}`}>{holding.pnl == null ? "—" : `${formatMarketCurrency(holding.pnl, holding.currency)} (${holding.pnlPercent?.toFixed(2)}%)`}</p>
+                  {quotes[holding.symbol]?.freshness.stale && <p className="mt-1 text-xs text-warning">{locale === "th" ? "ราคาที่บันทึกไว้" : "Last available quote"}</p>}
                   {holding.exclusion && <p className="mt-1 text-xs text-warning">{
                     holding.exclusion === "currency-mismatch"
                       ? `${locale === "th" ? "สกุลเงินไม่ตรงกัน" : "Currency mismatch"} (${holding.marketCurrency})`

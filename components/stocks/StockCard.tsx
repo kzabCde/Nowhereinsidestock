@@ -8,7 +8,7 @@ import { useI18n } from "@/components/i18n/I18nProvider";
 import { formatMarketCurrency } from "@/lib/format/market";
 
 export function StockCard({ stock }: { stock: QuoteResponse }) {
-  const positive = stock.changePercent >= 0;
+  const positive = stock.changePercent != null && stock.changePercent >= 0;
   const sparkData = stock.candles.slice(-20).map((c) => c.close);
   const { locale, t } = useI18n();
   const trendLabel = stock.insight.trend === "bullish" ? t("stock.trendBullish") : stock.insight.trend === "bearish" ? t("stock.trendBearish") : t("stock.trendSideways");
@@ -21,11 +21,12 @@ export function StockCard({ stock }: { stock: QuoteResponse }) {
       </div>
       <div className="my-3"><Sparkline data={sparkData} positive={positive} /></div>
       <div className="flex items-end justify-between gap-2">
-        <p className="text-2xl font-bold tabular-nums tracking-tight text-white">{formatMarketCurrency(stock.latestPrice, stock.currency ?? "USD")}</p>
-        <p className={`mb-0.5 text-sm font-semibold tabular-nums ${positive ? "text-success" : "text-danger"}`}>{positive ? "+" : ""}{stock.changePercent.toFixed(2)}%</p>
+        <p className="text-2xl font-bold tabular-nums tracking-tight text-white">{formatMarketCurrency(stock.latestPrice, stock.currency ?? "")}</p>
+        <p className={`mb-0.5 text-sm font-semibold tabular-nums ${positive ? "text-success" : "text-danger"}`}>{stock.changePercent == null ? "—" : `${positive ? "+" : ""}${stock.changePercent.toFixed(2)}%`}</p>
       </div>
+      {stock.freshness.stale && <p className="mt-2 text-xs text-warning">{locale === "th" ? "ข้อมูลล่าสุดที่มี" : "Last available snapshot"}</p>}
       <div className="mt-4 flex gap-2">
-        <FavoriteButton stock={{ symbol: stock.symbol, name: stock.name, exchange: stock.exchange, price: stock.latestPrice, changePercent: stock.changePercent }} compact />
+        <FavoriteButton stock={{ symbol: stock.symbol, name: stock.name, exchange: stock.exchange, price: stock.latestPrice, changePercent: stock.changePercent ?? undefined }} compact />
         <Link href={`/stocks/${stock.symbol}`} className="btn-primary flex-1 text-center">{locale === "th" ? "ดูรายละเอียด" : "View Details"}</Link>
       </div>
     </article>

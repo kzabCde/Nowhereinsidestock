@@ -12,7 +12,7 @@ type NextSignalPanelProps = {
   symbol: string;
   latestPrice: number;
   currency?: string;
-  changePercent: number;
+  changePercent: number | null;
   trend: "uptrend" | "downtrend" | "sideway";
   movingAverages?: MovingAverages;
   supportResistance?: { supports: PriceZone[]; resistances: PriceZone[] };
@@ -67,7 +67,7 @@ export function NextSignalPanel({
           <h2 className="mt-1 flex items-center gap-2 text-xl font-bold text-white"><Radar className="text-cyan-100" size={22} /> {t("next.title")}</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">{t("next.description", { symbol })}</p>
         </div>
-        <span className={`w-fit rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold ${changePercent >= 0 ? "text-success" : "text-danger"}`}>{formatMarketCurrency(latestPrice, currency)} • {changePercent >= 0 ? "+" : ""}{changePercent.toFixed(2)}%</span>
+        <span className={`w-fit rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold ${(changePercent ?? 0) >= 0 ? "text-success" : "text-danger"}`}>{formatMarketCurrency(latestPrice, currency)} • {(changePercent ?? 0) >= 0 ? "+" : ""}{changePercent?.toFixed(2) ?? "—"}%</span>
       </div>
 
       <div className="mt-5 grid gap-3 lg:grid-cols-[0.75fr_1.25fr]">

@@ -47,7 +47,7 @@ function formatNumber(value: number | undefined | null, locale: string): string 
   if (typeof value !== "number" || !Number.isFinite(value)) return "—";
   return new Intl.NumberFormat(locale === "th" ? "th-TH" : "en-US", { maximumFractionDigits: 0 }).format(value);
 }
-function formatPercent(value: number): string { return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`; }
+function formatPercent(value: number | null): string { if (value == null) return "—"; return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`; }
 function getLatestVolume(data: QuoteResponse): number | null {
   const latestCandle = data.analytics.candles.at(-1);
   return latestCandle && Number.isFinite(latestCandle.volume) ? latestCandle.volume : null;
@@ -65,15 +65,15 @@ function OverviewPreview({ data, onRefresh, refreshing = false }: StockDetailPre
   }, [data.candles]);
   const latestVolume = useMemo(() => getLatestVolume(data), [data]);
   const averageVolume = useMemo(() => getAverageVolume(data), [data]);
-  const currency = data.currency ?? "USD";
-  const positive = data.changePercent >= 0;
+  const currency = data.currency ?? "";
+  const positive = data.changePercent != null && data.changePercent >= 0;
   const trendKey = data.insight.trend === "bullish" ? "stock.trendBullish" : data.insight.trend === "bearish" ? "stock.trendBearish" : "stock.trendSideways";
   const directionKey = positive ? "stock.directionPositive" : "stock.directionNegative";
   const overviewItems = [
     { label: t("common.previousClose"), value: formatMarketCurrency(data.previousClose, currency) },
     { label: t("stock.range"), value: range ? `${formatMarketCurrency(range.low, currency)} – ${formatMarketCurrency(range.high, currency)}` : "—" },
     { label: t("common.exchange"), value: data.exchange ?? "—" },
-    { label: t("common.currency"), value: currency },
+    { label: t("common.currency"), value: currency || "—" },
     { label: t("common.marketTime"), value: data.marketTime ? new Date(data.marketTime).toLocaleString(locale === "th" ? "th-TH" : "en-US") : "—" },
     { label: t("stock.latestVolume"), value: formatNumber(latestVolume, locale) },
     { label: t("stock.avgVolume"), value: formatNumber(averageVolume, locale) },
@@ -90,14 +90,22 @@ function OverviewPreview({ data, onRefresh, refreshing = false }: StockDetailPre
           <div className="mt-3 flex items-baseline gap-3"><p className="text-3xl font-bold tabular-nums text-white sm:text-4xl">{formatMarketCurrency(data.latestPrice, currency)}</p><p className={`text-base font-semibold tabular-nums ${positive ? "text-success" : "text-danger"}`}>{formatPercent(data.changePercent)}</p></div>
         </div>
         <div className="flex flex-wrap items-center gap-2 sm:flex-col sm:items-end sm:gap-2">
-          <div className="flex gap-2">{onRefresh ? <button onClick={onRefresh} className="btn-premium text-xs" disabled={refreshing} type="button">{refreshing ? t("common.refreshing") : t("common.refresh")}</button> : null}<FavoriteButton stock={{ symbol: data.symbol, name: data.name, exchange: data.exchange, price: data.latestPrice, changePercent: data.changePercent }} /></div>
+          <div className="flex gap-2">{onRefresh ? <button onClick={onRefresh} className="btn-premium text-xs" disabled={refreshing} type="button">{refreshing ? t("common.refreshing") : t("common.refresh")}</button> : null}<FavoriteButton stock={{ symbol: data.symbol, name: data.name, exchange: data.exchange, price: data.latestPrice, changePercent: data.changePercent ?? undefined }} /></div>
           <span className={`rounded-full border px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${data.insight.trend === "bullish" ? "border-success/25 bg-success/10 text-success" : data.insight.trend === "bearish" ? "border-danger/25 bg-danger/10 text-danger" : "border-white/[0.08] bg-white/[0.04] text-slate-400"}`}>{trendLabel(locale, data.insight.trend)}</span>
           <p className="text-xs text-slate-600">{t("common.updated", { time: new Date(data.lastUpdated).toLocaleTimeString(locale === "th" ? "th-TH" : "en-US") })}</p>
         </div>
       </div>
+      {(data.freshness.stale || data.historyStale || data.unavailable.length > 0) && <p role="status" className="text-sm text-warning">
+        {data.freshness.source === "history"
+          ? locale === "th" ? "กำลังแสดงราคาปิดจากข้อมูลย้อนหลัง" : "Showing historical close. Current quote unavailable."
+          : data.freshness.stale || data.historyStale
+            ? locale === "th" ? "กำลังแสดงข้อมูลตลาดล่าสุดที่มี" : "Showing the last available market snapshot."
+            : locale === "th" ? "ข้อมูลกราฟหรือข้อมูลพื้นฐานบางส่วนไม่พร้อมใช้งาน" : "Some chart or fundamental data is unavailable."}
+      </p>}
+      {data.freshness.marketState && <p className="text-xs text-slate-500">{locale === "th" ? "สถานะตลาดจากผู้ให้ข้อมูล" : "Provider market session"} · {data.freshness.marketState} · {locale === "th" ? "อายุแคชขณะเรียกข้อมูล" : "Cache age at retrieval"} {data.freshness.ageSeconds}s</p>}
       <div className="w-full overflow-hidden rounded-xl border border-white/[0.08] bg-elevated p-2 sm:p-3"><PriceChart data={data} supports={data.supportResistance.supports} resistances={data.supportResistance.resistances} /></div>
       <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-5">{overviewItems.map((item) => <MetricCard key={item.label} label={item.label} value={item.value} />)}</div>
-      <div className="rounded-xl border border-white/[0.08] bg-elevated p-4"><p className="section-kicker">{t("stock.technicalOverview")}</p><p className="mt-2 text-sm leading-7 text-slate-300">{t("stock.technicalOverviewText", { symbol: data.symbol, direction: t(directionKey), change: formatPercent(data.changePercent), trend: t(trendKey) })}</p></div>
+      {data.changePercent != null && <div className="rounded-xl border border-white/[0.08] bg-elevated p-4"><p className="section-kicker">{t("stock.technicalOverview")}</p><p className="mt-2 text-sm leading-7 text-slate-300">{t("stock.technicalOverviewText", { symbol: data.symbol, direction: t(directionKey), change: formatPercent(data.changePercent), trend: t(trendKey) })}</p></div>}
     </SectionCard>
   );
 }

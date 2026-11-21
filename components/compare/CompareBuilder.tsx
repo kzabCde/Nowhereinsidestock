@@ -33,6 +33,7 @@ export function CompareBuilder() {
   const searchParams = useSearchParams();
   const [query, setQuery] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
+  const [searchError, setSearchError] = useState(false);
   const [searchResults, setSearchResults] = useState<SearchSymbolItem[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
   const [range, setRange] = useState<CompareRange>("6M");
@@ -64,6 +65,7 @@ export function CompareBuilder() {
   useEffect(() => {
     const controller = new AbortController();
     const id = setTimeout(async () => {
+      setSearchError(false);
       const trimmedQuery = query.trim();
       if (!trimmedQuery) {
         setSearchResults([]);
@@ -73,15 +75,13 @@ export function CompareBuilder() {
       setSearchLoading(true);
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(trimmedQuery)}`, { signal: controller.signal });
-        if (!res.ok) {
-          setSearchResults([]);
-          return;
-        }
+        if (!res.ok) throw new Error("Search unavailable");
         const data: unknown = await res.json();
         setSearchResults(parseSearchResponse(data));
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return;
         setSearchResults([]);
+        setSearchError(true);
       } finally {
         if (!controller.signal.aborted) setSearchLoading(false);
       }
@@ -109,13 +109,11 @@ export function CompareBuilder() {
       const data = (await res.json()) as CompareApiResponse | { error: string };
       if (!res.ok || "error" in data) {
         setResultError("error" in data ? data.error : (locale === "th" ? "ไม่สามารถเปรียบเทียบหุ้นได้" : "Failed to compare symbols"));
-        setResult(null);
       } else {
         setResult(data);
       }
     } catch {
       setResultError(locale === "th" ? "ไม่สามารถโหลดข้อมูลเปรียบเทียบได้" : "Unable to load comparison data.");
-      setResult(null);
     } finally {
       setLoadingResult(false);
     }
@@ -130,7 +128,7 @@ export function CompareBuilder() {
         <h1 className="mt-2 text-3xl font-semibold text-white sm:text-4xl">{t("compare.title")}</h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-300">{t("compare.description")}</p>
         <CompareSearchBar query={query} onChange={setQuery} loading={searchLoading} />
-        <CompareSearchResults results={searchResults} loading={searchLoading} query={query} onAdd={addSymbol} />
+        {searchError ? <p role="status" className="mt-2 text-sm text-warning">{t("search.error")}</p> : <CompareSearchResults results={searchResults} loading={searchLoading} query={query} onAdd={addSymbol} />}
         <CompareDropZone selected={selected} onRemove={removeSymbol} onDropSymbol={addSymbol} onClearAll={() => { setSelected([]); setResult(null); }} />
         <div className="mt-4 flex flex-wrap gap-2">
           {RANGES.map((item) => (
@@ -145,6 +143,7 @@ export function CompareBuilder() {
       {resultError && <ErrorState message={resultError} />}
       {result && !loadingResult && (
         <>
+          {(resultError || result.series.some((item) => item.stale)) && <p role="status" className="text-sm text-warning">{locale === "th" ? "กำลังแสดงผลเปรียบเทียบล่าสุดที่มี" : "Showing the last available comparison."}</p>}
           <CompareResultChart series={result.series} />
           <CompareMetricsTable series={result.series} />
           <CompareCorrelationMatrix series={result.series} />

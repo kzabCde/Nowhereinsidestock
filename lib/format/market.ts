@@ -1,5 +1,6 @@
 export function formatMarketCurrency(value: number | null | undefined, currency = "USD", locale = "en-US"): string {
   if (typeof value !== "number" || !Number.isFinite(value)) return "—";
+  if (!currency) return new Intl.NumberFormat(locale, { maximumFractionDigits: 2 }).format(value);
   try {
     return new Intl.NumberFormat(locale, {
       style: "currency",

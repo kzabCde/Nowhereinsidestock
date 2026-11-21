@@ -32,6 +32,7 @@ export type CompareSeries = {
   name?: string;
   points: ComparePoint[];
   metrics: CompareMetrics;
+  stale?: boolean;
 };
 
 export type CompareApiResponse = {
@@ -61,5 +62,5 @@ export type CompareMetric = {
 };
 
 export type CompareSeriesPoint = { date: string; normalized: number; close: number };
-export type CompareStockResult = { symbol: string; name: string; points: CompareSeriesPoint[]; metrics: CompareMetric; error?: string };
+export type CompareStockResult = { symbol: string; name: string; points: CompareSeriesPoint[]; metrics: CompareMetric; error?: string; stale?: boolean; retrievedAt?: string };
 export type WinnerSummary = { bestPerformer: string; lowestVolatility: string; strongestMomentum: string; mostStable: string; highestVolume: string };

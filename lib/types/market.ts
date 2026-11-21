@@ -50,18 +50,30 @@ export type ValuationMetrics = {
   dividendRate?: number;
 };
 
-export type QuoteResponse = {
+export type QuoteSnapshot = {
   symbol: string;
   name?: string;
   exchange?: string;
   currency?: string;
-  sector?: string;
-  industry?: string;
   latestPrice: number;
-  changePercent: number;
+  changePercent: number | null;
   previousClose?: number;
   marketTime?: string;
   lastUpdated: string;
+  freshness: {
+    source: "quote" | "history";
+    marketState?: string;
+    retrievedAt: string;
+    ageSeconds: number;
+    stale: boolean;
+  };
+};
+
+export type QuoteResponse = QuoteSnapshot & {
+  sector?: string;
+  industry?: string;
+  unavailable: ("fundamentals" | "history" | "quote")[];
+  historyStale: boolean;
   candles: Candle[];
   chart: { range: ChartRange; interval: "1d" | "1wk"; indicatorInterval: "1d" };
   analytics: { interval: "1d"; lookbackDays: number; candles: Candle[]; asOf?: string };
@@ -130,4 +142,6 @@ export type RankingResponse = {
   source: "Yahoo Finance";
   scope: RankingScope;
   scopeLabel: string;
+  stale?: boolean;
+  curatedFallback?: boolean;
 };

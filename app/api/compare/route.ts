@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { fetchCompareStock } from "@/lib/services/compare";
 import { alignPerformance } from "@/lib/finance/trading-dates";
 import { maxDrawdown, sharpeRatio, sortinoRatio } from "@/lib/finance/risk";
+import { MarketDataError, marketErrorResponse, normalizeSymbol } from "@/lib/services/market-errors";
 import { volatility } from "@/lib/indicators/technical";
 import type { CompareApiResponse, CompareRange, CompareSeries } from "@/lib/types/compare";
 
@@ -16,21 +17,14 @@ function isCompareRange(value: string | null): value is CompareRange {
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const rangeParam = searchParams.get("range");
-  const raw = searchParams.get("symbols") ?? "";
-  const symbols = raw
-    .split(",")
-    .map((symbol) => symbol.trim().toUpperCase())
-    .filter(Boolean)
-    .filter((symbol, index, all) => all.indexOf(symbol) === index);
-
-  if (!isCompareRange(rangeParam)) return NextResponse.json({ error: "Invalid range. Use 1M, 6M, 1Y, 5Y." }, { status: 400 });
-  if (symbols.length < 2) return NextResponse.json({ error: "Please select at least 2 symbols." }, { status: 400 });
-  if (symbols.length > 4) return NextResponse.json({ error: "Maximum 4 symbols allowed." }, { status: 400 });
-
   try {
+    const raw = searchParams.get("symbols") ?? "";
+    if (!isCompareRange(rangeParam) || raw.length > 100) throw new MarketDataError("invalid_parameter", "Select a valid comparison range and symbols.");
+    const symbols = [...new Set(raw.split(",").filter((symbol) => symbol.trim()).map(normalizeSymbol))];
+    if (symbols.length < 2 || symbols.length > 4) throw new MarketDataError("invalid_parameter", "Select 2 to 4 symbols.");
     const results = await Promise.all(symbols.map((symbol) => fetchCompareStock(symbol, rangeParam)));
     const aligned = alignPerformance(results.map((result) => result.points));
-    if (!aligned) return NextResponse.json({ error: "At least two shared trading dates are required." }, { status: 422 });
+    if (!aligned) throw new MarketDataError("insufficient_history", "At least two shared trading dates are required.");
     const series: CompareSeries[] = results.map((result, index) => {
       const points = aligned.points[index];
       const closes = points.map((point) => point.close);
@@ -38,9 +32,11 @@ export async function GET(req: Request) {
       symbol: result.symbol,
       name: result.name,
       points,
+      stale: result.stale,
       metrics: {
         latestPrice: result.metrics.latestPrice,
         currency: result.metrics.currency,
+        lastUpdated: result.retrievedAt,
         percentChange: result.metrics.percentChange,
         totalReturn: points.at(-1)!.percentChange,
         volatility: volatility(closes),
@@ -58,12 +54,9 @@ export async function GET(req: Request) {
 
     const response: CompareApiResponse = { symbols, range: rangeParam, series, baselineDate: aligned.start, endDate: aligned.end };
     return NextResponse.json(response, {
-      headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=300" }
+      headers: { "Cache-Control": "no-store" }
     });
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch one or more symbols." },
-      { status: 502, headers: { "Cache-Control": "no-store" } }
-    );
+    return marketErrorResponse(error);
   }
 }

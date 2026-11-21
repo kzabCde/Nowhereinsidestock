@@ -217,7 +217,7 @@ export function PriceChart({ data, supports = [], resistances = [] }: PriceChart
 
   const activeSupports = chartDataSource.supportResistance.supports.length > 0 ? chartDataSource.supportResistance.supports : supports;
   const activeResistances = chartDataSource.supportResistance.resistances.length > 0 ? chartDataSource.supportResistance.resistances : resistances;
-  const currency = chartDataSource.currency ?? "USD";
+  const currency = chartDataSource.currency ?? "";
   const candleMode = settings.style === "candlestick" || settings.style === "heikinAshi";
 
   const updateSetting = <K extends keyof Omit<ChartSettings, "averages">>(key: K, value: ChartSettings[K]) => {
@@ -239,7 +239,7 @@ export function PriceChart({ data, supports = [], resistances = [] }: PriceChart
     setLoadingRange(range);
     setErrorMessage(null);
     try {
-      const response = await fetch(`/api/stocks/${encodeURIComponent(data.symbol)}?range=${range}`, { cache: "no-store", signal: controller.signal });
+      const response = await fetch(`/api/stocks/${encodeURIComponent(data.symbol)}?view=technical&range=${range}`, { cache: "no-store", signal: controller.signal });
       if (!response.ok) throw new Error(locale === "th" ? `ไม่สามารถโหลดข้อมูลกราฟช่วง ${range} ได้` : `Unable to load ${range} chart data.`);
       setChartDataSource((await response.json()) as QuoteResponse);
     } catch (error) {

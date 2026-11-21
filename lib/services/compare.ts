@@ -1,11 +1,11 @@
-import { unstable_cache } from "next/cache";
-import YahooFinance from "yahoo-finance2";
+import { providerCandles } from "./yahoo";
+import { MarketDataError } from "./market-errors";
+import { ANALYTICS_DAYS } from "@/lib/indicators/daily-series";
 import { maxDrawdown, sharpeRatio, sortinoRatio } from "@/lib/finance/risk";
 import { ema, macd, normalizedMomentum, rsi, sma, volatility } from "@/lib/indicators/technical";
 import { priceByDate, tradingDateFormatter } from "@/lib/finance/trading-dates";
 import type { CompareMetric, CompareStockResult, CompareTimeframe, WinnerSummary } from "@/lib/types/compare";
 
-const yahooFinance = new YahooFinance();
 const timeframeToDays: Record<CompareTimeframe, number> = { "1M": 30, "6M": 180, "1Y": 365, "5Y": 365 * 5 };
 
 function round(value: number): number {
@@ -19,26 +19,18 @@ function getTrend(close: number, sma20Value: number | null, ema20Value: number |
   return "neutral";
 }
 
-const fetchCached = unstable_cache(
-  async (symbol: string, timeframe: CompareTimeframe) => {
-    const now = new Date();
-    const from = new Date(now);
-    from.setDate(now.getDate() - timeframeToDays[timeframe]);
-    return yahooFinance.chart(symbol, { period1: from, period2: now, interval: "1d" });
-  },
-  ["compare-stocks-v5"],
-  { revalidate: 300 }
-);
-
 export async function fetchCompareStock(symbol: string, timeframe: CompareTimeframe): Promise<CompareStockResult> {
-  const result = await fetchCached(symbol, timeframe);
+  const timeframeDays = timeframeToDays[timeframe];
+  const history = await providerCandles(symbol, timeframeDays > ANALYTICS_DAYS ? timeframeDays + 345 : ANALYTICS_DAYS);
+  const result = history.value;
   const tradingDate = tradingDateFormatter(result.meta?.exchangeTimezoneName);
   const observed = (result.quotes ?? []).flatMap((quote) => {
     if (!(quote.date instanceof Date) || !Number.isFinite(quote.date.getTime()) || quote.close == null) return [];
     return [{ date: tradingDate(quote.date), close: quote.close, volume: quote.volume }];
   });
-  const quotes = [...priceByDate(observed).values()];
-  if (quotes.length < 3) throw new Error("Not enough historical data");
+  const cutoff = tradingDate(new Date(Date.now() - timeframeDays * 86400000));
+  const quotes = [...priceByDate(observed).values()].filter(({ date }) => date >= cutoff);
+  if (quotes.length < 3) throw new MarketDataError("insufficient_history", `${symbol} has insufficient historical data.`);
 
   const closes = quotes.map((quote) => quote.close);
   const volumes = quotes.flatMap(({ volume }) => volume != null && Number.isFinite(volume) && volume >= 0 ? [volume] : []);
@@ -73,7 +65,7 @@ export async function fetchCompareStock(symbol: string, timeframe: CompareTimefr
     sortinoRatio: sortinoRatio(closes)
   };
 
-  return { symbol: symbol.toUpperCase(), name: metrics.name, points, metrics };
+  return { symbol: symbol.toUpperCase(), name: metrics.name, points, metrics, stale: history.stale, retrievedAt: history.retrievedAt };
 
 }
 

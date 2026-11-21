@@ -1,6 +1,9 @@
 import { tradingDateFormatter } from "@/lib/finance/trading-dates";
-import { unstable_cache } from "next/cache";
-import YahooFinance from "yahoo-finance2";
+import { createMarketCache } from "./market-cache";
+import { providerBatchQuotes, providerCandles, providerFundamentals, providerQuote, providerScreener, providerSearchResults } from "./yahoo";
+import { MarketDataError, normalizeSymbol } from "./market-errors";
+import { loadQuoteParts } from "./quote-parts";
+import { normalizeMarketTimeIso } from "@/lib/format/market-time";
 import { ema, macd, normalizedMomentum, sma, volatility } from "@/lib/indicators/technical";
 import { ANALYTICS_DAYS, CHART_RANGES, buildDailySeries } from "@/lib/indicators/daily-series";
 import type {
@@ -8,6 +11,7 @@ import type {
   ChartRange,
   PriceZone,
   QuoteResponse,
+  QuoteSnapshot,
   RankingResponse,
   RankingScope,
   RankingStock,
@@ -15,9 +19,7 @@ import type {
   SearchItem
 } from "@/lib/types/market";
 
-const yahooFinance = new YahooFinance();
 const DEFAULT_CHART_RANGE: ChartRange = "6M";
-const QUOTE_CACHE_SECONDS = 30;
 
 const RANKING_POOLS: Record<RankingType, string[]> = {
   "top-gainers": ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AMD", "AVGO", "NFLX", "PLTR", "JPM", "V", "MA", "COST"],
@@ -64,19 +66,6 @@ function asString(value: unknown): string | undefined {
 
 function asNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
-}
-
-async function withRetry<T>(operation: () => Promise<T>, label: string, attempts = 2): Promise<T> {
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    try {
-      return await operation();
-    } catch (error) {
-      lastError = error;
-      if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, 150 * attempt));
-    }
-  }
-  throw lastError instanceof Error ? lastError : new Error(`${label} failed`);
 }
 
 const getTrend = (sma20Value: number | null, ema20Value: number | null, close: number) => {
@@ -149,37 +138,57 @@ const buildZones = (points: SwingPoint[], latestPrice: number, candlesLength: nu
     .map(({ score: _score, ...zone }) => zone);
 };
 
-async function fetchQuoteWithIndicatorsUncached(symbol: string, range: ChartRange): Promise<QuoteResponse> {
-  const normalizedSymbol = symbol.trim().toUpperCase();
-  if (!normalizedSymbol) throw new Error("Stock symbol is required");
+function quoteSnapshot(symbol: string, snapshot: Awaited<ReturnType<typeof providerQuote>>): QuoteSnapshot {
+  const { value: quote, retrievedAt, ageSeconds, stale } = snapshot;
+  return {
+    symbol, name: quote.longName ?? quote.shortName, exchange: quote.fullExchangeName ?? quote.exchange,
+    currency: quote.currency, latestPrice: quote.regularMarketPrice!,
+    changePercent: asNumber(quote.regularMarketChangePercent) ?? null,
+    previousClose: asNumber(quote.regularMarketPreviousClose), marketTime: normalizeMarketTimeIso(quote.regularMarketTime),
+    lastUpdated: retrievedAt, freshness: { source: "quote", marketState: quote.marketState, retrievedAt, ageSeconds, stale }
+  };
+}
 
+export async function fetchQuoteSnapshot(symbol: string) {
+  const normalized = normalizeSymbol(symbol);
+  return quoteSnapshot(normalized, await providerQuote(normalized));
+}
+
+export async function fetchQuoteWithIndicators(symbol: string, range: ChartRange = DEFAULT_CHART_RANGE, includeFundamentals = true): Promise<QuoteResponse> {
+  const normalizedSymbol = normalizeSymbol(symbol);
   const now = new Date();
-  const rangeConfig = CHART_RANGES[range];
-  const from = new Date(now);
-  from.setUTCDate(now.getUTCDate() - (rangeConfig.days > ANALYTICS_DAYS ? rangeConfig.days + 345 : ANALYTICS_DAYS));
-
-  const [result, quote, profile] = await Promise.all([
-    withRetry(() => yahooFinance.chart(normalizedSymbol, { period1: from, period2: now, interval: "1d" }), "chart"),
-    withRetry(() => yahooFinance.quote(normalizedSymbol), "quote"),
-    withRetry(
-      () => yahooFinance.quoteSummary(normalizedSymbol, { modules: ["assetProfile", "defaultKeyStatistics", "summaryDetail"] }),
-      "quote summary"
-    )
-  ]);
-
-  const quoteFields = quote as Record<string, unknown>;
-  const assetProfile = profile.assetProfile as Record<string, unknown> | undefined;
-  const defaultKeyStatistics = profile.defaultKeyStatistics as Record<string, unknown> | undefined;
-  const summaryDetail = profile.summaryDetail as Record<string, unknown> | undefined;
-  const tradingDate = tradingDateFormatter(result.meta?.exchangeTimezoneName);
+  const { days } = CHART_RANGES[range];
+  const lookback = days > ANALYTICS_DAYS ? days + 345 : ANALYTICS_DAYS;
+  const parts = await loadQuoteParts(providerQuote(normalizedSymbol), providerCandles(normalizedSymbol, lookback), includeFundamentals ? providerFundamentals(normalizedSymbol) : Promise.resolve(undefined));
+  const result = parts.history?.value;
+  const quote = parts.quote?.value;
+  const profile = parts.profile?.value;
+  const quoteFields = (quote ?? {}) as Record<string, unknown>;
+  const assetProfile = profile?.assetProfile as Record<string, unknown> | undefined;
+  const defaultKeyStatistics = profile?.defaultKeyStatistics as Record<string, unknown> | undefined;
+  const summaryDetail = profile?.summaryDetail as Record<string, unknown> | undefined;
+  const tradingDate = tradingDateFormatter(result?.meta?.exchangeTimezoneName);
   const today = tradingDate(now);
-  const end = result.meta?.currentTradingPeriod?.regular?.end;
+  const end = result?.meta?.currentTradingPeriod?.regular?.end;
   const yesterday = new Date(now.getTime() - 86400000);
   const completedSession = end && now >= end ? today : tradingDate(yesterday);
-  const history = normalizeCandles(result.quotes ?? [], tradingDate);
-  const lastChartClose = history.at(-1)?.close;
-  const latestPrice = quote.regularMarketPrice ?? lastChartClose;
-  if (latestPrice == null || !Number.isFinite(latestPrice) || latestPrice <= 0) throw new Error(`No market data available for ${normalizedSymbol}`);
+  const matchingHistory = !quote?.currency || !result?.meta?.currency || quote.currency === result.meta.currency;
+  const history = matchingHistory ? normalizeCandles(result?.quotes ?? [], tradingDate) : [];
+  const latestBar = history.at(-1);
+  const latestPrice = quote?.regularMarketPrice ?? latestBar?.close;
+  if (latestPrice == null) throw new MarketDataError("provider_unavailable");
+  const prior = history.at(-2)?.close;
+  const snapshot: QuoteSnapshot = parts.quote ? quoteSnapshot(normalizedSymbol, parts.quote) : {
+    symbol: normalizedSymbol, name: result?.meta?.longName ?? result?.meta?.shortName,
+    exchange: result?.meta?.fullExchangeName ?? result?.meta?.exchangeName, currency: result?.meta?.currency,
+    latestPrice, changePercent: prior ? (latestPrice / prior - 1) * 100 : null, previousClose: prior,
+    lastUpdated: parts.history!.retrievedAt,
+    freshness: { source: "history", retrievedAt: parts.history!.retrievedAt, ageSeconds: parts.history!.ageSeconds, stale: true }
+  };
+  const unavailable: QuoteResponse["unavailable"] = [];
+  if (includeFundamentals && (!profile || parts.profile?.stale)) unavailable.push("fundamentals");
+  if (!history.length) unavailable.push("history");
+  if (!quote) unavailable.push("quote");
 
   const { candles, chart, analytics, indicators, calculation, movingAverages } = buildDailySeries(history, range, today, latestPrice, completedSession);
   const calculationCandles = analytics.candles;
@@ -189,8 +198,6 @@ async function fetchQuoteWithIndicatorsUncached(symbol: string, range: ChartRang
   const latestMacd = calculation.macd.at(-1) ?? null;
   const latestSignal = calculation.signal.at(-1) ?? null;
   const momentumScore = normalizedMomentum(latestMacd, latestSignal, latestClose);
-  const prev = history.at(-2)?.close;
-  const changePercent = quote.regularMarketChangePercent ?? (lastChartClose != null && prev ? (lastChartClose / prev - 1) * 100 : 0);
 
   const supportResistance = calculationCandles.length < 30
     ? { supports: [] as PriceZone[], resistances: [] as PriceZone[], message: "ข้อมูลรายวันน้อยกว่า 30 แท่ง จึงยังประเมินโซนที่ควรจับตาไม่ได้" }
@@ -200,17 +207,12 @@ async function fetchQuoteWithIndicatorsUncached(symbol: string, range: ChartRang
       };
 
   return {
-    symbol: normalizedSymbol,
-    name: asString(result.meta?.longName) ?? asString(quoteFields.longName) ?? asString(quoteFields.shortName),
-    exchange: asString(result.meta?.exchangeName) ?? asString(quoteFields.fullExchangeName) ?? asString(quoteFields.exchange),
-    currency: asString(quoteFields.currency) ?? asString(result.meta?.currency),
+    ...snapshot,
+    currency: snapshot.currency ?? result?.meta?.currency,
     sector: asString(assetProfile?.sector),
     industry: asString(assetProfile?.industry),
-    latestPrice,
-    changePercent,
-    previousClose: quote.regularMarketPreviousClose,
-    marketTime: quote.regularMarketTime ? quote.regularMarketTime.toISOString() : undefined,
-    lastUpdated: new Date().toISOString(),
+    unavailable,
+    historyStale: parts.history?.stale ?? false,
     candles,
     chart,
     analytics,
@@ -236,14 +238,6 @@ async function fetchQuoteWithIndicatorsUncached(symbol: string, range: ChartRang
   };
 }
 
-const fetchQuoteCached = unstable_cache(fetchQuoteWithIndicatorsUncached, ["quote-with-indicators-v4"], {
-  revalidate: QUOTE_CACHE_SECONDS
-});
-
-export async function fetchQuoteWithIndicators(symbol: string, range: ChartRange = DEFAULT_CHART_RANGE): Promise<QuoteResponse> {
-  return fetchQuoteCached(symbol.trim().toUpperCase(), range);
-}
-
 function normalizeSearchQuotes(quotes: unknown): SearchItem[] {
   if (!Array.isArray(quotes)) return [];
   const results: SearchItem[] = [];
@@ -267,39 +261,10 @@ function normalizeSearchQuotes(quotes: unknown): SearchItem[] {
   return results;
 }
 
-async function searchSymbolsFromYahooEndpoint(query: string): Promise<SearchItem[]> {
-  const params = new URLSearchParams({
-    q: query,
-    quotesCount: "12",
-    newsCount: "0",
-    listsCount: "0",
-    enableFuzzyQuery: "false",
-    quotesQueryId: "tss_match_phrase_query",
-    multiQuoteQueryId: "multi_quote_single_token_query",
-    enableCb: "false",
-    enableNavLinks: "false",
-    enableEnhancedTrivialQuery: "true"
-  });
-  const response = await withRetry(
-    () => fetch(`https://query2.finance.yahoo.com/v1/finance/search?${params.toString()}`, { headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0 NowhereInsideStock/1.0" }, cache: "no-store" }),
-    "Yahoo search endpoint"
-  );
-  if (!response.ok) return [];
-  const data: unknown = await response.json();
-  return data && typeof data === "object" ? normalizeSearchQuotes((data as Record<string, unknown>).quotes) : [];
-}
-
-export async function searchSymbols(query: string): Promise<SearchItem[]> {
-  const normalizedQuery = query.trim();
-  if (!normalizedQuery) return [];
-  try {
-    const data = await withRetry(() => yahooFinance.search(normalizedQuery, { quotesCount: 12, newsCount: 0, enableCb: false, enableNavLinks: false }), "Yahoo search");
-    const results = normalizeSearchQuotes(data.quotes);
-    if (results.length > 0) return results;
-  } catch (error) {
-    console.error("yahooFinance.search failed; trying Yahoo search endpoint fallback", error);
-  }
-  return searchSymbolsFromYahooEndpoint(normalizedQuery);
+export async function searchSymbols(query: string) {
+  const result = await providerSearchResults(query.trim().toUpperCase());
+  if (!Array.isArray(result.value.quotes)) throw new MarketDataError("provider_unavailable");
+  return { results: normalizeSearchQuotes(result.value.quotes), stale: result.stale, retrievedAt: result.retrievedAt };
 }
 
 function toTrend(value: number | null): "uptrend" | "downtrend" | "sideway" {
@@ -347,24 +312,13 @@ function byRanking(type: RankingType, items: RankingStock[]): RankingStock[] {
   }
 }
 
-async function fetchPredefinedScreener(type: RankingType): Promise<RankingStock[]> {
+async function fetchPredefinedScreener(type: RankingType) {
   const screenerId = MARKET_SCREENER_IDS[type];
-  if (!screenerId) return [];
+  if (!screenerId) throw new MarketDataError("invalid_parameter");
   const params = new URLSearchParams({ formatted: "false", lang: "en-US", region: "US", scrIds: screenerId, count: "25", start: "0" });
-  const response = await withRetry(
-    () => fetch(`https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?${params.toString()}`, { headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0 NowhereInsideStock/1.0" }, cache: "no-store" }),
-    `Yahoo screener ${screenerId}`
-  );
-  if (!response.ok) return [];
-  const data: unknown = await response.json();
-  if (!data || typeof data !== "object") return [];
-  const finance = (data as Record<string, unknown>).finance;
-  if (!finance || typeof finance !== "object") return [];
-  const result = (finance as Record<string, unknown>).result;
-  if (!Array.isArray(result) || !result[0] || typeof result[0] !== "object") return [];
-  const quotes = (result[0] as Record<string, unknown>).quotes;
-  if (!Array.isArray(quotes)) return [];
-  return quotes.map((item) => (item && typeof item === "object" ? toRankingStock(item as Record<string, unknown>) : null)).filter((item): item is RankingStock => item != null);
+  const result = await providerScreener(params);
+  if (!Array.isArray(result.value)) throw new MarketDataError("provider_unavailable");
+  return { ...result, value: result.value.map((item) => (item && typeof item === "object" ? toRankingStock(item as Record<string, unknown>) : null)).filter((item): item is RankingStock => item != null) };
 }
 
 async function mapWithConcurrency<T, R>(items: T[], concurrency: number, worker: (item: T) => Promise<R>): Promise<R[]> {
@@ -383,12 +337,9 @@ async function mapWithConcurrency<T, R>(items: T[], concurrency: number, worker:
 }
 
 async function enrichRankingAnalytics(items: RankingStock[]): Promise<RankingStock[]> {
-  const now = new Date();
-  const from = new Date(now);
-  from.setDate(now.getDate() - 120);
   return mapWithConcurrency(items, 4, async (item) => {
     try {
-      const result = await withRetry(() => yahooFinance.chart(item.symbol, { period1: from, period2: now, interval: "1d" }), `analytics ${item.symbol}`);
+      const { value: result } = await providerCandles(item.symbol, ANALYTICS_DAYS);
       const closes = normalizeCandles(result.quotes, tradingDateFormatter(result.meta.exchangeTimezoneName)).map((candle) => candle.close);
       const macdResult = macd(closes);
       const latestIndex = closes.length - 1;
@@ -404,43 +355,48 @@ async function enrichRankingAnalytics(items: RankingStock[]): Promise<RankingSto
 }
 
 async function fetchCuratedRanking(type: RankingType): Promise<RankingStock[]> {
-  const quote = await withRetry(
-    () => yahooFinance.quote(RANKING_POOLS[type], { fields: ["symbol", "shortName", "longName", "currency", "regularMarketPrice", "regularMarketChangePercent", "regularMarketVolume", "marketCap"] }),
-    `ranking ${type}`
-  );
+  const quote = await providerBatchQuotes(RANKING_POOLS[type]);
   const raw = Array.isArray(quote) ? quote : [quote];
   let items = raw.map((item) => toRankingStock(item as unknown as Record<string, unknown>)).filter((item): item is RankingStock => item != null);
   if (type === "strongest-momentum" || type === "lowest-volatility") items = await enrichRankingAnalytics(items);
   return items;
 }
 
-const fetchRankingCached = unstable_cache(async (type: RankingType): Promise<RankingResponse> => {
-  let scope: RankingScope = "curated-universe";
-  let items: RankingStock[] = [];
+const cachedRanking = createMarketCache<RankingResponse>({ ttlMs: 60_000, staleMs: 15 * 60_000 }, 24);
 
+async function loadRanking(type: RankingType): Promise<RankingResponse> {
+  let scope: RankingScope = "curated-universe";
+  let candidates: RankingStock[] | undefined;
+  let fetchedAt = new Date().toISOString();
+  let stale = false;
+  let curatedFallback = false;
   if (MARKET_SCREENER_IDS[type]) {
     try {
-      items = await fetchPredefinedScreener(type);
-      if (items.length > 0) scope = "market-screener";
-    } catch (error) {
-      console.error(`Market screener failed for ${type}; using curated fallback`, error);
+      const data = await fetchPredefinedScreener(type);
+      candidates = data.value;
+      stale = data.stale;
+      fetchedAt = data.retrievedAt;
+      scope = "market-screener";
+    } catch {
+      curatedFallback = true;
     }
   }
-
-  if (items.length === 0) items = await fetchCuratedRanking(type);
-  const ranked = byRanking(type, items).slice(0, 10).map((item, index) => ({ ...item, rank: index + 1 }));
-
+  const items = candidates ?? await fetchCuratedRanking(type);
+  const stocks = byRanking(type, items).slice(0, 10).map((item, index) => ({ ...item, rank: index + 1 }));
   return {
     rankingType: type,
     title: RANKING_TITLES[type],
-    stocks: ranked,
-    fetchedAt: new Date().toISOString(),
+    stocks,
+    fetchedAt,
     source: "Yahoo Finance",
     scope,
-    scopeLabel: scope === "market-screener" ? "Yahoo market-wide predefined screener" : "Curated symbol universe"
+    scopeLabel: scope === "market-screener" ? "Yahoo predefined U.S. screener" : "Curated symbol universe",
+    stale,
+    curatedFallback
   };
-}, ["ranking-v3"], { revalidate: 60 });
+}
 
 export async function fetchRanking(type: RankingType): Promise<RankingResponse> {
-  return fetchRankingCached(type);
+  const result = await cachedRanking(type, () => loadRanking(type));
+  return { ...result.value, stale: result.stale || result.value.stale };
 }
