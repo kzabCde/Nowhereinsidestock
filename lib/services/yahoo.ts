@@ -72,6 +72,11 @@ export function providerScreener(params: URLSearchParams) {
   }));
 }
 
+const batchQuote = (symbols: string[], signal: AbortSignal) =>
+  yahoo.quote(symbols, {}, { fetch: providerFetch, fetchOptions: { signal } });
+const cachedBatch = createMarketCache<Awaited<ReturnType<typeof batchQuote>>>({ ttlMs: 60_000, staleMs: 15 * 60_000 }, 64);
+
 export async function providerBatchQuotes(symbols: string[]) {
-  return request((signal) => yahoo.quote(symbols, {}, { fetch: providerFetch, fetchOptions: { signal } }));
+  const normalized = [...new Set(symbols.map(normalizeSymbol))].sort();
+  return cachedBatch(normalized.join(","), () => request((signal) => batchQuote(normalized, signal)));
 }

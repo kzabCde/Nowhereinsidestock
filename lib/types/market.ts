@@ -130,7 +130,17 @@ export type RankingStock = {
   changePercent: number | null;
   volume: number | null;
   marketCap: number | null;
-  trend: "uptrend" | "downtrend" | "sideway";
+  trend: "uptrend" | "downtrend" | "sideway" | null;
+  sector?: string;
+  industry?: string;
+  pe?: number | null;
+  dividendYield?: number | null;
+  rsi?: number | null;
+  macdState?: "buy" | "sell" | "neutral" | null;
+  ma200Position?: "above" | "below" | "neutral" | null;
+  marketTime?: string;
+  technicalDate?: string;
+  stale?: boolean;
   momentumScore?: number | null;
   volatility?: number | null;
 };
@@ -145,4 +155,19 @@ export type RankingResponse = {
   scopeLabel: string;
   stale?: boolean;
   curatedFallback?: boolean;
+  candidateCount?: number;
+  missingMetricCount?: number;
+};
+
+export type ScreenerUniverse = RankingType | "custom";
+export type ScreenerResponse = {
+  universe: ScreenerUniverse;
+  scope: RankingScope | "user-defined";
+  stocks: RankingStock[];
+  candidateCount: number;
+  incompleteCount: number;
+  fetchedAt: string;
+  source: "Yahoo Finance";
+  stale: boolean;
+  curatedFallback: boolean;
 };
