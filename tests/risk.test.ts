@@ -15,3 +15,8 @@ test("risk-adjusted ratios remain finite", () => {
   assert.ok(Number.isFinite(sharpeRatio(prices)));
   assert.ok(Number.isFinite(sortinoRatio(prices)));
 });
+
+test("Sortino downside deviation uses all observed return intervals", () => {
+  const nonannualized = sortinoRatio([100, 120, 108], 0, 1);
+  assert.equal(nonannualized, 0.71);
+});

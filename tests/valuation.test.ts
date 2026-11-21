@@ -17,3 +17,10 @@ test("DDM requires required return to exceed growth", () => {
   assert.equal(dividendDiscountValue(2, 5, 5), null);
   assert.equal(dividendDiscountValue(-1, 10, 5), null);
 });
+
+test("valuation methods preserve input units and reject non-finite results", () => {
+  assert.equal(peFairValue(3, 15), 45);
+  assert.equal(peFairValue(1e308, 1e308), null);
+  assert.equal(grahamNumber(1e308, 1e308), null);
+  assert.equal(dividendDiscountValue(2, 10, 5), 40);
+});

@@ -16,12 +16,12 @@ export type CompareMetrics = {
   marketTime?: string | null;
   lastUpdated?: string;
   totalReturn: number;
-  volatility: number;
-  trend: "uptrend" | "downtrend" | "sideway";
+  volatility: number | null;
+  trend: "uptrend" | "downtrend" | "sideway" | null;
   rsiSignal?: string;
   macdSignal?: string;
-  averageVolume?: number;
-  momentumScore?: number;
+  averageVolume?: number | null;
+  momentumScore?: number | null;
   maxDrawdown?: number;
   sharpeRatio?: number;
   sortinoRatio?: number;
@@ -32,32 +32,13 @@ export type CompareSeries = {
   name?: string;
   points: ComparePoint[];
   metrics: CompareMetrics;
+  stale?: boolean;
 };
 
 export type CompareApiResponse = {
   symbols: string[];
   range: CompareRange;
   series: CompareSeries[];
+  baselineDate?: string;
+  endDate?: string;
 };
-
-export type CompareMetric = {
-  symbol: string;
-  name: string;
-  latestPrice: number;
-  currency: string;
-  percentChange: number;
-  totalReturn: number;
-  volatility: number;
-  averageVolume: number;
-  rsi: number;
-  macdSignal: "buy" | "sell" | "neutral";
-  trendDirection: "bullish" | "bearish" | "neutral";
-  momentumScore: number;
-  maxDrawdown: number;
-  sharpeRatio: number;
-  sortinoRatio: number;
-};
-
-export type CompareSeriesPoint = { date: string; normalized: number; close: number };
-export type CompareStockResult = { symbol: string; name: string; points: CompareSeriesPoint[]; metrics: CompareMetric; error?: string };
-export type WinnerSummary = { bestPerformer: string; lowestVolatility: string; strongestMomentum: string; mostStable: string; highestVolume: string };

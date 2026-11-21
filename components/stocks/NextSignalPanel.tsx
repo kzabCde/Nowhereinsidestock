@@ -12,13 +12,13 @@ type NextSignalPanelProps = {
   symbol: string;
   latestPrice: number;
   currency?: string;
-  changePercent: number;
-  trend: "uptrend" | "downtrend" | "sideway";
+  changePercent: number | null;
+  trend?: "uptrend" | "downtrend" | "sideway";
   movingAverages?: MovingAverages;
   supportResistance?: { supports: PriceZone[]; resistances: PriceZone[] };
   rsiSignal?: string;
   macdSignal?: string;
-  momentumScore?: number;
+  momentumScore?: number | null;
   volume?: number | null;
   averageVolume?: number | null;
 };
@@ -33,7 +33,7 @@ const toneClass: Record<"positive" | "neutral" | "negative" | "warning", string>
 export function NextSignalPanel({
   symbol,
   latestPrice,
-  currency = "USD",
+  currency = "",
   changePercent,
   trend,
   movingAverages,
@@ -55,29 +55,29 @@ export function NextSignalPanel({
   const stanceLabel = locale === "th"
     ? ({ bullish: "เชิงบวก", neutral: "เป็นกลาง", bearish: "เชิงลบ" } as const)[score.stance]
     : score.stance;
-  const confidenceLabel = locale === "th"
-    ? ({ high: "สูง", medium: "ปานกลาง", low: "ต่ำ" } as const)[score.confidence]
-    : score.confidence;
+  const evidence = score.evidenceCompleteness;
+  const priceChange = changePercent == null ? "—" : `${changePercent >= 0 ? "+" : ""}${changePercent.toFixed(2)}%`;
 
   return (
-    <section className="printstream-shell pearl-border w-full max-w-full min-w-0 overflow-hidden rounded-3xl p-4 sm:p-5">
+    <section className="border border-white/[0.08] bg-surface w-full max-w-full min-w-0 overflow-hidden rounded-3xl p-4 sm:p-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs uppercase tracking-[0.3em] text-slate-400">{t("next.eyebrow")}</p>
-          <h2 className="mt-1 flex items-center gap-2 text-xl font-bold text-white"><Radar className="text-cyan-100" size={22} /> {t("next.title")}</h2>
+          <h2 className="mt-1 flex items-center gap-2 text-xl font-bold text-white"><Radar className="text-accent" size={22} /> {t("next.title")}</h2>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">{t("next.description", { symbol })}</p>
         </div>
-        <span className={`w-fit rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold ${changePercent >= 0 ? "text-success" : "text-danger"}`}>{formatMarketCurrency(latestPrice, currency)} • {changePercent >= 0 ? "+" : ""}{changePercent.toFixed(2)}%</span>
+        <span className={`w-fit rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs font-semibold ${(changePercent ?? 0) >= 0 ? "text-success" : "text-danger"}`}>{formatMarketCurrency(latestPrice, currency)} • {priceChange}</span>
       </div>
 
       <div className="mt-5 grid gap-3 lg:grid-cols-[0.75fr_1.25fr]">
         <div className="rounded-2xl border border-white/10 bg-elevated p-4">
           <p className="section-kicker">{t("next.score")}</p>
-          <p className={`mt-2 text-5xl font-black tabular-nums ${scoreTone}`}>{score.score}<span className="text-lg text-slate-600">/100</span></p>
+          <p className={`mt-2 text-5xl font-black tabular-nums ${scoreTone}`}>{evidence.available ? score.score : "—"}<span className="text-lg text-slate-600">/100</span></p>
           <div className="mt-3 flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full border border-white/10 px-2.5 py-1 text-slate-300">{stanceLabel}</span>
-            <span className="rounded-full border border-white/10 px-2.5 py-1 text-slate-300">{t("next.confidence")}: {confidenceLabel}</span>
+            <span className="rounded-full border border-white/10 px-2.5 py-1 text-slate-300">{evidence.available ? stanceLabel : "—"}</span>
+            <span className="text-slate-300">{t("next.confidence")} · {evidence.available}/{evidence.total}</span>
           </div>
+          <p className="mt-2 text-xs text-slate-400">{locale === "th" ? "คะแนนเชิงกฎ ยังไม่มีค่าความเชื่อมั่นเชิงสถิติ" : "Rule-based score · statistical confidence unavailable"}</p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="rounded-2xl border border-success/20 bg-success/5 p-4">

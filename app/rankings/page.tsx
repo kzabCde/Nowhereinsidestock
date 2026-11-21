@@ -8,11 +8,11 @@ const rankingCards = [
   { slug: "most-active", en: ["Most Active", "Stocks with the highest trading activity from the provider screener.", "Volume"], th: ["ซื้อขายคึกคักที่สุด", "หุ้นที่มีการซื้อขายคึกคักสูงจาก screener ของผู้ให้บริการ", "ปริมาณ"] },
   { slug: "highest-market-cap", en: ["Highest Market Cap", "Largest companies ranked by market capitalization.", "Scale"], th: ["มูลค่าตลาดสูงสุด", "บริษัทขนาดใหญ่เรียงตามมูลค่าหลักทรัพย์ตามราคาตลาด", "ขนาด"] },
   { slug: "highest-volume", en: ["Highest Volume", "Largest raw trading volume in the current ranking universe.", "Liquidity"], th: ["ปริมาณซื้อขายสูงสุด", "หุ้นที่มีปริมาณซื้อขายดิบสูงสุดในชุดข้อมูลปัจจุบัน", "สภาพคล่อง"] },
-  { slug: "strongest-momentum", en: ["Strongest Momentum", "Curated analytics ranked by normalized momentum evidence.", "Trend"], th: ["โมเมนตัมแข็งแรงที่สุด", "การวิเคราะห์ชุดหุ้นคัดเลือก เรียงตามหลักฐานโมเมนตัมแบบปรับฐาน", "แนวโน้ม"] },
-  { slug: "lowest-volatility", en: ["Lowest Volatility", "Curated names ranked by lower annualized return volatility.", "Stability"], th: ["ความผันผวนต่ำสุด", "หุ้นในชุดคัดเลือกเรียงตามความผันผวนผลตอบแทนแบบ annualized ที่ต่ำกว่า", "เสถียรภาพ"] },
+  { slug: "strongest-momentum", en: ["Strongest Momentum", "Curated symbols ranked by signed MACD momentum.", "Trend"], th: ["โมเมนตัมแข็งแรงที่สุด", "การวิเคราะห์ชุดหุ้นคัดเลือก เรียงตามหลักฐานโมเมนตัมแบบปรับฐาน", "แนวโน้ม"] },
+  { slug: "lowest-volatility", en: ["Lowest Volatility", "Curated symbols ranked by annualized volatility over 60 daily returns.", "Stability"], th: ["ความผันผวนต่ำสุด", "หุ้นในชุดคัดเลือกเรียงตามความผันผวนผลตอบแทนแบบ annualized ที่ต่ำกว่า", "เสถียรภาพ"] },
   { slug: "magnificent-seven", en: ["Magnificent Seven", "Performance ranking across the Magnificent Seven names.", "Big Tech"], th: ["Magnificent Seven", "อันดับผลการเคลื่อนไหวของหุ้น Magnificent Seven", "Big Tech"] },
   { slug: "thai-stocks", en: ["Thai Stocks", "Curated Thai large-cap leaders with explicit universe scope.", "SET"], th: ["หุ้นไทย", "ชุดหุ้นไทยขนาดใหญ่ที่คัดเลือกไว้ พร้อมระบุขอบเขตข้อมูลชัดเจน", "SET"] },
-  { slug: "ai-tech", en: ["AI / Tech", "Curated AI and technology stocks ranked by current analytics.", "AI"], th: ["AI / Tech", "ชุดหุ้น AI และเทคโนโลยีคัดเลือก เรียงตามข้อมูลวิเคราะห์ปัจจุบัน", "AI"] }
+  { slug: "ai-tech", en: ["AI / Tech", "Curated AI and technology stocks ranked by the provider’s daily price change.", "AI"], th: ["AI / Tech", "ชุดหุ้น AI และเทคโนโลยีคัดเลือก เรียงตามข้อมูลวิเคราะห์ปัจจุบัน", "AI"] }
 ] as const;
 
 export default async function RankingsPage() {

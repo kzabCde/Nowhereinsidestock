@@ -2,6 +2,7 @@ import type { Locale } from "./config";
 import type { MarketInsight } from "@/lib/types/market";
 
 export function trendLabel(locale: Locale, trend: MarketInsight["trend"] | "uptrend" | "downtrend" | "sideway"): string {
+  if (trend == null) return "—";
   const bullish = trend === "bullish" || trend === "uptrend";
   const bearish = trend === "bearish" || trend === "downtrend";
   if (locale === "th") return bullish ? "ขาขึ้น" : bearish ? "ขาลง" : "ไซด์เวย์";
@@ -9,6 +10,7 @@ export function trendLabel(locale: Locale, trend: MarketInsight["trend"] | "uptr
 }
 
 export function momentumLabel(locale: Locale, value: MarketInsight["momentum"]): string {
+  if (value == null) return "—";
   if (locale === "th") return value === "strong" ? "แข็งแรง" : value === "moderate" ? "ปานกลาง" : "อ่อน";
   return value === "strong" ? "Strong" : value === "moderate" ? "Moderate" : "Weak";
 }

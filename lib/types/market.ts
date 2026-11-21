@@ -4,18 +4,18 @@ export type Candle = {
   close: number;
   high: number;
   low: number;
-  volume: number;
+  volume: number | null;
 };
 
 export type ChartRange = "1M" | "3M" | "6M" | "1Y" | "3Y" | "5Y";
 
 export type MarketInsight = {
-  trend: "bullish" | "bearish" | "neutral";
-  momentum: "strong" | "moderate" | "weak";
-  momentumScore: number;
-  rsiSignal: "overbought" | "oversold" | "neutral";
-  macdSignal: "buy" | "sell" | "neutral";
-  volatility: number;
+  trend: "bullish" | "bearish" | "neutral" | null;
+  momentum: "strong" | "moderate" | "weak" | null;
+  momentumScore: number | null;
+  rsiSignal?: "overbought" | "oversold" | "neutral";
+  macdSignal?: "buy" | "sell" | "neutral";
+  volatility: number | null;
 };
 
 export type PriceZone = {
@@ -50,19 +50,33 @@ export type ValuationMetrics = {
   dividendRate?: number;
 };
 
-export type QuoteResponse = {
+export type QuoteSnapshot = {
   symbol: string;
   name?: string;
   exchange?: string;
   currency?: string;
-  sector?: string;
-  industry?: string;
   latestPrice: number;
-  changePercent: number;
+  changePercent: number | null;
   previousClose?: number;
   marketTime?: string;
   lastUpdated: string;
+  freshness: {
+    source: "quote" | "history";
+    marketState?: string;
+    retrievedAt: string;
+    ageSeconds: number;
+    stale: boolean;
+  };
+};
+
+export type QuoteResponse = QuoteSnapshot & {
+  sector?: string;
+  industry?: string;
+  unavailable: ("fundamentals" | "history" | "quote")[];
+  historyStale: boolean;
   candles: Candle[];
+  chart: { range: ChartRange; interval: "1d" | "1wk"; indicatorInterval: "1d" };
+  analytics: { interval: "1d"; lookbackDays: number; candles: Candle[]; asOf?: string; rsi14: number | null };
   indicators: {
     sma20: Array<number | null>;
     sma50: Array<number | null>;
@@ -80,7 +94,10 @@ export type QuoteResponse = {
     message?: string;
   };
   valuationMetrics: ValuationMetrics;
+  fundamentalsRetrievedAt?: string;
 };
+
+export type QuoteChart = Pick<QuoteResponse, "symbol" | "currency" | "candles" | "chart" | "indicators" | "historyStale">;
 
 export type SearchItem = {
   symbol: string;
@@ -115,7 +132,17 @@ export type RankingStock = {
   changePercent: number | null;
   volume: number | null;
   marketCap: number | null;
-  trend: "uptrend" | "downtrend" | "sideway";
+  trend: "uptrend" | "downtrend" | "sideway" | null;
+  sector?: string;
+  industry?: string;
+  pe?: number | null;
+  dividendYield?: number | null;
+  rsi?: number | null;
+  macdState?: "buy" | "sell" | "neutral" | null;
+  ma200Position?: "above" | "below" | "neutral" | null;
+  marketTime?: string;
+  technicalDate?: string;
+  stale?: boolean;
   momentumScore?: number | null;
   volatility?: number | null;
 };
@@ -128,4 +155,21 @@ export type RankingResponse = {
   source: "Yahoo Finance";
   scope: RankingScope;
   scopeLabel: string;
+  stale?: boolean;
+  curatedFallback?: boolean;
+  candidateCount?: number;
+  missingMetricCount?: number;
+};
+
+export type ScreenerUniverse = RankingType | "custom";
+export type ScreenerResponse = {
+  universe: ScreenerUniverse;
+  scope: RankingScope | "user-defined";
+  stocks: RankingStock[];
+  candidateCount: number;
+  incompleteCount: number;
+  fetchedAt: string;
+  source: "Yahoo Finance";
+  stale: boolean;
+  curatedFallback: boolean;
 };

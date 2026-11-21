@@ -1,26 +1,19 @@
-export type DatedPrice = { date: string; close: number };
+import { commonTradingDates, priceByDate, type DatedPrice } from "./trading-dates.ts";
+export type { DatedPrice } from "./trading-dates.ts";
 
-function returnsByDate(points: DatedPrice[]): Map<string, number> {
-  const output = new Map<string, number>();
-  for (let index = 1; index < points.length; index += 1) {
-    const previous = points[index - 1];
-    const current = points[index];
-    if (previous.close > 0 && current.close > 0) output.set(current.date, current.close / previous.close - 1);
-  }
-  return output;
-}
-
-export function pearsonCorrelation(left: DatedPrice[], right: DatedPrice[]): number | null {
-  const leftReturns = returnsByDate(left);
-  const rightReturns = returnsByDate(right);
-  const pairs: Array<[number, number]> = [];
-
-  for (const [date, leftReturn] of leftReturns) {
-    const rightReturn = rightReturns.get(date);
-    if (rightReturn != null) pairs.push([leftReturn, rightReturn]);
-  }
-
-  if (pairs.length < 3) return null;
+export function correlationStatistics(left: DatedPrice[], right: DatedPrice[]) {
+  const leftPrices = priceByDate(left);
+  const rightPrices = priceByDate(right);
+  const dates = commonTradingDates([leftPrices, rightPrices]);
+  const pairs = dates.slice(1).map((date, index) => {
+    const previous = dates[index];
+    return [
+      leftPrices.get(date)!.close / leftPrices.get(previous)!.close - 1,
+      rightPrices.get(date)!.close / rightPrices.get(previous)!.close - 1
+    ];
+  });
+  const samples = pairs.length;
+  if (samples < 3) return { value: null, samples };
   const meanLeft = pairs.reduce((sum, [value]) => sum + value, 0) / pairs.length;
   const meanRight = pairs.reduce((sum, [, value]) => sum + value, 0) / pairs.length;
   let covariance = 0;
@@ -36,15 +29,20 @@ export function pearsonCorrelation(left: DatedPrice[], right: DatedPrice[]): num
   }
 
   const denominator = Math.sqrt(leftVariance * rightVariance);
-  if (denominator === 0) return null;
-  return Math.round((covariance / denominator) * 1000) / 1000;
+  return { value: denominator > 0 ? Math.round(covariance / denominator * 1000) / 1000 : null, samples };
 }
 
-export function buildCorrelationMatrix(series: Array<{ symbol: string; points: DatedPrice[] }>): Array<{ symbol: string; values: Record<string, number | null> }> {
-  return series.map((row) => ({
-    symbol: row.symbol,
-    values: Object.fromEntries(
-      series.map((column) => [column.symbol, row.symbol === column.symbol ? 1 : pearsonCorrelation(row.points, column.points)])
-    )
-  }));
+export function pearsonCorrelation(left: DatedPrice[], right: DatedPrice[]): number | null {
+  return correlationStatistics(left, right).value;
+}
+
+export function buildCorrelationMatrix(series: Array<{ symbol: string; points: DatedPrice[] }>) {
+  return series.map((row) => {
+    const pairs = series.map((column) => [column.symbol, correlationStatistics(row.points, column.points)] as const);
+    return {
+      symbol: row.symbol,
+      values: Object.fromEntries(pairs.map(([symbol, result]) => [symbol, result.value])),
+      samples: Object.fromEntries(pairs.map(([symbol, result]) => [symbol, result.samples]))
+    };
+  });
 }

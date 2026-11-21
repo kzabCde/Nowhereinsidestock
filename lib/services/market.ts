@@ -1,70 +1,21 @@
-import { unstable_cache } from "next/cache";
-import YahooFinance from "yahoo-finance2";
-import { ema, macd, normalizedMomentum, rsi, sma, volatility } from "@/lib/indicators/technical";
+import { describeDailyHistory, normalizeCandles } from "./market-history";
+import { providerCandles, providerFundamentals, providerQuote, providerSearchResults } from "./yahoo";
+import { MarketDataError, normalizeSymbol } from "./market-errors";
+import { loadQuoteParts } from "./quote-parts";
+import { normalizeMarketTimeIso } from "@/lib/format/market-time";
+import { directionalMomentum, volatility } from "@/lib/indicators/technical";
+import { ANALYTICS_DAYS, CHART_RANGES, buildDailySeries } from "@/lib/indicators/daily-series";
 import type {
   Candle,
   ChartRange,
-  MovingAverageCrossSignal,
-  MovingAverages,
-  MovingAverageStatus,
   PriceZone,
   QuoteResponse,
-  RankingResponse,
-  RankingScope,
-  RankingStock,
-  RankingType,
+  QuoteChart,
+  QuoteSnapshot,
   SearchItem
 } from "@/lib/types/market";
 
-const yahooFinance = new YahooFinance();
 const DEFAULT_CHART_RANGE: ChartRange = "6M";
-const QUOTE_CACHE_SECONDS = 30;
-
-type ChartInterval = "1d" | "1wk";
-type ChartRangeConfig = { days: number; interval: ChartInterval };
-
-const CHART_RANGE_CONFIG: Record<ChartRange, ChartRangeConfig> = {
-  "1M": { days: 30, interval: "1d" },
-  "3M": { days: 90, interval: "1d" },
-  "6M": { days: 180, interval: "1d" },
-  "1Y": { days: 365, interval: "1d" },
-  "3Y": { days: 1095, interval: "1wk" },
-  "5Y": { days: 1825, interval: "1wk" }
-};
-
-const RANKING_POOLS: Record<RankingType, string[]> = {
-  "top-gainers": ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AMD", "AVGO", "NFLX", "PLTR", "JPM", "V", "MA", "COST"],
-  "top-losers": ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "AMD", "AVGO", "NFLX", "PLTR", "JPM", "V", "MA", "COST"],
-  "most-active": ["AAPL", "TSLA", "NVDA", "AMD", "PLTR", "AMZN", "META", "SOFI", "F", "BAC", "NIO", "INTC", "CCL", "PFE", "T"],
-  "highest-market-cap": ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "BRK-B", "JPM", "WMT", "LLY", "XOM", "V", "MA", "AVGO"],
-  "highest-volume": ["AAPL", "TSLA", "NVDA", "AMD", "PLTR", "AMZN", "META", "SOFI", "F", "BAC", "NIO", "INTC", "CCL", "PFE", "T"],
-  "strongest-momentum": ["NVDA", "TSLA", "AMD", "PLTR", "META", "AMZN", "AVGO", "CRM", "MSFT", "AAPL", "NFLX", "ORCL", "PANW", "CRWD", "SNOW"],
-  "lowest-volatility": ["KO", "PEP", "PG", "JNJ", "WMT", "MCD", "COST", "BRK-B", "V", "MA", "UNH", "ABBV", "MRK", "HD", "CVS"],
-  "magnificent-seven": ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA"],
-  "thai-stocks": ["PTT.BK", "PTTEP.BK", "AOT.BK", "CPALL.BK", "ADVANC.BK", "KBANK.BK", "SCB.BK", "BBL.BK", "SCC.BK", "BDMS.BK"],
-  "ai-tech": ["AAPL", "MSFT", "NVDA", "GOOGL", "META", "AMD", "AVGO", "ORCL", "CRM", "PLTR", "ARM", "TSM", "ASML"]
-};
-
-const RANKING_TITLES: Record<RankingType, string> = {
-  "top-gainers": "Top Gainers",
-  "top-losers": "Top Losers",
-  "most-active": "Most Active",
-  "highest-market-cap": "Highest Market Cap",
-  "highest-volume": "Highest Volume",
-  "strongest-momentum": "Strongest Momentum",
-  "lowest-volatility": "Lowest Volatility",
-  "magnificent-seven": "Magnificent Seven Ranking",
-  "thai-stocks": "Thai Stocks Ranking",
-  "ai-tech": "AI / Tech Ranking"
-};
-
-const MARKET_SCREENER_IDS: Partial<Record<RankingType, string>> = {
-  "top-gainers": "day_gainers",
-  "top-losers": "day_losers",
-  "most-active": "most_actives",
-  "highest-volume": "most_actives",
-  "highest-market-cap": "largest_market_cap"
-};
 
 export function parseChartRange(value: string | null | undefined): ChartRange {
   if (value === "1M" || value === "3M" || value === "6M" || value === "1Y" || value === "3Y" || value === "5Y") return value;
@@ -79,78 +30,11 @@ function asNumber(value: unknown): number | undefined {
   return typeof value === "number" && Number.isFinite(value) ? value : undefined;
 }
 
-async function withRetry<T>(operation: () => Promise<T>, label: string, attempts = 2): Promise<T> {
-  let lastError: unknown;
-  for (let attempt = 1; attempt <= attempts; attempt += 1) {
-    try {
-      return await operation();
-    } catch (error) {
-      lastError = error;
-      if (attempt < attempts) await new Promise((resolve) => setTimeout(resolve, 150 * attempt));
-    }
-  }
-  throw lastError instanceof Error ? lastError : new Error(`${label} failed`);
-}
-
-const comparePriceToAverage = (price: number, average: number | null): MovingAverageStatus => {
-  if (average == null) return "insufficient";
-  if (price > average) return "above";
-  if (price < average) return "below";
-  return "neutral";
-};
-
-const getLatestValue = (values: Array<number | null>): number | null => values.at(-1) ?? null;
-
-const getCrossSignal = (ma50: Array<number | null>, ma200: Array<number | null>): MovingAverageCrossSignal => {
-  const latestIndex = Math.min(ma50.length, ma200.length) - 1;
-  if (latestIndex <= 0) return "insufficient";
-
-  const currentMa50 = ma50[latestIndex] ?? null;
-  const currentMa200 = ma200[latestIndex] ?? null;
-  const previousMa50 = ma50[latestIndex - 1] ?? null;
-  const previousMa200 = ma200[latestIndex - 1] ?? null;
-  if (currentMa50 == null || currentMa200 == null || previousMa50 == null || previousMa200 == null) return "insufficient";
-  if (previousMa50 <= previousMa200 && currentMa50 > currentMa200) return "golden_cross";
-  if (previousMa50 >= previousMa200 && currentMa50 < currentMa200) return "death_cross";
-  return "none";
-};
-
-const buildMovingAverages = (
-  price: number,
-  ma20Series: Array<number | null>,
-  ma50Series: Array<number | null>,
-  ma200Series: Array<number | null>
-): MovingAverages => ({
-  ma20: getLatestValue(ma20Series),
-  ma50: getLatestValue(ma50Series),
-  ma200: getLatestValue(ma200Series),
-  priceVsMA20: comparePriceToAverage(price, getLatestValue(ma20Series)),
-  priceVsMA50: comparePriceToAverage(price, getLatestValue(ma50Series)),
-  priceVsMA200: comparePriceToAverage(price, getLatestValue(ma200Series)),
-  crossSignal: getCrossSignal(ma50Series, ma200Series)
-});
-
 const getTrend = (sma20Value: number | null, ema20Value: number | null, close: number) => {
-  if (sma20Value == null || ema20Value == null) return "neutral" as const;
+  if (sma20Value == null || ema20Value == null) return null;
   if (close > sma20Value && close > ema20Value) return "bullish" as const;
   if (close < sma20Value && close < ema20Value) return "bearish" as const;
   return "neutral" as const;
-};
-
-const normalizeCandles = (
-  quotes: Array<{ date?: Date; open?: number | null; close?: number | null; high?: number | null; low?: number | null; volume?: number | null }> | undefined
-): Candle[] => {
-  if (!quotes?.length) return [];
-  return quotes
-    .filter((c) => c.date instanceof Date && c.close != null && c.high != null && c.low != null)
-    .map((c) => ({
-      date: c.date instanceof Date ? c.date.toISOString() : new Date(0).toISOString(),
-      open: c.open ?? c.close ?? 0,
-      high: c.high ?? 0,
-      low: c.low ?? 0,
-      close: c.close ?? 0,
-      volume: c.volume ?? 0
-    }));
 };
 
 type SwingPoint = { price: number; volume: number; index: number };
@@ -170,7 +54,7 @@ const extractSwings = (candles: Candle[], type: ZoneType): SwingPoint[] => {
     const isSwing = type === "support"
       ? current.low < prev2.low && current.low < prev1.low && current.low < next1.low && current.low < next2.low
       : current.high > prev2.high && current.high > prev1.high && current.high > next1.high && current.high > next2.high;
-    if (isSwing) points.push({ price: type === "support" ? current.low : current.high, volume: current.volume, index: i });
+    if (isSwing) points.push({ price: type === "support" ? current.low : current.high, volume: current.volume ?? 0, index: i });
   }
   return points;
 };
@@ -201,88 +85,113 @@ const buildZones = (points: SwingPoint[], latestPrice: number, candlesLength: nu
   });
 
   return zones
-    .filter((zone) => (type === "support" ? zone.level <= latestPrice * 1.02 : zone.level >= latestPrice * 0.98))
+    .filter((zone) => (type === "support" ? zone.level <= latestPrice : zone.level >= latestPrice))
     .sort((a, b) => b.score - a.score)
     .slice(0, 3)
-    .map(({ score: _score, ...zone }) => zone);
+    .map(({ level, lower, upper, touches, strength, type }) => ({ level, lower, upper, touches, strength, type }));
 };
 
-async function fetchQuoteWithIndicatorsUncached(symbol: string, range: ChartRange): Promise<QuoteResponse> {
-  const normalizedSymbol = symbol.trim().toUpperCase();
-  if (!normalizedSymbol) throw new Error("Stock symbol is required");
+function quoteSnapshot(symbol: string, snapshot: Awaited<ReturnType<typeof providerQuote>>): QuoteSnapshot {
+  const { value: quote, retrievedAt, ageSeconds, stale } = snapshot;
+  return {
+    symbol, name: quote.longName ?? quote.shortName, exchange: quote.fullExchangeName ?? quote.exchange,
+    currency: quote.currency, latestPrice: quote.regularMarketPrice!,
+    changePercent: asNumber(quote.regularMarketChangePercent) ?? null,
+    previousClose: asNumber(quote.regularMarketPreviousClose), marketTime: normalizeMarketTimeIso(quote.regularMarketTime),
+    lastUpdated: retrievedAt, freshness: { source: "quote", marketState: quote.marketState, retrievedAt, ageSeconds, stale }
+  };
+}
 
+export async function fetchQuoteSnapshot(symbol: string) {
+  const normalized = normalizeSymbol(symbol);
+  return quoteSnapshot(normalized, await providerQuote(normalized));
+}
+
+function historyLookback(range: ChartRange) {
+  const { days } = CHART_RANGES[range];
+  return days > ANALYTICS_DAYS ? days + 345 : ANALYTICS_DAYS;
+}
+
+export async function fetchQuoteChart(symbol: string, range: ChartRange): Promise<QuoteChart> {
+  const normalizedSymbol = normalizeSymbol(symbol);
+  const { value, stale } = await providerCandles(normalizedSymbol, historyLookback(range));
+  const { tradingDate, today, completedSession } = describeDailyHistory(value);
+  const history = normalizeCandles(value.quotes ?? [], tradingDate);
+  const latest = history.at(-1);
+  if (!latest) throw new MarketDataError("insufficient_history");
+  const { candles, chart, indicators } = buildDailySeries(history, range, today, latest.close, completedSession);
+  if (!candles.length) throw new MarketDataError("insufficient_history");
+  return { symbol: normalizedSymbol, currency: value.meta.currency, candles, chart, indicators, historyStale: stale };
+}
+
+export async function fetchQuoteWithIndicators(symbol: string, range: ChartRange = DEFAULT_CHART_RANGE, includeFundamentals = true): Promise<QuoteResponse> {
+  const normalizedSymbol = normalizeSymbol(symbol);
   const now = new Date();
-  const rangeConfig = CHART_RANGE_CONFIG[range];
-  const from = new Date(now);
-  from.setDate(now.getDate() - rangeConfig.days);
+  const parts = await loadQuoteParts(providerQuote(normalizedSymbol), providerCandles(normalizedSymbol, historyLookback(range)), includeFundamentals ? providerFundamentals(normalizedSymbol) : Promise.resolve(undefined));
+  const result = parts.history?.value;
+  const quote = parts.quote?.value;
+  const profile = parts.profile?.value;
+  const quoteFields = (quote ?? {}) as Record<string, unknown>;
+  const assetProfile = profile?.assetProfile as Record<string, unknown> | undefined;
+  const defaultKeyStatistics = profile?.defaultKeyStatistics as Record<string, unknown> | undefined;
+  const summaryDetail = profile?.summaryDetail as Record<string, unknown> | undefined;
+  const { tradingDate, today, completedSession } = describeDailyHistory(result, now);
+  const matchingHistory = !quote?.currency || !result?.meta?.currency || quote.currency === result.meta.currency;
+  const history = matchingHistory ? normalizeCandles(result?.quotes ?? [], tradingDate) : [];
+  const latestBar = history.at(-1);
+  const latestPrice = quote?.regularMarketPrice ?? latestBar?.close;
+  if (latestPrice == null) throw new MarketDataError("provider_unavailable");
+  const prior = history.at(-2)?.close;
+  const snapshot: QuoteSnapshot = parts.quote ? quoteSnapshot(normalizedSymbol, parts.quote) : {
+    symbol: normalizedSymbol, name: result?.meta?.longName ?? result?.meta?.shortName,
+    exchange: result?.meta?.fullExchangeName ?? result?.meta?.exchangeName, currency: result?.meta?.currency,
+    latestPrice, changePercent: prior ? (latestPrice / prior - 1) * 100 : null, previousClose: prior,
+    lastUpdated: parts.history!.retrievedAt,
+    freshness: { source: "history", retrievedAt: parts.history!.retrievedAt, ageSeconds: parts.history!.ageSeconds, stale: true }
+  };
+  const unavailable: QuoteResponse["unavailable"] = [];
+  if (includeFundamentals && (!profile || parts.profile?.stale)) unavailable.push("fundamentals");
+  if (!history.length) unavailable.push("history");
+  if (!quote) unavailable.push("quote");
 
-  const [result, quote, profile] = await Promise.all([
-    withRetry(() => yahooFinance.chart(normalizedSymbol, { period1: from, period2: now, interval: rangeConfig.interval }), "chart"),
-    withRetry(() => yahooFinance.quote(normalizedSymbol), "quote"),
-    withRetry(
-      () => yahooFinance.quoteSummary(normalizedSymbol, { modules: ["assetProfile", "defaultKeyStatistics", "summaryDetail"] }),
-      "quote summary"
-    )
-  ]);
+  const comparablePrice = snapshot.currency != null && snapshot.currency === result?.meta?.currency ? latestPrice : NaN;
+  const { candles, chart, analytics, indicators, calculation, movingAverages } = buildDailySeries(history, range, today, comparablePrice, completedSession);
+  const calculationCandles = analytics.candles;
+  const closes = calculationCandles.map((candle) => candle.close);
+  const latestClose = closes.at(-1) ?? latestPrice;
+  const latestRsi = calculation.rsi14.at(-1) ?? null;
+  const latestMacd = calculation.macd.at(-1) ?? null;
+  const latestSignal = calculation.signal.at(-1) ?? null;
+  const momentumScore = directionalMomentum(latestMacd, latestSignal, latestClose);
 
-  const quoteFields = quote as Record<string, unknown>;
-  const assetProfile = profile.assetProfile as Record<string, unknown> | undefined;
-  const defaultKeyStatistics = profile.defaultKeyStatistics as Record<string, unknown> | undefined;
-  const summaryDetail = profile.summaryDetail as Record<string, unknown> | undefined;
-  const candles = normalizeCandles(result?.quotes);
-  if (candles.length === 0 && quote.regularMarketPrice == null) throw new Error(`No market data available for ${normalizedSymbol}`);
-
-  const closes = candles.map((c) => c.close);
-  const sma20 = sma(closes, 20);
-  const sma50 = sma(closes, 50);
-  const sma200 = sma(closes, 200);
-  const ema20 = ema(closes, 20);
-  const rsi14 = rsi(closes, 14);
-  const { line: macdLine, signal } = macd(closes);
-
-  const latest = closes.length - 1;
-  const lastChartClose = candles[latest]?.close ?? quote.regularMarketPrice ?? 0;
-  const prev = candles[latest - 1]?.close ?? lastChartClose;
-  const latestPrice = quote.regularMarketPrice ?? lastChartClose;
-  const latestClose = closes[latest] ?? latestPrice;
-  const latestRsi = rsi14[latest] ?? 50;
-  const latestMacd = macdLine[latest] ?? null;
-  const latestSignal = signal[latest] ?? null;
-  const momentumScore = normalizedMomentum(latestMacd, latestSignal, latestPrice);
-  const changePercent = quote.regularMarketChangePercent ?? (prev === 0 ? 0 : ((lastChartClose - prev) / prev) * 100);
-  const movingAverages = buildMovingAverages(latestPrice, sma20, sma50, sma200);
-
-  const supportResistance = candles.length < 30
+  const supportResistance = calculationCandles.length < 30 || !Number.isFinite(comparablePrice)
     ? { supports: [] as PriceZone[], resistances: [] as PriceZone[], message: "ข้อมูลรายวันน้อยกว่า 30 แท่ง จึงยังประเมินโซนที่ควรจับตาไม่ได้" }
     : {
-        supports: buildZones(extractSwings(candles, "support"), latestPrice, candles.length, "support"),
-        resistances: buildZones(extractSwings(candles, "resistance"), latestPrice, candles.length, "resistance")
+        supports: buildZones(extractSwings(calculationCandles, "support"), latestPrice, calculationCandles.length, "support"),
+        resistances: buildZones(extractSwings(calculationCandles, "resistance"), latestPrice, calculationCandles.length, "resistance")
       };
 
   return {
-    symbol: normalizedSymbol,
-    name: asString(result.meta?.longName) ?? asString(quoteFields.longName) ?? asString(quoteFields.shortName),
-    exchange: asString(result.meta?.exchangeName) ?? asString(quoteFields.fullExchangeName) ?? asString(quoteFields.exchange),
-    currency: asString(quoteFields.currency) ?? asString(result.meta?.currency) ?? "USD",
+    ...snapshot,
     sector: asString(assetProfile?.sector),
     industry: asString(assetProfile?.industry),
-    latestPrice,
-    changePercent,
-    previousClose: quote.regularMarketPreviousClose,
-    marketTime: quote.regularMarketTime ? new Date(quote.regularMarketTime * 1000).toISOString() : undefined,
-    lastUpdated: new Date().toISOString(),
+    unavailable,
+    historyStale: parts.history?.stale ?? false,
     candles,
-    indicators: { sma20, sma50, sma200, ema20, rsi14, macd: macdLine, signal },
+    chart,
+    analytics,
+    indicators,
     insight: {
-      trend: getTrend(sma20[latest] ?? null, ema20[latest] ?? null, latestClose),
-      momentum: momentumScore >= 0.75 ? "strong" : momentumScore >= 0.25 ? "moderate" : "weak",
+      trend: getTrend(calculation.sma20.at(-1) ?? null, calculation.ema20.at(-1) ?? null, latestClose),
+      momentum: momentumScore == null ? null : Math.abs(momentumScore) >= 0.75 ? "strong" : Math.abs(momentumScore) >= 0.25 ? "moderate" : "weak",
       momentumScore,
-      rsiSignal: latestRsi > 70 ? "overbought" : latestRsi < 30 ? "oversold" : "neutral",
-      macdSignal: latestMacd == null || latestSignal == null ? "neutral" : latestMacd > latestSignal ? "buy" : latestMacd < latestSignal ? "sell" : "neutral",
-      volatility: volatility(closes, rangeConfig.interval === "1wk" ? 52 : 252)
+      rsiSignal: latestRsi == null ? undefined : latestRsi > 70 ? "overbought" : latestRsi < 30 ? "oversold" : "neutral",
+      macdSignal: latestMacd == null || latestSignal == null ? undefined : latestMacd > latestSignal ? "buy" : latestMacd < latestSignal ? "sell" : "neutral",
+      volatility: closes.length >= 3 ? volatility(closes) : null
     },
     movingAverages,
     supportResistance,
+    fundamentalsRetrievedAt: parts.profile?.retrievedAt,
     valuationMetrics: {
       trailingEps: asNumber(quoteFields.trailingEps) ?? asNumber(defaultKeyStatistics?.trailingEps),
       forwardEps: asNumber(quoteFields.forwardEps) ?? asNumber(defaultKeyStatistics?.forwardEps),
@@ -292,14 +201,6 @@ async function fetchQuoteWithIndicatorsUncached(symbol: string, range: ChartRang
       dividendRate: asNumber(quoteFields.dividendRate) ?? asNumber(summaryDetail?.dividendRate)
     }
   };
-}
-
-const fetchQuoteCached = unstable_cache(fetchQuoteWithIndicatorsUncached, ["quote-with-indicators-v3"], {
-  revalidate: QUOTE_CACHE_SECONDS
-});
-
-export async function fetchQuoteWithIndicators(symbol: string, range: ChartRange = DEFAULT_CHART_RANGE): Promise<QuoteResponse> {
-  return fetchQuoteCached(symbol.trim().toUpperCase(), range);
 }
 
 function normalizeSearchQuotes(quotes: unknown): SearchItem[] {
@@ -325,180 +226,8 @@ function normalizeSearchQuotes(quotes: unknown): SearchItem[] {
   return results;
 }
 
-async function searchSymbolsFromYahooEndpoint(query: string): Promise<SearchItem[]> {
-  const params = new URLSearchParams({
-    q: query,
-    quotesCount: "12",
-    newsCount: "0",
-    listsCount: "0",
-    enableFuzzyQuery: "false",
-    quotesQueryId: "tss_match_phrase_query",
-    multiQuoteQueryId: "multi_quote_single_token_query",
-    enableCb: "false",
-    enableNavLinks: "false",
-    enableEnhancedTrivialQuery: "true"
-  });
-  const response = await withRetry(
-    () => fetch(`https://query2.finance.yahoo.com/v1/finance/search?${params.toString()}`, { headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0 NowhereInsideStock/1.0" }, cache: "no-store" }),
-    "Yahoo search endpoint"
-  );
-  if (!response.ok) return [];
-  const data: unknown = await response.json();
-  return data && typeof data === "object" ? normalizeSearchQuotes((data as Record<string, unknown>).quotes) : [];
-}
-
-export async function searchSymbols(query: string): Promise<SearchItem[]> {
-  const normalizedQuery = query.trim();
-  if (!normalizedQuery) return [];
-  try {
-    const data = await withRetry(() => yahooFinance.search(normalizedQuery, { quotesCount: 12, newsCount: 0, enableCb: false, enableNavLinks: false }), "Yahoo search");
-    const results = normalizeSearchQuotes(data.quotes);
-    if (results.length > 0) return results;
-  } catch (error) {
-    console.error("yahooFinance.search failed; trying Yahoo search endpoint fallback", error);
-  }
-  return searchSymbolsFromYahooEndpoint(normalizedQuery);
-}
-
-function toTrend(value: number | null): "uptrend" | "downtrend" | "sideway" {
-  if (value == null) return "sideway";
-  if (value > 0.2) return "uptrend";
-  if (value < -0.2) return "downtrend";
-  return "sideway";
-}
-
-function toRankingStock(item: Record<string, unknown>): RankingStock | null {
-  const symbol = asString(item.symbol);
-  if (!symbol) return null;
-  const changePercent = asNumber(item.regularMarketChangePercent) ?? null;
-  return {
-    rank: 0,
-    symbol,
-    name: asString(item.shortName) ?? asString(item.longName) ?? symbol,
-    currency: asString(item.currency),
-    latestPrice: asNumber(item.regularMarketPrice) ?? null,
-    changePercent,
-    volume: asNumber(item.regularMarketVolume) ?? null,
-    marketCap: asNumber(item.marketCap) ?? null,
-    trend: toTrend(changePercent)
-  };
-}
-
-function byRanking(type: RankingType, items: RankingStock[]): RankingStock[] {
-  switch (type) {
-    case "top-gainers":
-    case "magnificent-seven":
-    case "thai-stocks":
-    case "ai-tech":
-      return [...items].sort((a, b) => (b.changePercent ?? Number.NEGATIVE_INFINITY) - (a.changePercent ?? Number.NEGATIVE_INFINITY));
-    case "top-losers":
-      return [...items].sort((a, b) => (a.changePercent ?? Number.POSITIVE_INFINITY) - (b.changePercent ?? Number.POSITIVE_INFINITY));
-    case "most-active":
-    case "highest-volume":
-      return [...items].sort((a, b) => (b.volume ?? Number.NEGATIVE_INFINITY) - (a.volume ?? Number.NEGATIVE_INFINITY));
-    case "highest-market-cap":
-      return [...items].sort((a, b) => (b.marketCap ?? Number.NEGATIVE_INFINITY) - (a.marketCap ?? Number.NEGATIVE_INFINITY));
-    case "strongest-momentum":
-      return [...items].sort((a, b) => (b.momentumScore ?? Number.NEGATIVE_INFINITY) - (a.momentumScore ?? Number.NEGATIVE_INFINITY));
-    case "lowest-volatility":
-      return [...items].sort((a, b) => (a.volatility ?? Number.POSITIVE_INFINITY) - (b.volatility ?? Number.POSITIVE_INFINITY));
-  }
-}
-
-async function fetchPredefinedScreener(type: RankingType): Promise<RankingStock[]> {
-  const screenerId = MARKET_SCREENER_IDS[type];
-  if (!screenerId) return [];
-  const params = new URLSearchParams({ formatted: "false", lang: "en-US", region: "US", scrIds: screenerId, count: "25", start: "0" });
-  const response = await withRetry(
-    () => fetch(`https://query1.finance.yahoo.com/v1/finance/screener/predefined/saved?${params.toString()}`, { headers: { Accept: "application/json", "User-Agent": "Mozilla/5.0 NowhereInsideStock/1.0" }, cache: "no-store" }),
-    `Yahoo screener ${screenerId}`
-  );
-  if (!response.ok) return [];
-  const data: unknown = await response.json();
-  if (!data || typeof data !== "object") return [];
-  const finance = (data as Record<string, unknown>).finance;
-  if (!finance || typeof finance !== "object") return [];
-  const result = (finance as Record<string, unknown>).result;
-  if (!Array.isArray(result) || !result[0] || typeof result[0] !== "object") return [];
-  const quotes = (result[0] as Record<string, unknown>).quotes;
-  if (!Array.isArray(quotes)) return [];
-  return quotes.map((item) => (item && typeof item === "object" ? toRankingStock(item as Record<string, unknown>) : null)).filter((item): item is RankingStock => item != null);
-}
-
-async function mapWithConcurrency<T, R>(items: T[], concurrency: number, worker: (item: T) => Promise<R>): Promise<R[]> {
-  const results = new Array<R>(items.length);
-  let nextIndex = 0;
-  const runners = Array.from({ length: Math.min(concurrency, items.length) }, async () => {
-    while (true) {
-      const index = nextIndex;
-      nextIndex += 1;
-      if (index >= items.length) return;
-      results[index] = await worker(items[index]);
-    }
-  });
-  await Promise.all(runners);
-  return results;
-}
-
-async function enrichRankingAnalytics(items: RankingStock[]): Promise<RankingStock[]> {
-  const now = new Date();
-  const from = new Date(now);
-  from.setDate(now.getDate() - 120);
-  return mapWithConcurrency(items, 4, async (item) => {
-    try {
-      const result = await withRetry(() => yahooFinance.chart(item.symbol, { period1: from, period2: now, interval: "1d" }), `analytics ${item.symbol}`);
-      const closes = normalizeCandles(result.quotes).map((candle) => candle.close);
-      const macdResult = macd(closes);
-      const latestIndex = closes.length - 1;
-      return {
-        ...item,
-        volatility: volatility(closes),
-        momentumScore: normalizedMomentum(macdResult.line[latestIndex] ?? null, macdResult.signal[latestIndex] ?? null, closes[latestIndex] ?? item.latestPrice ?? 0)
-      };
-    } catch {
-      return { ...item, volatility: null, momentumScore: null };
-    }
-  });
-}
-
-async function fetchCuratedRanking(type: RankingType): Promise<RankingStock[]> {
-  const quote = await withRetry(
-    () => yahooFinance.quote(RANKING_POOLS[type], { fields: ["symbol", "shortName", "longName", "currency", "regularMarketPrice", "regularMarketChangePercent", "regularMarketVolume", "marketCap"] }),
-    `ranking ${type}`
-  );
-  const raw = Array.isArray(quote) ? quote : [quote];
-  let items = raw.map((item) => toRankingStock(item as unknown as Record<string, unknown>)).filter((item): item is RankingStock => item != null);
-  if (type === "strongest-momentum" || type === "lowest-volatility") items = await enrichRankingAnalytics(items);
-  return items;
-}
-
-const fetchRankingCached = unstable_cache(async (type: RankingType): Promise<RankingResponse> => {
-  let scope: RankingScope = "curated-universe";
-  let items: RankingStock[] = [];
-
-  if (MARKET_SCREENER_IDS[type]) {
-    try {
-      items = await fetchPredefinedScreener(type);
-      if (items.length > 0) scope = "market-screener";
-    } catch (error) {
-      console.error(`Market screener failed for ${type}; using curated fallback`, error);
-    }
-  }
-
-  if (items.length === 0) items = await fetchCuratedRanking(type);
-  const ranked = byRanking(type, items).slice(0, 10).map((item, index) => ({ ...item, rank: index + 1 }));
-
-  return {
-    rankingType: type,
-    title: RANKING_TITLES[type],
-    stocks: ranked,
-    fetchedAt: new Date().toISOString(),
-    source: "Yahoo Finance",
-    scope,
-    scopeLabel: scope === "market-screener" ? "Yahoo market-wide predefined screener" : "Curated symbol universe"
-  };
-}, ["ranking-v3"], { revalidate: 60 });
-
-export async function fetchRanking(type: RankingType): Promise<RankingResponse> {
-  return fetchRankingCached(type);
+export async function searchSymbols(query: string) {
+  const result = await providerSearchResults(query.trim().toUpperCase());
+  if (!Array.isArray(result.value.quotes)) throw new MarketDataError("provider_unavailable");
+  return { results: normalizeSearchQuotes(result.value.quotes), stale: result.stale, retrievedAt: result.retrievedAt };
 }

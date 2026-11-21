@@ -40,7 +40,7 @@ test("cash-only sizing caps shares when risk sizing exceeds available capital", 
   assert.equal(result.limitedByCapital, true);
 });
 
-test("short plans calculate directional targets without assuming leverage", () => {
+test("short plans report hypothetical sizing and directional targets", () => {
   const result = calculatePositionSize({
     accountSize: 10_000,
     riskPercent: 1,
@@ -50,6 +50,7 @@ test("short plans calculate directional targets without assuming leverage", () =
   });
 
   assert.equal(result.direction, "short");
+  assert.equal(result.hypothetical, true);
   assert.equal(result.shares, 20);
   assert.equal(result.rewardRiskRatio, 2);
   assert.equal(result.potentialReward, 200);

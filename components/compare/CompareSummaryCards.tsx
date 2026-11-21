@@ -11,5 +11,5 @@ export function CompareSummaryCards({ summary }: { summary: { bestPerformer: str
     [t("compare.strongestMomentum"), summary.strongestMomentum],
     [t("compare.mostStable"), summary.mostStable]
   ];
-  return <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{cards.map(([label, value]) => <article key={label} className="printstream-shell pearl-border rounded-2xl p-4"><p className="text-xs text-slate-300">{label}</p><p className="text-lg font-semibold">{value}</p></article>)}</section>;
+  return <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">{cards.map(([label, value]) => <article key={label} className="rounded-2xl border border-white/[0.08] bg-surface p-4"><p className="text-xs text-slate-300">{label}</p><p className="text-lg font-semibold">{value}</p></article>)}</section>;
 }

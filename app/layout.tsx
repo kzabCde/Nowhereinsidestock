@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Footer from "@/components/layout/Footer";
 import Header from "@/components/layout/Header";
 import { BottomNav } from "@/components/layout/BottomNav";
+import { AlertMonitor } from "@/components/alerts/AlertMonitor";
 import { SearchModal } from "@/components/ui/SearchModal";
 import { I18nProvider } from "@/components/i18n/I18nProvider";
 import { getLocale } from "@/lib/i18n/server";
@@ -68,6 +69,7 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
         <I18nProvider initialLocale={locale}>
           <div className="flex min-h-screen flex-col overflow-x-hidden">
             <Header />
+            <AlertMonitor />
             <div className="flex-1 overflow-x-hidden pb-20 md:pb-0">{children}</div>
             <Footer />
           </div>

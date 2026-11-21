@@ -6,7 +6,7 @@ import { formatMarketCurrency } from "@/lib/format/market";
 import { macdLabel, rsiLabel, trendLabel } from "@/lib/i18n/market-labels";
 import type { CompareSeries } from "@/lib/types/compare";
 
-function metric(value: number | undefined, suffix = ""): string {
+function metric(value: number | null | undefined, suffix = ""): string {
   return typeof value === "number" && Number.isFinite(value) ? `${value.toFixed(2)}${suffix}` : "—";
 }
 
@@ -25,7 +25,7 @@ export function CompareMetricsTable({ series }: { series: CompareSeries[] }) {
           <tbody>
             {series.map((item) => (
               <tr key={item.symbol} className="border-t border-white/10 text-slate-200">
-                <td className="p-3 font-semibold text-white">{item.symbol}</td><td className="p-3">{formatMarketCurrency(item.metrics.latestPrice, item.metrics.currency ?? "USD")}</td><td className="p-3">{metric(item.metrics.totalReturn, "%")}</td><td className="p-3">{metric(item.metrics.volatility, "%")}</td><td className="p-3">{metric(item.metrics.maxDrawdown, "%")}</td><td className="p-3">{metric(item.metrics.sharpeRatio)}</td><td className="p-3">{metric(item.metrics.sortinoRatio)}</td><td className="p-3">{metric(item.metrics.momentumScore, "%")}</td><td className="p-3">{trendLabel(locale, item.metrics.trend)}</td><td className="p-3">{rsiLabel(locale, item.metrics.rsiSignal)}</td><td className="p-3">{macdLabel(locale, item.metrics.macdSignal)}</td><td className="p-3">{Math.round(item.metrics.averageVolume ?? 0).toLocaleString(locale === "th" ? "th-TH" : "en-US")}</td>
+                <td className="p-3 font-semibold text-white">{item.symbol}</td><td className="p-3">{item.metrics.currency ? formatMarketCurrency(item.metrics.latestPrice, item.metrics.currency) : metric(item.metrics.latestPrice)}</td><td className="p-3">{metric(item.metrics.totalReturn, "%")}</td><td className="p-3">{metric(item.metrics.volatility, "%")}</td><td className="p-3">{metric(item.metrics.maxDrawdown, "%")}</td><td className="p-3">{metric(item.metrics.sharpeRatio)}</td><td className="p-3">{metric(item.metrics.sortinoRatio)}</td><td className="p-3">{metric(item.metrics.momentumScore, "%")}</td><td className="p-3">{trendLabel(locale, item.metrics.trend)}</td><td className="p-3">{rsiLabel(locale, item.metrics.rsiSignal)}</td><td className="p-3">{macdLabel(locale, item.metrics.macdSignal)}</td><td className="p-3">{item.metrics.averageVolume?.toLocaleString(locale === "th" ? "th-TH" : "en-US", { maximumFractionDigits: 0 }) ?? "—"}</td>
               </tr>
             ))}
           </tbody>
