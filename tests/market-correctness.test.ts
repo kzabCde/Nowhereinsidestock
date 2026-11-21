@@ -45,7 +45,12 @@ test("daily MA200 and crosses use calculation history across chart ranges", () =
     assert.equal(weekly.chart.indicatorInterval, "1d");
     assert.equal(buildDailySeries(bars.slice(1), "6M", today, last).movingAverages.crossSignal, "insufficient");
     assert.equal(buildDailySeries(bars.slice(2), "6M", today, last).movingAverages.ma200, null);
-    assert.equal(buildDailySeries(bars, "1M", today, last, bars.at(-2)!.date).movingAverages.crossSignal, "insufficient");
+    const partial = buildDailySeries(bars, "1M", today, last, bars.at(-2)!.date);
+    assert.equal(partial.movingAverages.crossSignal, "insufficient");
+    assert.equal(partial.indicators.sma200.at(-1), null);
+    const noComparableCurrency = buildDailySeries(bars, "6M", today, NaN);
+    assert.notEqual(noComparableCurrency.movingAverages.ma200, null);
+    assert.equal(noComparableCurrency.movingAverages.priceVsMA200, "insufficient");
   }
 });
 

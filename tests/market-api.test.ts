@@ -96,3 +96,21 @@ test("cache coalesces reads, preserves retrieval time on failure, and expires st
   now += 10_000;
   await assert.rejects(cached("symbol", fail), { code: "provider_unavailable" });
 });
+
+test("chart view can use history without requesting a quote or fundamentals", async () => {
+  const chart = buildDailySeries([], "3Y", "2025-01-10", 123);
+  const handle = createQuoteHandler(
+    async () => assert.fail("Chart view should not load detail"),
+    async () => assert.fail("Chart view should not load a quote"),
+    async (symbol, range) => {
+      assert.equal(symbol, "AAPL");
+      assert.equal(range, "3Y");
+      return { symbol, candles: chart.candles, chart: chart.chart, indicators: chart.indicators, historyStale: false };
+    }
+  );
+  const response = await handle(new Request("https://unit.test/api/stocks/AAPL?view=chart&range=3Y"), { params: Promise.resolve({ symbol: "AAPL" }) });
+  assert.equal(response.status, 200);
+  const body = await response.json();
+  assert.equal(body.chart.interval, "1wk");
+  assert.equal(body.latestPrice, undefined);
+});

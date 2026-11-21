@@ -53,6 +53,7 @@ test("crossover alerts use the completed trading date and deduplicate events", (
   for (const type of ["golden_cross", "death_cross"] as const) {
     const rule = { ...definition, type };
     const reading = { daily: { date: "2025-02-04", cross: type, rsi: null, stale: false } };
+    assert.equal(evaluateAlert(rule, {}, reading, observed(0)).event, undefined);
     const historic = evaluateAlert(rule, {}, { daily: { ...reading.daily, date: "2025-02-03" } }, observed(0));
     assert.equal(historic.event, undefined);
     const first = evaluateAlert(rule, historic.state, reading, observed(1));
