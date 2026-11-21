@@ -49,11 +49,11 @@ function formatNumber(value: number | undefined | null, locale: string): string 
 }
 function formatPercent(value: number): string { return `${value >= 0 ? "+" : ""}${value.toFixed(2)}%`; }
 function getLatestVolume(data: QuoteResponse): number | null {
-  const latestCandle = data.candles.at(-1);
+  const latestCandle = data.analytics.candles.at(-1);
   return latestCandle && Number.isFinite(latestCandle.volume) ? latestCandle.volume : null;
 }
 function getAverageVolume(data: QuoteResponse): number | null {
-  const volumes = data.candles.slice(-20).map((candle) => candle.volume).filter(Number.isFinite);
+  const volumes = data.analytics.candles.slice(-20).map((candle) => candle.volume).filter((volume): volume is number => volume != null && Number.isFinite(volume));
   return volumes.length === 0 ? null : volumes.reduce((sum, volume) => sum + volume, 0) / volumes.length;
 }
 
@@ -144,7 +144,7 @@ export function StockDetailPreviewTabs({ data, onRefresh, refreshing = false }: 
         {activeTab === "moving-average" && <MovingAveragePanel movingAverages={data.movingAverages} />}
         {activeTab === "support-resistance" && <SupportResistancePanel supports={data.supportResistance.supports} resistances={data.supportResistance.resistances} />}
         {activeTab === "fair-value" && <FairValueCalculator symbol={data.symbol} currentPrice={data.latestPrice} metrics={data.valuationMetrics} currency={data.currency} />}
-        {activeTab === "backtest" && <BacktestPanel candles={data.candles} currency={data.currency} />}
+        {activeTab === "backtest" && <BacktestPanel candles={data.analytics.candles} currency={data.currency} />}
         {activeTab === "next-signal" && <NextSignalPanel symbol={data.symbol} latestPrice={data.latestPrice} currency={data.currency} changePercent={data.changePercent} trend={getTechnicalTrend(data)} movingAverages={data.movingAverages} supportResistance={data.supportResistance} rsiSignal={data.insight.rsiSignal} macdSignal={data.insight.macdSignal} momentumScore={data.insight.momentumScore} volume={getLatestVolume(data)} averageVolume={getAverageVolume(data)} />}
       </div>
     </section>

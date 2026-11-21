@@ -4,7 +4,7 @@ export type Candle = {
   close: number;
   high: number;
   low: number;
-  volume: number;
+  volume: number | null;
 };
 
 export type ChartRange = "1M" | "3M" | "6M" | "1Y" | "3Y" | "5Y";
@@ -63,6 +63,8 @@ export type QuoteResponse = {
   marketTime?: string;
   lastUpdated: string;
   candles: Candle[];
+  chart: { range: ChartRange; interval: "1d" | "1wk"; indicatorInterval: "1d" };
+  analytics: { interval: "1d"; lookbackDays: number; candles: Candle[]; asOf?: string };
   indicators: {
     sma20: Array<number | null>;
     sma50: Array<number | null>;

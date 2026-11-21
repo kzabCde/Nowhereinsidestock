@@ -35,7 +35,7 @@ type ChartPoint = {
   high: number;
   low: number;
   close: number;
-  volume: number;
+  volume: number | null;
   candleRange: [number, number];
   ma20: number | null;
   ma50: number | null;
@@ -135,7 +135,7 @@ function PriceTooltip({ active, payload, currency, locale, candleMode }: PriceTo
   if (!point) return null;
   const numberLocale = locale === "th" ? "th-TH" : "en-US";
   const price = (value: number) => formatMarketCurrency(value, currency, numberLocale);
-  const volume = new Intl.NumberFormat(numberLocale, { notation: "compact", maximumFractionDigits: 1 }).format(point.volume);
+  const volume = point.volume == null ? "—" : new Intl.NumberFormat(numberLocale, { notation: "compact", maximumFractionDigits: 1 }).format(point.volume);
 
   return (
     <div className="rounded-xl border border-[#1F2A3D] bg-[#0B1320]/95 px-3 py-2.5 text-xs shadow-xl backdrop-blur">
@@ -361,7 +361,7 @@ export function PriceChart({ data, supports = [], resistances = [] }: PriceChart
             {settings.style === "bars" ? <Bar yAxisId="price" dataKey="close" name="Close" fill="#47A8FF" maxBarSize={7} radius={[2, 2, 0, 0]} isAnimationActive={false} /> : null}
             {candleMode ? <Bar yAxisId="price" dataKey="candleRange" name={settings.style === "heikinAshi" ? "Heikin-Ashi" : "OHLC"} shape={<CandlestickShape />} maxBarSize={12} isAnimationActive={false} /> : null}
 
-            {movingAverageLines.map((line) => settings.averages[line.key] ? <Line yAxisId="price" key={line.key} dataKey={line.key} name={line.key.toUpperCase()} stroke={line.stroke} strokeDasharray={line.dash} dot={false} connectNulls={false} strokeWidth={1.6} isAnimationActive={false} /> : null)}
+            {movingAverageLines.map((line) => settings.averages[line.key] ? <Line yAxisId="price" key={line.key} dataKey={line.key} name={`${line.key.toUpperCase()} (1D)`} stroke={line.stroke} strokeDasharray={line.dash} dot={false} connectNulls={false} strokeWidth={1.6} isAnimationActive={false} /> : null)}
           </ComposedChart>
         </ResponsiveContainer>
       </div>

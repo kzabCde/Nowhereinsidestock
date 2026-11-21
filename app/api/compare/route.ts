@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 import { fetchCompareStock } from "@/lib/services/compare";
+import { alignPerformance } from "@/lib/finance/trading-dates";
+import { maxDrawdown, sharpeRatio, sortinoRatio } from "@/lib/finance/risk";
+import { volatility } from "@/lib/indicators/technical";
 import type { CompareApiResponse, CompareRange, CompareSeries } from "@/lib/types/compare";
 
 const VALID_RANGES: CompareRange[] = ["1M", "6M", "1Y", "5Y"];
@@ -26,36 +29,34 @@ export async function GET(req: Request) {
 
   try {
     const results = await Promise.all(symbols.map((symbol) => fetchCompareStock(symbol, rangeParam)));
-    const failed = results.find((result) => result.error);
-    if (failed) throw new Error(`${failed.symbol}: ${failed.error}`);
-
-    const series: CompareSeries[] = results.map((result) => ({
+    const aligned = alignPerformance(results.map((result) => result.points));
+    if (!aligned) return NextResponse.json({ error: "At least two shared trading dates are required." }, { status: 422 });
+    const series: CompareSeries[] = results.map((result, index) => {
+      const points = aligned.points[index];
+      const closes = points.map((point) => point.close);
+      return {
       symbol: result.symbol,
       name: result.name,
-      points: result.points.map((point) => ({
-        date: point.date,
-        close: point.close,
-        normalized: point.normalized,
-        percentChange: point.normalized - 100
-      })),
+      points,
       metrics: {
         latestPrice: result.metrics.latestPrice,
         currency: result.metrics.currency,
         percentChange: result.metrics.percentChange,
-        totalReturn: result.metrics.totalReturn,
-        volatility: result.metrics.volatility,
+        totalReturn: points.at(-1)!.percentChange,
+        volatility: volatility(closes),
         trend: result.metrics.trendDirection === "bullish" ? "uptrend" : result.metrics.trendDirection === "bearish" ? "downtrend" : "sideway",
-        rsiSignal: result.metrics.rsi.toFixed(2),
+        rsiSignal: result.metrics.rsi?.toFixed(2),
         macdSignal: result.metrics.macdSignal,
         averageVolume: result.metrics.averageVolume,
         momentumScore: result.metrics.momentumScore,
-        maxDrawdown: result.metrics.maxDrawdown,
-        sharpeRatio: result.metrics.sharpeRatio,
-        sortinoRatio: result.metrics.sortinoRatio
+        maxDrawdown: maxDrawdown(closes),
+        sharpeRatio: sharpeRatio(closes),
+        sortinoRatio: sortinoRatio(closes)
       }
-    }));
+      };
+    });
 
-    const response: CompareApiResponse = { symbols, range: rangeParam, series };
+    const response: CompareApiResponse = { symbols, range: rangeParam, series, baselineDate: aligned.start, endDate: aligned.end };
     return NextResponse.json(response, {
       headers: { "Cache-Control": "public, s-maxage=300, stale-while-revalidate=300" }
     });

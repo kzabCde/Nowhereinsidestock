@@ -10,7 +10,7 @@ export function CompareCorrelationMatrix({ series }: { series: CompareSeries[] }
   if (series.length < 2) return null;
 
   const describe = (value: number | null): string => {
-    if (value == null) return locale === "th" ? "ข้อมูลช่วงเวลาที่ตรงกันไม่เพียงพอ" : "Insufficient overlap";
+    if (value == null) return locale === "th" ? "ข้อมูลช่วงเวลาที่ตรงกันไม่เพียงพอ" : "Insufficient overlap or constant returns";
     const absolute = Math.abs(value);
     if (absolute >= 0.8) return value > 0 ? (locale === "th" ? "สัมพันธ์บวกสูงมาก" : "Very strong positive") : (locale === "th" ? "สัมพันธ์ลบสูงมาก" : "Very strong negative");
     if (absolute >= 0.5) return value > 0 ? (locale === "th" ? "สัมพันธ์บวกปานกลาง" : "Moderate positive") : (locale === "th" ? "สัมพันธ์ลบปานกลาง" : "Moderate negative");
@@ -33,15 +33,16 @@ export function CompareCorrelationMatrix({ series }: { series: CompareSeries[] }
               <tr key={row.symbol}>
                 <th className="p-3 text-left font-semibold text-white">{row.symbol}</th>
                 {series.map((column) => {
-                  const value = row.values[column.symbol] ?? null;
-                  return <td key={column.symbol} className="p-3 text-slate-300" title={describe(value)}>{value == null ? "—" : value.toFixed(3)}</td>;
+                  const value = row.values[column.symbol];
+                  const samples = row.samples[column.symbol];
+                  return <td key={column.symbol} className="p-3 text-slate-300" title={describe(value)}>{value == null ? "—" : value.toFixed(3)} <span className="block text-xs text-slate-500">n={samples}</span></td>;
                 })}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <p className="mt-3 text-xs text-slate-600">{locale === "th" ? "ค่าสหสัมพันธ์เป็นข้อมูลย้อนหลังและเปลี่ยนแปลงได้ตามภาวะตลาด จึงไม่รับประกันการกระจายความเสี่ยงในอนาคต" : "Correlation is historical and can change across market regimes. It is not a guarantee of future diversification."}</p>
+      <p className="mt-3 text-xs text-slate-600">{locale === "th" ? "แต่ละคู่ใช้ผลตอบแทนระหว่างวันซื้อขายร่วมที่ต่อเนื่องกัน n คือจำนวนช่วงที่ตรงกัน ค่าสหสัมพันธ์ย้อนหลังอาจเปลี่ยนแปลงได้" : "Each pair uses returns between consecutive shared dates. n is the number of matched return intervals. Historical correlation can change."}</p>
     </section>
   );
 }

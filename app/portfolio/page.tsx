@@ -5,6 +5,7 @@ import { type FormEvent, useEffect, useMemo, useState } from "react";
 import { PageShell } from "@/components/ui/PageShell";
 import { useI18n } from "@/components/i18n/I18nProvider";
 import { formatMarketCurrency } from "@/lib/format/market";
+import { valuePortfolio } from "@/lib/finance/portfolio-valuation";
 import type { QuoteResponse } from "@/lib/types/market";
 import { usePortfolioStore } from "@/store/portfolio-store";
 
@@ -50,7 +51,7 @@ export default function PortfolioPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [symbols.join(",")]);
 
-  const holdings = useMemo(() => {
+  const { positions: holdings, currencies: totalsByCurrency } = useMemo(() => {
     const grouped = new Map<string, { key: string; symbol: string; currency: string; quantity: number; cost: number }>();
     for (const item of transactions) {
       const key = `${item.symbol}:${item.currency}`;
@@ -59,34 +60,8 @@ export default function PortfolioPage() {
       current.cost += item.quantity * item.price;
       grouped.set(key, current);
     }
-
-    return [...grouped.values()].map((holding) => {
-      const quote = quotes[holding.symbol];
-      const marketCurrency = quote?.currency ?? holding.currency;
-      const marketValue = quote ? quote.latestPrice * holding.quantity : null;
-      const sameCurrency = marketCurrency === holding.currency;
-      const pnl = marketValue == null || !sameCurrency ? null : marketValue - holding.cost;
-      const pnlPercent = pnl == null || holding.cost === 0 ? null : (pnl / holding.cost) * 100;
-      return { ...holding, marketCurrency, quote, marketValue, sameCurrency, pnl, pnlPercent };
-    });
+    return valuePortfolio([...grouped.values()], quotes);
   }, [quotes, transactions]);
-
-  const totalsByCurrency = useMemo(() => {
-    const totals = new Map<string, { cost: number; marketValue: number; hasComparableMarketValue: boolean; excludedPositions: number }>();
-    for (const holding of holdings) {
-      const key = holding.currency;
-      const total = totals.get(key) ?? { cost: 0, marketValue: 0, hasComparableMarketValue: false, excludedPositions: 0 };
-      total.cost += holding.cost;
-      if (holding.marketValue != null && holding.sameCurrency) {
-        total.marketValue += holding.marketValue;
-        total.hasComparableMarketValue = true;
-      } else if (holding.marketValue != null && !holding.sameCurrency) {
-        total.excludedPositions += 1;
-      }
-      totals.set(key, total);
-    }
-    return [...totals.entries()];
-  }, [holdings]);
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -124,15 +99,15 @@ export default function PortfolioPage() {
 
       {totalsByCurrency.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {totalsByCurrency.map(([code, total]) => {
-            const pnl = total.hasComparableMarketValue ? total.marketValue - total.cost : null;
+          {totalsByCurrency.map((total) => {
+            const { currency: code, unrealized: pnl } = total;
             return (
               <div key={code} className="rounded-2xl border border-white/[0.08] bg-surface p-4">
                 <p className="section-kicker">{code} {t("nav.portfolio")}</p>
-                <p className="mt-2 text-2xl font-bold text-white">{total.hasComparableMarketValue ? formatMarketCurrency(total.marketValue, code) : "—"}</p>
+                <p className="mt-2 text-2xl font-bold text-white">{total.valued ? formatMarketCurrency(total.comparableMarketValue, code) : "—"}</p>
                 <p className="mt-1 text-xs text-slate-500">{t("portfolio.cost")} {formatMarketCurrency(total.cost, code)}</p>
                 <p className={`mt-3 text-sm font-semibold ${pnl != null && pnl >= 0 ? "text-success" : "text-danger"}`}>{t("portfolio.unrealized")} {pnl == null ? "—" : formatMarketCurrency(pnl, code)}</p>
-                {total.excludedPositions > 0 ? <p className="mt-2 text-xs text-warning">{locale === "th" ? `${total.excludedPositions} รายการไม่รวมใน P/L เพราะสกุลเงินของราคาตลาดไม่ตรงกัน` : `${total.excludedPositions} position(s) excluded from P/L because quote currency differs.`}</p> : null}
+                {total.excluded > 0 ? <p className="mt-2 text-xs text-warning">{locale === "th" ? `ประเมินได้ ${total.valued} จาก ${total.valued + total.excluded} รายการ` : `${total.valued} of ${total.valued + total.excluded} positions valued`} · {locale === "th" ? "ต้นทุนที่ใช้คำนวณ" : "Comparable cost"} {formatMarketCurrency(total.comparableCost, code)}</p> : null}
               </div>
             );
           })}
@@ -156,7 +131,13 @@ export default function PortfolioPage() {
                 <div>
                   <p className="section-kicker">{t("portfolio.unrealized")}</p>
                   <p className={`mt-1 text-sm font-semibold ${holding.pnl != null && holding.pnl >= 0 ? "text-success" : "text-danger"}`}>{holding.pnl == null ? "—" : `${formatMarketCurrency(holding.pnl, holding.currency)} (${holding.pnlPercent?.toFixed(2)}%)`}</p>
-                  {!holding.sameCurrency && holding.quote ? <p className="mt-1 text-[10px] text-warning">{locale === "th" ? "ต้องแปลงสกุลเงิน" : "Needs FX conversion"} ({holding.currency} → {holding.marketCurrency})</p> : null}
+                  {holding.exclusion && <p className="mt-1 text-xs text-warning">{
+                    holding.exclusion === "currency-mismatch"
+                      ? `${locale === "th" ? "สกุลเงินไม่ตรงกัน" : "Currency mismatch"} (${holding.marketCurrency})`
+                      : holding.exclusion === "missing-quote"
+                        ? locale === "th" ? "ไม่มีราคา" : "Quote unavailable"
+                        : locale === "th" ? "ราคาไม่ถูกต้องหรือไม่มีสกุลเงิน" : "Invalid price or missing currency"
+                  }</p>}
                 </div>
                 <Link href={`/compare?symbols=${holding.symbol}`} className="btn-premium justify-center text-xs">{t("nav.compare")}</Link>
               </div>

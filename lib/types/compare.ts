@@ -20,7 +20,7 @@ export type CompareMetrics = {
   trend: "uptrend" | "downtrend" | "sideway";
   rsiSignal?: string;
   macdSignal?: string;
-  averageVolume?: number;
+  averageVolume?: number | null;
   momentumScore?: number;
   maxDrawdown?: number;
   sharpeRatio?: number;
@@ -38,18 +38,20 @@ export type CompareApiResponse = {
   symbols: string[];
   range: CompareRange;
   series: CompareSeries[];
+  baselineDate?: string;
+  endDate?: string;
 };
 
 export type CompareMetric = {
   symbol: string;
   name: string;
   latestPrice: number;
-  currency: string;
+  currency?: string;
   percentChange: number;
   totalReturn: number;
   volatility: number;
-  averageVolume: number;
-  rsi: number;
+  averageVolume: number | null;
+  rsi: number | null;
   macdSignal: "buy" | "sell" | "neutral";
   trendDirection: "bullish" | "bearish" | "neutral";
   momentumScore: number;

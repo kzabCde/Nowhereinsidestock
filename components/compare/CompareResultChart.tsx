@@ -1,6 +1,7 @@
 "use client";
 
 import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { priceByDate } from "@/lib/finance/trading-dates";
 import type { CompareSeries } from "@/lib/types/compare";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { useI18n } from "@/components/i18n/I18nProvider";
@@ -10,25 +11,25 @@ const COLORS = ["#67e8f9", "#a78bfa", "#fb7185", "#34d399"];
 
 export function CompareResultChart({ series }: { series: CompareSeries[] }) {
   const { locale } = useI18n();
-  const rows = series[0]?.points.map((point, index) => {
-    const row: Record<string, number | string> = { date: point.date };
-    series.forEach((item) => {
-      const p = item.points[index];
-      if (p) {
-        row[item.symbol] = p.normalized;
-        row[`${item.symbol}_pct`] = p.percentChange;
-        row[`${item.symbol}_close`] = p.close;
-      }
-    });
-    return row;
-  }) ?? [];
-  const currencies = Object.fromEntries(series.map((item) => [item.symbol, item.metrics.currency ?? "USD"]));
+  const byDate = new Map<string, Record<string, number | string>>();
+  for (const item of series) {
+    for (const [date, point] of priceByDate(item.points)) {
+      const row = byDate.get(date) ?? { date };
+      row[item.symbol] = point.normalized;
+      row[`${item.symbol}_pct`] = point.percentChange;
+      row[`${item.symbol}_close`] = point.close;
+      byDate.set(date, row);
+    }
+  }
+  const rows = [...byDate.values()].sort((left, right) => String(left.date).localeCompare(String(right.date)));
+  const currencies = Object.fromEntries(series.map((item) => [item.symbol, item.metrics.currency]));
 
   return (
     <SectionCard className="w-full">
       <div className="mb-4">
         <p className="section-kicker">{locale === "th" ? "กราฟผลลัพธ์" : "Result chart"}</p>
         <h2 className="mt-2 text-2xl font-semibold text-white">{locale === "th" ? "ผลการเคลื่อนไหวแบบปรับฐาน" : "Normalized performance"}</h2>
+        <p className="mt-1 text-sm text-slate-500">{locale === "th" ? "ฐาน 100 ณ วันซื้อขายร่วมวันแรก · ผลตอบแทนในสกุลเงินท้องถิ่น" : "Base 100 on the first shared trading date · returns in local currency"}</p>
       </div>
       <div className="h-[300px] w-full min-w-0 sm:h-[420px]">
         <ResponsiveContainer width="100%" height="100%">
@@ -42,13 +43,15 @@ export function CompareResultChart({ series }: { series: CompareSeries[] }) {
                 const symbol = String(name);
                 const normalized = Number(value).toFixed(2);
                 const pct = Number(item.payload[`${symbol}_pct`]).toFixed(2);
-                const close = formatMarketCurrency(Number(item.payload[`${symbol}_close`]), currencies[symbol] ?? "USD");
+                const rawClose = Number(item.payload[`${symbol}_close`]);
+                const currency = currencies[symbol];
+                const close = currency ? formatMarketCurrency(rawClose, currency) : rawClose.toFixed(2);
                 const label = locale === "th" ? `ปรับฐาน ${normalized} | ${pct}% | ${close}` : `Norm ${normalized} | ${pct}% | ${close}`;
                 return [label, symbol];
               }}
             />
             <Legend />
-            {series.map((item, idx) => <Line key={item.symbol} dataKey={item.symbol} stroke={COLORS[idx]} dot={false} strokeWidth={2.5} />)}
+            {series.map((item, idx) => <Line key={item.symbol} dataKey={(row) => row[item.symbol] ?? null} name={item.symbol} connectNulls={false} isAnimationActive={false} stroke={COLORS[idx]} dot={false} strokeWidth={2.5} />)}
           </LineChart>
         </ResponsiveContainer>
       </div>
