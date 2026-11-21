@@ -76,7 +76,7 @@ export type QuoteResponse = QuoteSnapshot & {
   historyStale: boolean;
   candles: Candle[];
   chart: { range: ChartRange; interval: "1d" | "1wk"; indicatorInterval: "1d" };
-  analytics: { interval: "1d"; lookbackDays: number; candles: Candle[]; asOf?: string };
+  analytics: { interval: "1d"; lookbackDays: number; candles: Candle[]; asOf?: string; rsi14: number | null };
   indicators: {
     sma20: Array<number | null>;
     sma50: Array<number | null>;

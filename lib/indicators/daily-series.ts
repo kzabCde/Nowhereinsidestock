@@ -80,7 +80,7 @@ export function buildDailySeries(history: Candle[], range: ChartRange, today: st
   };
   return {
     candles: chartRows.map(({ candle }) => candle), indicators, calculation,
-    analytics: { interval: "1d" as const, lookbackDays: ANALYTICS_DAYS, candles: calculationCandles, asOf: calculationCandles.at(-1)?.date },
+    analytics: { interval: "1d" as const, lookbackDays: ANALYTICS_DAYS, candles: calculationCandles, asOf: calculationCandles.at(-1)?.date, rsi14: calculation.rsi14.at(-1) ?? null },
     chart: { range, interval: display.interval, indicatorInterval: "1d" as const },
     movingAverages: movingAverages(price, calculation)
   };
